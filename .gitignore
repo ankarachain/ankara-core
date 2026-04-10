@@ -13,3 +13,4 @@ deployments/
 .openzeppelin/
 .DS_Store
 *.log
+ankara.config.json
