@@ -1,0 +1,100 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Ankara Chain",
+  "colors": {
+    "primary": "#1DDE72",
+    "light": "#1DDE72",
+    "dark": "#1DDE72"
+  },
+  "favicon": "/favicon.ico",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "CLI",
+            "pages": [
+              "cli/commands"
+            ]
+          },
+          {
+            "group": "Asset Templates",
+            "pages": [
+              "templates/overview",
+              "templates/farmland",
+              "templates/commodity",
+              "templates/real-estate",
+              "templates/invoice",
+              "templates/carbon-credit",
+              "templates/mining-rights"
+            ]
+          },
+          {
+            "group": "Smart Contracts",
+            "pages": [
+              "contracts/overview"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "SDK Reference",
+            "pages": [
+              "sdk/token-factory",
+              "sdk/types",
+              "sdk/abis"
+            ]
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/cranebolt/ankarachain",
+          "icon": "github"
+        },
+        {
+          "anchor": "Discord",
+          "href": "https://discord.gg/ankarachain",
+          "icon": "discord"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "GitHub",
+        "href": "https://github.com/cranebolt/ankarachain"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "/quickstart"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/cranebolt/ankarachain"
+    }
+  }
+}
