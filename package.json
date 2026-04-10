@@ -1,0 +1,18 @@
+{
+  "name": "ankarachain",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ankara Chain SDK — Open-source RWA tokenization infrastructure",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:contracts": "npm run test --workspace=packages/contracts",
+    "compile": "npm run compile --workspace=packages/contracts",
+    "deploy:amoy": "npm run deploy:amoy --workspace=packages/contracts",
+    "clean": "npm run clean --workspaces --if-present"
+  },
+  "engines": { "node": ">=18.0.0" },
+  "author": "Cranebolt Technologies <hello@cranebolt.com>",
+  "license": "MIT"
+}
