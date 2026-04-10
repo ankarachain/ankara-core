@@ -5,6 +5,10 @@ import type {
   AnkaraChainConfig,
   DeployFarmlandOptions,
   DeployCommodityOptions,
+  DeployRealEstateOptions,
+  DeployInvoiceOptions,
+  DeployCarbonCreditOptions,
+  DeployMiningRightsOptions,
   DeployResult,
   SupportedNetwork,
 } from "../types";
@@ -76,6 +80,34 @@ export class TokenFactory {
    */
   async deployCommodity(opts: DeployCommodityOptions): Promise<DeployResult> {
     return this._adapter.deployCommodityReceiptToken(opts);
+  }
+
+  /**
+   * Deploy a new RealEstateToken via the on-chain factory
+   */
+  async deployRealEstate(opts: DeployRealEstateOptions): Promise<DeployResult> {
+    return this._adapter.deployRealEstateToken(opts);
+  }
+
+  /**
+   * Deploy a new InvoiceToken via the on-chain factory
+   */
+  async deployInvoice(opts: DeployInvoiceOptions): Promise<DeployResult> {
+    return this._adapter.deployInvoiceToken(opts);
+  }
+
+  /**
+   * Deploy a new CarbonCreditToken via the on-chain factory
+   */
+  async deployCarbonCredit(opts: DeployCarbonCreditOptions): Promise<DeployResult> {
+    return this._adapter.deployCarbonCreditToken(opts);
+  }
+
+  /**
+   * Deploy a new MiningRightsToken via the on-chain factory
+   */
+  async deployMiningRights(opts: DeployMiningRightsOptions): Promise<DeployResult> {
+    return this._adapter.deployMiningRightsToken(opts);
   }
 
   // ─── Queries ─────────────────────────────────────────────────────────────

@@ -30,33 +30,87 @@ export enum AssetStatus {
 
 // ─── Asset templates ─────────────────────────────────────────────────────────
 
-export type AssetTemplate = "farmland" | "commodity";
+export type AssetTemplate =
+  | "farmland"
+  | "commodity"
+  | "real-estate"
+  | "invoice"
+  | "carbon-credit"
+  | "mining-rights";
 
 // ─── Metadata types ──────────────────────────────────────────────────────────
 
 export interface FarmlandMetadata {
-  location: string;         // GPS decimal degrees or cadastral ref
-  areaSqMeters: bigint;     // Land area in square metres
-  soilType: string;         // loam | clay | sandy | silt | peaty
-  irrigationType: string;   // none | rain-fed | drip | canal | borehole
-  cropHistory: string;      // Last 3 seasons e.g. "maize,sorghum,fallow"
-  titleDocumentHash: string;// IPFS CID or bytes32 hex string
-  valuationUSD: bigint;     // In wei (18 decimals)
-  stateRegion: string;      // State or province
-  lastUpdated: bigint;      // Unix timestamp
+  location: string;
+  areaSqMeters: bigint;
+  soilType: string;
+  irrigationType: string;
+  cropHistory: string;
+  titleDocumentHash: string;
+  valuationUSD: bigint;
+  stateRegion: string;
+  lastUpdated: bigint;
 }
 
 export interface CommodityMetadata {
-  commodityType: string;       // cocoa|coffee|maize|cotton|soybean|palm-oil
+  commodityType: string;
   quantityKg: bigint;
-  gradeClassification: string; // e.g. "Grade A", "FAQ", "GC1"
+  gradeClassification: string;
   warehouseId: string;
   warehouseLocation: string;
-  depositDate: bigint;         // Unix timestamp
-  expiryDate: bigint;          // Unix timestamp
-  inspectionReportHash: string;// IPFS CID
+  depositDate: bigint;
+  expiryDate: bigint;
+  inspectionReportHash: string;
   valuationUSD: bigint;
-  harvestSeason: string;       // e.g. "2025/2026"
+  harvestSeason: string;
+  lastUpdated: bigint;
+}
+
+export interface RealEstateMetadata {
+  propertyId: string;
+  propertyType: string;       // Residential | Commercial | Industrial | Land
+  locationAddress: string;
+  totalAreaSqMeters: bigint;
+  titleDocumentHash: string;
+  valuationUSD: bigint;
+  rentalYieldBps: bigint;     // Annual yield in basis points e.g. 600 = 6%
+  occupancyStatus: string;    // Vacant | Owner-occupied | Tenanted
+  developerAddress: string;
+  lastUpdated: bigint;
+}
+
+export interface InvoiceMetadata {
+  invoiceNumber: string;
+  debtorReference: string;
+  faceValueUSD: bigint;
+  discountRateBps: bigint;
+  issuanceDate: bigint;
+  dueDate: bigint;
+  invoiceDocumentHash: string;
+  currency: string;           // ISO 4217 e.g. NGN, GHS, KES, USD
+  lastUpdated: bigint;
+}
+
+export interface CarbonCreditMetadata {
+  creditType: string;          // REDD+ | VCS | Gold Standard | GS4GG | CDM
+  verificationBodyRef: string;
+  vintageYear: bigint;
+  quantityCO2e: bigint;        // In wei (1e18 = 1 tCO2e)
+  projectLocation: string;
+  projectType: string;         // Forestry | Agriculture | Energy | Waste
+  verificationDocHash: string;
+  lastUpdated: bigint;
+}
+
+export interface MiningRightsMetadata {
+  licenseNumber: string;
+  mineralType: string;         // Gold | Coltan | Copper | Diamond | Coal | Lithium
+  concessionArea: string;
+  areaHectares: bigint;
+  licenseExpiry: bigint;
+  issuingAuthority: string;
+  licenseDocumentHash: string;
+  royaltyRateBps: bigint;
   lastUpdated: bigint;
 }
 
@@ -65,10 +119,10 @@ export interface CommodityMetadata {
 export interface BaseDeployOptions {
   name: string;
   symbol: string;
-  assetId: string;          // Human-readable ID — SDK converts to bytes32
-  countryCode: string;      // ISO 3166-1 alpha-2 e.g. "NG"
-  admin?: string;           // Defaults to signer address
-  identityVerifier?: string;// address(0) = no KYC. Defaults to address(0)
+  assetId: string;
+  countryCode: string;
+  admin?: string;
+  identityVerifier?: string;
 }
 
 export interface DeployFarmlandOptions extends BaseDeployOptions {
@@ -77,6 +131,22 @@ export interface DeployFarmlandOptions extends BaseDeployOptions {
 
 export interface DeployCommodityOptions extends BaseDeployOptions {
   metadata: CommodityMetadata;
+}
+
+export interface DeployRealEstateOptions extends BaseDeployOptions {
+  metadata: RealEstateMetadata;
+}
+
+export interface DeployInvoiceOptions extends BaseDeployOptions {
+  metadata: InvoiceMetadata;
+}
+
+export interface DeployCarbonCreditOptions extends BaseDeployOptions {
+  metadata: CarbonCreditMetadata;
+}
+
+export interface DeployMiningRightsOptions extends BaseDeployOptions {
+  metadata: MiningRightsMetadata;
 }
 
 // ─── Deploy result ───────────────────────────────────────────────────────────

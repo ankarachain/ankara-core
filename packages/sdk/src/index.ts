@@ -18,9 +18,17 @@ export type {
   AssetTemplate,
   DeployFarmlandOptions,
   DeployCommodityOptions,
+  DeployRealEstateOptions,
+  DeployInvoiceOptions,
+  DeployCarbonCreditOptions,
+  DeployMiningRightsOptions,
   DeployResult,
   FarmlandMetadata,
   CommodityMetadata,
+  RealEstateMetadata,
+  InvoiceMetadata,
+  CarbonCreditMetadata,
+  MiningRightsMetadata,
   NetworkConfig,
 } from "./types";
 
@@ -32,5 +40,9 @@ export {
   TOKEN_FACTORY_ABI,
   FARMLAND_TOKEN_ABI,
   COMMODITY_TOKEN_ABI,
+  REAL_ESTATE_TOKEN_ABI,
+  INVOICE_TOKEN_ABI,
+  CARBON_CREDIT_TOKEN_ABI,
+  MINING_RIGHTS_TOKEN_ABI,
   WHITELIST_VERIFIER_ABI,
 } from "./utils/abis";
