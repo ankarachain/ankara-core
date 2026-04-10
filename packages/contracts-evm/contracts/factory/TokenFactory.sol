@@ -5,28 +5,42 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "../templates/FarmlandToken.sol";
 import "../templates/CommodityReceiptToken.sol";
+import "../templates/RealEstateToken.sol";
+import "../templates/InvoiceToken.sol";
+import "../templates/CarbonCreditToken.sol";
+import "../templates/MiningRightsToken.sol";
 
 /**
  * @title TokenFactory
- * @author Cranebolt Technologies
- * @notice Deploys Ankara Chain RWA tokens from pre-audited templates via proxy clones.
+ * @author Cranebolt Technologies — Ankara Chain SDK
+ * @notice Deploys all Ankara Chain RWA token templates via upgradeable proxies.
  *
- * How it works:
- * 1. Owner registers implementation contracts per template type
- * 2. Developers call deployFarmlandToken / deployCommodityReceiptToken
- * 3. Factory deploys an ERC1967 upgradeable proxy pointing at the implementation
+ * Supports all 6 African asset class templates:
+ * FARMLAND, COMMODITY_RECEIPT, REAL_ESTATE, INVOICE, CARBON_CREDIT, MINING_RIGHTS
+ *
+ * Pattern:
+ * 1. Owner registers implementation address per template
+ * 2. Developer calls deploy[Template]Token()
+ * 3. Factory deploys ERC1967 proxy pointing at implementation
  * 4. Developer's admin_ address gets full control of the new token
- * 5. Protocol fee optionally collected on each deployment (0 during testnet)
+ * 5. Protocol fee optionally collected (0 during testnet)
  */
 contract TokenFactory is Ownable {
 
     // ─── Template enum ──────────────────────────────────────────────────────
-    enum Template { FARMLAND, COMMODITY_RECEIPT }
+    enum Template {
+        FARMLAND,           // 0
+        COMMODITY_RECEIPT,  // 1
+        REAL_ESTATE,        // 2
+        INVOICE,            // 3
+        CARBON_CREDIT,      // 4
+        MINING_RIGHTS       // 5
+    }
 
     // ─── State ──────────────────────────────────────────────────────────────
     mapping(Template => address) public implementations;
 
-    uint256 public deploymentFee;   // In wei — 0 during testnet
+    uint256 public deploymentFee;
     address public feeRecipient;
 
     address[] public allDeployedTokens;
@@ -39,7 +53,7 @@ contract TokenFactory is Ownable {
         address indexed tokenAddress,
         address indexed deployer,
         bytes32 assetId,
-        string countryCode,
+        string  countryCode,
         uint256 timestamp
     );
     event DeploymentFeeUpdated(uint256 oldFee, uint256 newFee);
@@ -56,15 +70,14 @@ contract TokenFactory is Ownable {
         Ownable(initialOwner)
     {
         if (feeRecipient_ == address(0)) revert ZeroAddress();
-        feeRecipient = feeRecipient_;
-        deploymentFee = 0; // Free during testnet / early adoption phase
+        feeRecipient   = feeRecipient_;
+        deploymentFee  = 0;
     }
 
     // ─── Admin ──────────────────────────────────────────────────────────────
 
     function registerTemplate(Template template, address implementation)
-        external
-        onlyOwner
+        external onlyOwner
     {
         if (implementation == address(0)) revert ZeroAddress();
         implementations[template] = implementation;
@@ -89,17 +102,6 @@ contract TokenFactory is Ownable {
 
     // ─── Deploy: Farmland ───────────────────────────────────────────────────
 
-    /**
-     * @notice Deploy a new FarmlandToken
-     * @param name_       Token name — e.g. "Kano Farmland Token"
-     * @param symbol_     Token symbol — e.g. "KFT"
-     * @param assetId_    Unique identifier for this land parcel (bytes32)
-     * @param country_    ISO 3166-1 alpha-2 — e.g. "NG", "GH", "KE"
-     * @param admin_      Gets all roles on the new token (minter, manager, etc.)
-     * @param verifier_   Identity verifier address (address(0) = no KYC)
-     * @param metadata_   Initial farmland metadata struct
-     * @return tokenAddress  Deployed proxy address
-     */
     function deployFarmlandToken(
         string memory name_,
         string memory symbol_,
@@ -109,32 +111,14 @@ contract TokenFactory is Ownable {
         address verifier_,
         FarmlandToken.FarmlandMetadata memory metadata_
     ) external payable returns (address tokenAddress) {
-        _collectFee();
-
-        address impl = implementations[Template.FARMLAND];
-        if (impl == address(0)) revert TemplateNotRegistered(Template.FARMLAND);
-
-        bytes memory data = abi.encodeCall(
+        tokenAddress = _deploy(Template.FARMLAND, abi.encodeCall(
             FarmlandToken.initialize,
             (name_, symbol_, assetId_, country_, admin_, verifier_, feeRecipient, metadata_)
-        );
-
-        tokenAddress = address(new ERC1967Proxy(impl, data));
-
-        allDeployedTokens.push(tokenAddress);
-        deployerTokens[msg.sender].push(tokenAddress);
-
-        emit TokenDeployed(
-            Template.FARMLAND, tokenAddress, msg.sender,
-            assetId_, country_, block.timestamp
-        );
+        ), assetId_, country_);
     }
 
     // ─── Deploy: Commodity Receipt ───────────────────────────────────────────
 
-    /**
-     * @notice Deploy a new CommodityReceiptToken
-     */
     function deployCommodityReceiptToken(
         string memory name_,
         string memory symbol_,
@@ -144,25 +128,78 @@ contract TokenFactory is Ownable {
         address verifier_,
         CommodityReceiptToken.CommodityMetadata memory metadata_
     ) external payable returns (address tokenAddress) {
-        _collectFee();
-
-        address impl = implementations[Template.COMMODITY_RECEIPT];
-        if (impl == address(0)) revert TemplateNotRegistered(Template.COMMODITY_RECEIPT);
-
-        bytes memory data = abi.encodeCall(
+        tokenAddress = _deploy(Template.COMMODITY_RECEIPT, abi.encodeCall(
             CommodityReceiptToken.initialize,
             (name_, symbol_, assetId_, country_, admin_, verifier_, feeRecipient, metadata_)
-        );
+        ), assetId_, country_);
+    }
 
-        tokenAddress = address(new ERC1967Proxy(impl, data));
+    // ─── Deploy: Real Estate ─────────────────────────────────────────────────
 
-        allDeployedTokens.push(tokenAddress);
-        deployerTokens[msg.sender].push(tokenAddress);
+    function deployRealEstateToken(
+        string memory name_,
+        string memory symbol_,
+        bytes32 assetId_,
+        string memory country_,
+        address admin_,
+        address verifier_,
+        RealEstateToken.RealEstateMetadata memory metadata_
+    ) external payable returns (address tokenAddress) {
+        tokenAddress = _deploy(Template.REAL_ESTATE, abi.encodeCall(
+            RealEstateToken.initialize,
+            (name_, symbol_, assetId_, country_, admin_, verifier_, feeRecipient, metadata_)
+        ), assetId_, country_);
+    }
 
-        emit TokenDeployed(
-            Template.COMMODITY_RECEIPT, tokenAddress, msg.sender,
-            assetId_, country_, block.timestamp
-        );
+    // ─── Deploy: Invoice ─────────────────────────────────────────────────────
+
+    function deployInvoiceToken(
+        string memory name_,
+        string memory symbol_,
+        bytes32 assetId_,
+        string memory country_,
+        address admin_,
+        address verifier_,
+        InvoiceToken.InvoiceMetadata memory metadata_
+    ) external payable returns (address tokenAddress) {
+        tokenAddress = _deploy(Template.INVOICE, abi.encodeCall(
+            InvoiceToken.initialize,
+            (name_, symbol_, assetId_, country_, admin_, verifier_, feeRecipient, metadata_)
+        ), assetId_, country_);
+    }
+
+    // ─── Deploy: Carbon Credit ───────────────────────────────────────────────
+
+    function deployCarbonCreditToken(
+        string memory name_,
+        string memory symbol_,
+        bytes32 assetId_,
+        string memory country_,
+        address admin_,
+        address verifier_,
+        CarbonCreditToken.CarbonCreditMetadata memory metadata_
+    ) external payable returns (address tokenAddress) {
+        tokenAddress = _deploy(Template.CARBON_CREDIT, abi.encodeCall(
+            CarbonCreditToken.initialize,
+            (name_, symbol_, assetId_, country_, admin_, verifier_, feeRecipient, metadata_)
+        ), assetId_, country_);
+    }
+
+    // ─── Deploy: Mining Rights ───────────────────────────────────────────────
+
+    function deployMiningRightsToken(
+        string memory name_,
+        string memory symbol_,
+        bytes32 assetId_,
+        string memory country_,
+        address admin_,
+        address verifier_,
+        MiningRightsToken.MiningRightsMetadata memory metadata_
+    ) external payable returns (address tokenAddress) {
+        tokenAddress = _deploy(Template.MINING_RIGHTS, abi.encodeCall(
+            MiningRightsToken.initialize,
+            (name_, symbol_, assetId_, country_, admin_, verifier_, feeRecipient, metadata_)
+        ), assetId_, country_);
     }
 
     // ─── Views ──────────────────────────────────────────────────────────────
@@ -172,14 +209,32 @@ contract TokenFactory is Ownable {
     }
 
     function getDeployerTokens(address deployer)
-        external
-        view
-        returns (address[] memory)
+        external view returns (address[] memory)
     {
         return deployerTokens[deployer];
     }
 
     // ─── Internal ───────────────────────────────────────────────────────────
+
+    function _deploy(
+        Template template,
+        bytes memory initData,
+        bytes32 assetId_,
+        string memory country_
+    ) internal returns (address tokenAddress) {
+        _collectFee();
+        address impl = implementations[template];
+        if (impl == address(0)) revert TemplateNotRegistered(template);
+
+        tokenAddress = address(new ERC1967Proxy(impl, initData));
+        allDeployedTokens.push(tokenAddress);
+        deployerTokens[msg.sender].push(tokenAddress);
+
+        emit TokenDeployed(
+            template, tokenAddress, msg.sender,
+            assetId_, country_, block.timestamp
+        );
+    }
 
     function _collectFee() internal {
         if (msg.value < deploymentFee) {
