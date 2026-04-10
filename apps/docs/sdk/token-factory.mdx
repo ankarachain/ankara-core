@@ -1,0 +1,200 @@
+---
+title: TokenFactory
+description: The primary entry point for deploying Ankara Chain RWA tokens.
+---
+
+## Overview
+
+`TokenFactory` is the main SDK class. It wraps the on-chain `TokenFactory` contract and provides a developer-friendly TypeScript API for deploying all six RWA token templates.
+
+```typescript
+import { TokenFactory } from "@ankarachain/sdk";
+import { ethers } from "ethers";
+
+const factory = new TokenFactory({
+  network:        "polygon-amoy",
+  signer,
+  factoryAddress: "0xYourFactoryAddress",
+});
+```
+
+---
+
+## Constructor
+
+```typescript
+new TokenFactory(config: AnkaraChainConfig)
+```
+
+**Config options:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `network` | `SupportedNetwork` | Yes | Target network |
+| `signer` | `ethers.Signer` | For writes | Wallet signer |
+| `provider` | `ethers.Provider` | For reads | Provider (auto-created from network if omitted) |
+| `factoryAddress` | `string` | Yes for deploys | On-chain factory address |
+| `rpcUrl` | `string` | No | Override default RPC URL |
+
+---
+
+## Deploy Methods
+
+### `deployFarmland`
+
+```typescript
+async deployFarmland(opts: DeployFarmlandOptions): Promise<DeployResult>
+```
+
+Deploys a `FarmlandToken` contract via the factory.
+
+**Example:**
+```typescript
+const result = await factory.deployFarmland({
+  name:        "Kano Farmland Token",
+  symbol:      "KFT",
+  assetId:     "KANO-FARM-001",
+  countryCode: "NG",
+  metadata: {
+    location:          "12.0022, 8.5919",
+    areaSqMeters:      BigInt(10000),
+    soilType:          "loam",
+    irrigationType:    "rain-fed",
+    cropHistory:       "maize,sorghum,fallow",
+    titleDocumentHash: ethers.ZeroHash,
+    valuationUSD:      ethers.parseEther("50000"),
+    stateRegion:       "Kano State",
+    lastUpdated:       BigInt(Math.floor(Date.now() / 1000)),
+  },
+});
+```
+
+---
+
+### `deployCommodity`
+
+```typescript
+async deployCommodity(opts: DeployCommodityOptions): Promise<DeployResult>
+```
+
+Deploys a `CommodityReceiptToken` contract.
+
+---
+
+### `deployRealEstate`
+
+```typescript
+async deployRealEstate(opts: DeployRealEstateOptions): Promise<DeployResult>
+```
+
+Deploys a `RealEstateToken` contract.
+
+---
+
+### `deployInvoice`
+
+```typescript
+async deployInvoice(opts: DeployInvoiceOptions): Promise<DeployResult>
+```
+
+Deploys an `InvoiceToken` contract.
+
+---
+
+### `deployCarbonCredit`
+
+```typescript
+async deployCarbonCredit(opts: DeployCarbonCreditOptions): Promise<DeployResult>
+```
+
+Deploys a `CarbonCreditToken` contract.
+
+---
+
+### `deployMiningRights`
+
+```typescript
+async deployMiningRights(opts: DeployMiningRightsOptions): Promise<DeployResult>
+```
+
+Deploys a `MiningRightsToken` contract.
+
+---
+
+## Query Methods
+
+### `getDeployedTokens`
+
+```typescript
+async getDeployedTokens(address?: string): Promise<string[]>
+```
+
+Returns all token addresses deployed by a given wallet (defaults to the connected signer).
+
+---
+
+### `totalDeployed`
+
+```typescript
+async totalDeployed(): Promise<number>
+```
+
+Returns the total number of tokens deployed via this factory contract.
+
+---
+
+### `getBalance`
+
+```typescript
+async getBalance(address?: string): Promise<string>
+```
+
+Returns the native token balance (MATIC / ETH / BNB etc.) of a wallet, formatted as a human-readable string.
+
+---
+
+## DeployResult
+
+All deploy methods return:
+
+```typescript
+interface DeployResult {
+  tokenAddress: string;       // Deployed contract address
+  txHash:       string;       // Transaction hash
+  assetId:      string;       // The assetId you passed in
+  template:     AssetTemplate;// "farmland" | "commodity" | ...
+  network:      SupportedNetwork;
+  deployedAt:   number;       // Unix timestamp
+}
+```
+
+---
+
+## Base Deploy Options
+
+All deploy methods extend `BaseDeployOptions`:
+
+```typescript
+interface BaseDeployOptions {
+  name:               string;  // ERC-20 token name
+  symbol:             string;  // ERC-20 token symbol
+  assetId:            string;  // Unique human-readable ID (hashed to bytes32 on-chain)
+  countryCode:        string;  // ISO 3166-1 alpha-2 (e.g. "NG", "KE", "GH")
+  admin?:             string;  // Admin address (defaults to signer)
+  identityVerifier?:  string;  // IIdentityVerifier contract address (optional)
+}
+```
+
+---
+
+## Low-Level Adapter
+
+For advanced use, the underlying `EVMAdapter` is exposed:
+
+```typescript
+const adapter = factory.adapter;
+
+// Direct contract instances
+const token    = adapter.farmlandToken("0xTokenAddress");
+const verifier = adapter.whitelistVerifier("0xVerifierAddress");
+```

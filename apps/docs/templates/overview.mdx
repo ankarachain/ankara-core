@@ -1,0 +1,86 @@
+---
+title: Asset Templates
+description: Six pre-audited smart contract templates for African real-world assets.
+---
+
+## Overview
+
+Ankara Chain ships six ERC-20 asset templates. Each is a UUPS upgradeable proxy deployed via the `TokenFactory`. All templates inherit `AnkaraChainBaseToken` — providing mint, burn, pause, role-based access control, and a pluggable identity verifier.
+
+| Template | CLI value | Contract | Use Case |
+|----------|-----------|----------|----------|
+| [Farmland](/templates/farmland) | `farmland` | `FarmlandToken.sol` | Agricultural land tokenization |
+| [Commodity Receipt](/templates/commodity) | `commodity` | `CommodityReceiptToken.sol` | Warehouse receipt financing |
+| [Real Estate](/templates/real-estate) | `real-estate` | `RealEstateToken.sol` | Fractional property ownership |
+| [Invoice](/templates/invoice) | `invoice` | `InvoiceToken.sol` | Trade finance / receivables |
+| [Carbon Credit](/templates/carbon-credit) | `carbon-credit` | `CarbonCreditToken.sol` | Emissions credit tokenization |
+| [Mining Rights](/templates/mining-rights) | `mining-rights` | `MiningRightsToken.sol` | Mineral license tokenization |
+
+---
+
+## Common Features (All Templates)
+
+Every template provides:
+
+- **ERC-20** fungible token with `mint`, `burn`, `transfer`
+- **Pause / unpause** — halt transfers in emergencies
+- **Role-based access control** — `MINTER_ROLE`, `PAUSER_ROLE`, `MANAGER_ROLE`, `UPGRADER_ROLE`
+- **Asset lifecycle** — `DRAFT → ACTIVE → SUSPENDED → REDEEMED / EXPIRED`
+- **Identity verifier hook** — plug in any `IIdentityVerifier` implementation to gate transfers
+- **UUPS upgradeable** — fix bugs or add features without migrating token holders
+- **On-chain metadata** — versioned, with `MetadataUpdated` events
+- `assetId` — unique identifier (stored as `bytes32`, passed as a human-readable string that gets hashed)
+- `countryCode` — ISO 3166-1 alpha-2
+
+---
+
+## Asset Lifecycle
+
+```
+DRAFT (0)
+  │
+  ├─► ACTIVE (1)       ← Tokens can be minted and transferred
+  │     │
+  │     ├─► SUSPENDED (2)  ← Transfers paused, investigation
+  │     │     │
+  │     │     └─► ACTIVE   ← Resumed after resolution
+  │     │
+  │     ├─► REDEEMED (3)   ← Asset has been redeemed / settled
+  │     │
+  │     └─► EXPIRED (4)    ← Time-limited assets (commodity, mining, invoice)
+```
+
+Status is changed via `setStatus(uint8)` — requires `MANAGER_ROLE`.
+
+---
+
+## Identity Verifier
+
+All templates support an optional `IIdentityVerifier` that gates mints and transfers:
+
+```solidity
+interface IIdentityVerifier {
+    function isVerified(address account) external view returns (bool);
+    function verifyIdentity(address account) external;
+    function revokeIdentity(address account) external;
+}
+```
+
+- Pass `identityVerifier` in deploy options to enable it
+- Pass `address(0)` (or omit) for open / no KYC
+- Use the built-in `WhitelistVerifier` for simple whitelist-based verification on testnet
+- Swap the verifier at any time via `setIdentityVerifier(address)` without redeploying
+
+---
+
+## Roles
+
+| Role | Hash | Default holder | Can do |
+|------|------|---------------|--------|
+| `DEFAULT_ADMIN_ROLE` | `0x00` | admin address | Grant / revoke all roles |
+| `MINTER_ROLE` | `keccak256("MINTER_ROLE")` | admin | `mint()` |
+| `PAUSER_ROLE` | `keccak256("PAUSER_ROLE")` | admin | `pause()` / `unpause()` |
+| `MANAGER_ROLE` | `keccak256("MANAGER_ROLE")` | admin | `setStatus()`, `updateMetadata()`, template-specific writes |
+| `UPGRADER_ROLE` | `keccak256("UPGRADER_ROLE")` | admin | `upgradeTo()` |
+
+All roles default to the `admin` address provided at deploy time.

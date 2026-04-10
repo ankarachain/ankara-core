@@ -1,0 +1,13 @@
+{
+  "name": "@ankarachain/web",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ankara Chain — static landing page",
+  "scripts": {
+    "start": "open index.html",
+    "dev": "npx serve . --listen 4000 --single"
+  },
+  "devDependencies": {
+    "serve": "^14.2.3"
+  }
+}

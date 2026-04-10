@@ -1,0 +1,189 @@
+---
+title: Quickstart
+description: Deploy your first tokenized real-world asset in 30 minutes.
+---
+
+## Prerequisites
+
+- Node.js 18+
+- A wallet private key (use a throwaway key for testnet)
+- Polygon Amoy testnet MATIC — get free faucet tokens at [faucet.polygon.technology](https://faucet.polygon.technology)
+
+---
+
+## Step 1 — Install the SDK
+
+```bash
+npm install @ankarachain/sdk
+```
+
+Or install the CLI globally:
+
+```bash
+npm install -g @ankarachain/cli
+```
+
+---
+
+## Step 2 — Initialise Your Project
+
+The `ankara init` wizard scaffolds a project and generates `ankara.config.json`:
+
+```bash
+npx ankara init my-rwa-project
+```
+
+You'll be prompted for:
+- **Project name** — used as a label in config
+- **Network** — `polygon-amoy` recommended for testnet
+- **Private key** — stored in `.env`, never in config
+
+This creates:
+
+```
+my-rwa-project/
+├── ankara.config.json   ← network + deployments
+└── .env                 ← PRIVATE_KEY (gitignored)
+```
+
+<Warning>
+Never commit your `.env` file. `ankara init` adds it to `.gitignore` automatically.
+</Warning>
+
+---
+
+## Step 3 — Deploy the Token Factory
+
+The on-chain `TokenFactory` contract must be deployed once per network before you can issue tokens:
+
+```bash
+npx ankara deploy-factory
+```
+
+This deploys the factory contract and writes its address to `ankara.config.json`:
+
+```json
+{
+  "network": "polygon-amoy",
+  "factoryAddress": "0xAbc...123"
+}
+```
+
+---
+
+## Step 4 — Deploy a Token
+
+Deploy a token from any of the six asset templates:
+
+```bash
+npx ankara deploy
+```
+
+The interactive wizard prompts for template selection and asset-specific metadata:
+
+```
+? Asset template:  › Farmland — agricultural land tokenization
+? Token name:      › Kano Farmland Token
+? Token symbol:    › KFT
+? Asset ID:        › KANO-FARM-001
+? Country code:    › NG
+? GPS location:    › 12.0022, 8.5919
+? Area (sq m):     › 10000
+? Valuation USD:   › 50000
+...
+✓ FarmlandToken deployed: 0x4Ac9...dB2F
+✓ Saved to ankara.config.json
+```
+
+---
+
+## Step 5 — Mint Tokens
+
+Mint fractional shares to an investor address:
+
+```bash
+npx ankara mint
+```
+
+---
+
+## Using the SDK Directly
+
+For programmatic use in your application:
+
+```typescript
+import { TokenFactory } from "@ankarachain/sdk";
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const signer   = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+
+const factory = new TokenFactory({
+  network:        "polygon-amoy",
+  signer,
+  factoryAddress: "0xYourFactoryAddress",
+});
+
+const result = await factory.deployFarmland({
+  name:        "Kano Farmland Token",
+  symbol:      "KFT",
+  assetId:     "KANO-FARM-001",
+  countryCode: "NG",
+  metadata: {
+    location:          "12.0022, 8.5919",
+    areaSqMeters:      BigInt(10000),
+    soilType:          "loam",
+    irrigationType:    "rain-fed",
+    cropHistory:       "maize,sorghum,fallow",
+    titleDocumentHash: ethers.ZeroHash,
+    valuationUSD:      ethers.parseEther("50000"),
+    stateRegion:       "Kano State",
+    lastUpdated:       BigInt(Math.floor(Date.now() / 1000)),
+  },
+});
+
+console.log("Deployed:", result.tokenAddress);
+// → 0x4Ac9...dB2F
+```
+
+---
+
+## React Hooks
+
+```tsx
+import { useAnkaraChain, useAsset } from "@ankarachain/sdk/react";
+
+export function Portfolio({ contractAddress, walletAddress }) {
+  const { asset, loading } = useAsset(contractAddress);
+  const { balance }        = useTokenBalance(walletAddress);
+
+  if (loading) return <Spinner />;
+
+  return (
+    <div>
+      <h2>{asset.name}</h2>
+      <p>Your shares: <strong>{balance}</strong></p>
+      <p>Status: {asset.status}</p>
+    </div>
+  );
+}
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Asset Templates" href="/templates/overview">
+    See metadata schemas for all 6 asset classes.
+  </Card>
+  <Card title="CLI Commands" href="/cli/commands">
+    Full reference for every `ankara` command.
+  </Card>
+  <Card title="TokenFactory SDK" href="/sdk/token-factory">
+    Programmatic deploy API with full type signatures.
+  </Card>
+  <Card title="Smart Contracts" href="/contracts/overview">
+    Architecture, roles, and upgrade patterns.
+  </Card>
+</CardGroup>

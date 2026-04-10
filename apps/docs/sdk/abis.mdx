@@ -1,0 +1,171 @@
+---
+title: ABI Constants
+description: Minimal ABI exports from @ankarachain/sdk for direct contract interaction.
+---
+
+## Overview
+
+The SDK ships minimal ABIs for all Ankara Chain contracts. These are human-readable ABI strings (ethers.js format) — sufficient for runtime use without bundling the full Hardhat artifacts.
+
+```typescript
+import {
+  TOKEN_FACTORY_ABI,
+  FARMLAND_TOKEN_ABI,
+  COMMODITY_TOKEN_ABI,
+  REAL_ESTATE_TOKEN_ABI,
+  INVOICE_TOKEN_ABI,
+  CARBON_CREDIT_TOKEN_ABI,
+  MINING_RIGHTS_TOKEN_ABI,
+  WHITELIST_VERIFIER_ABI,
+} from "@ankarachain/sdk";
+```
+
+---
+
+## `TOKEN_FACTORY_ABI`
+
+The factory contract. Used by `TokenFactory` internally.
+
+Key functions:
+- `deployFarmlandToken(...)` — deploy a FarmlandToken proxy
+- `deployCommodityReceiptToken(...)` — deploy a CommodityReceiptToken proxy
+- `deployRealEstateToken(...)` — deploy a RealEstateToken proxy
+- `deployInvoiceToken(...)` — deploy an InvoiceToken proxy
+- `deployCarbonCreditToken(...)` — deploy a CarbonCreditToken proxy
+- `deployMiningRightsToken(...)` — deploy a MiningRightsToken proxy
+- `deploymentFee() view returns (uint256)` — fee in wei per deployment
+- `getDeployerTokens(address) view returns (address[])` — tokens deployed by a wallet
+- `totalDeployed() view returns (uint256)`
+
+Key event:
+```
+TokenDeployed(uint8 indexed template, address indexed tokenAddress, address indexed deployer, bytes32 assetId, string countryCode, uint256 timestamp)
+```
+
+---
+
+## Token ABIs
+
+Each token ABI covers the standard ERC-20 surface plus asset-specific reads and writes:
+
+### Common across all tokens
+
+```
+name() view returns (string)
+symbol() view returns (string)
+totalSupply() view returns (uint256)
+balanceOf(address) view returns (uint256)
+transfer(address to, uint256 amount) returns (bool)
+mint(address to, uint256 amount) external         ← MINTER_ROLE
+burn(uint256 amount) external
+pause() external                                  ← PAUSER_ROLE
+unpause() external
+assetId() view returns (bytes32)
+countryCode() view returns (string)
+status() view returns (uint8)                     ← AssetStatus enum
+setStatus(uint8 newStatus) external               ← MANAGER_ROLE
+getMetadata() view returns (tuple(...))
+metadataVersion() view returns (uint256)
+```
+
+### `FARMLAND_TOKEN_ABI` — additional
+
+```
+valuationUSD() view returns (uint256)
+areaSqMeters() view returns (uint256)
+identityVerifier() view returns (address)
+setIdentityVerifier(address verifier) external
+updateValuation(uint256 newValuationUSD) external
+updateTitleDocument(bytes32 newHash) external
+```
+
+### `COMMODITY_TOKEN_ABI` — additional
+
+```
+commodityType() view returns (string)
+quantityKg() view returns (uint256)
+valuationUSD() view returns (uint256)
+isExpired() view returns (bool)
+markExpired() external
+```
+
+### `REAL_ESTATE_TOKEN_ABI` — additional
+
+```
+valuationUSD() view returns (uint256)
+rentalYieldBps() view returns (uint256)
+occupancyStatus() view returns (string)
+totalRentalDistributed() view returns (uint256)
+updateValuation(uint256 newValuationUSD) external
+updateOccupancyStatus(string newStatus) external
+declareRentalDistribution(uint256 amountUSD) external
+```
+
+### `INVOICE_TOKEN_ABI` — additional
+
+```
+invoiceStatus() view returns (uint8)
+faceValueUSD() view returns (uint256)
+isOverdue() view returns (bool)
+daysUntilDue() view returns (int256)
+markFunded() external
+markRepaid() external
+markDefaulted(string reason) external
+```
+
+### `CARBON_CREDIT_TOKEN_ABI` — additional
+
+```
+creditType() view returns (string)
+vintageYear() view returns (uint256)
+quantityCO2e() view returns (uint256)
+totalRetired() view returns (uint256)
+totalRetirements() view returns (uint256)
+retire(uint256 amount, string beneficiary, string note) external
+```
+
+### `MINING_RIGHTS_TOKEN_ABI` — additional
+
+```
+mineralType() view returns (string)
+royaltyRateBps() view returns (uint256)
+areaHectares() view returns (uint256)
+isLicenseExpired() view returns (bool)
+daysUntilExpiry() view returns (int256)
+totalRoyaltiesDeclared() view returns (uint256)
+renewLicense(uint256 newExpiry) external
+markLicenseExpired() external
+declareRoyalty(uint256 extractionValueUSD) external
+```
+
+---
+
+## `WHITELIST_VERIFIER_ABI`
+
+Reference implementation of `IIdentityVerifier`:
+
+```
+isVerified(address account) view returns (bool)
+verifyIdentity(address account) external
+revokeIdentity(address account) external
+batchVerify(address[] accounts) external
+verifierName() view returns (string)
+```
+
+---
+
+## Direct Contract Usage
+
+Use an ABI export with ethers.js directly for advanced use cases:
+
+```typescript
+import { ethers } from "ethers";
+import { FARMLAND_TOKEN_ABI } from "@ankarachain/sdk";
+
+const token = new ethers.Contract(tokenAddress, FARMLAND_TOKEN_ABI, signer);
+
+const metadata = await token.getMetadata();
+console.log(metadata.location, metadata.valuationUSD);
+
+await token.mint(investorAddress, ethers.parseEther("1000"));
+```

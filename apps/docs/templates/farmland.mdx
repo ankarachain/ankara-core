@@ -1,0 +1,87 @@
+---
+title: Farmland Token
+description: Tokenize agricultural land with GPS coordinates, soil data, and title document hashes.
+---
+
+## Overview
+
+`FarmlandToken` tokenizes agricultural land parcels. Use cases include fractional farmland investment, agricultural lending collateral, and land title registries on-chain.
+
+**Contract:** `FarmlandToken.sol`  
+**CLI template:** `farmland`  
+**SDK method:** `factory.deployFarmland(opts)`
+
+---
+
+## Metadata Schema
+
+```typescript
+interface FarmlandMetadata {
+  location:          string;   // GPS coordinates, e.g. "12.0022, 8.5919"
+  areaSqMeters:      bigint;   // Total area in square metres
+  soilType:          string;   // e.g. "loam", "clay", "sandy-loam"
+  irrigationType:    string;   // e.g. "rain-fed", "drip", "canal"
+  cropHistory:       string;   // Comma-separated, e.g. "maize,sorghum,fallow"
+  titleDocumentHash: string;   // bytes32 — IPFS hash of title document
+  valuationUSD:      bigint;   // 18 decimals (ethers.parseEther)
+  stateRegion:       string;   // e.g. "Kano State", "Western Region"
+  lastUpdated:       bigint;   // Unix timestamp (auto-set by contract)
+}
+```
+
+---
+
+## Deploy
+
+```typescript
+const result = await factory.deployFarmland({
+  name:        "Kano Farmland Token",
+  symbol:      "KFT",
+  assetId:     "KANO-FARM-001",
+  countryCode: "NG",
+  metadata: {
+    location:          "12.0022, 8.5919",
+    areaSqMeters:      BigInt(50000),
+    soilType:          "loam",
+    irrigationType:    "rain-fed",
+    cropHistory:       "maize,sorghum,fallow",
+    titleDocumentHash: ethers.ZeroHash,
+    valuationUSD:      ethers.parseEther("125000"),
+    stateRegion:       "Kano State",
+    lastUpdated:       BigInt(Math.floor(Date.now() / 1000)),
+  },
+});
+```
+
+---
+
+## Contract-Specific Functions
+
+### Reads
+
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `getMetadata()` | `FarmlandMetadata` | Full metadata struct |
+| `valuationUSD()` | `uint256` | Current valuation (18 decimals) |
+| `areaSqMeters()` | `uint256` | Land area |
+| `metadataVersion()` | `uint256` | Incremented on each update |
+| `identityVerifier()` | `address` | Plugged KYC contract (0x0 = open) |
+
+### Writes (MANAGER\_ROLE)
+
+| Function | Description |
+|----------|-------------|
+| `updateValuation(uint256 newValuationUSD)` | Update the on-chain valuation |
+| `updateTitleDocument(bytes32 newHash)` | Update the title document IPFS hash |
+| `setIdentityVerifier(address verifier)` | Swap KYC provider |
+| `setStatus(uint8 newStatus)` | Change asset lifecycle status |
+
+---
+
+## Events
+
+```
+Transfer(address indexed from, address indexed to, uint256 value)
+MetadataUpdated(uint256 indexed version, uint256 timestamp)
+AssetStatusChanged(uint8 indexed oldStatus, uint8 indexed newStatus, uint256 timestamp)
+```

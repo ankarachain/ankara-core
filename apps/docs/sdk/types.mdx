@@ -1,0 +1,215 @@
+---
+title: TypeScript Types
+description: All exported types and interfaces from @ankarachain/sdk.
+---
+
+## Network
+
+### `SupportedNetwork`
+
+```typescript
+type SupportedNetwork =
+  | "polygon"
+  | "polygon-amoy"
+  | "ethereum"
+  | "bnb"
+  | "celo"
+  | "localhost";
+```
+
+### `NetworkConfig`
+
+```typescript
+interface NetworkConfig {
+  chainId:        number;
+  name:           string;
+  rpcUrl:         string;
+  explorerUrl:    string;
+  nativeCurrency: { name: string; symbol: string; decimals: number };
+}
+```
+
+---
+
+## Asset Enums
+
+### `AssetStatus`
+
+```typescript
+enum AssetStatus {
+  DRAFT     = 0,
+  ACTIVE    = 1,
+  SUSPENDED = 2,
+  REDEEMED  = 3,
+  EXPIRED   = 4,
+}
+```
+
+### `AssetTemplate`
+
+```typescript
+type AssetTemplate =
+  | "farmland"
+  | "commodity"
+  | "real-estate"
+  | "invoice"
+  | "carbon-credit"
+  | "mining-rights";
+```
+
+---
+
+## Metadata Types
+
+### `FarmlandMetadata`
+
+```typescript
+interface FarmlandMetadata {
+  location:          string;   // GPS coordinates or address
+  areaSqMeters:      bigint;
+  soilType:          string;   // e.g. "loam", "clay"
+  irrigationType:    string;   // e.g. "rain-fed", "drip"
+  cropHistory:       string;   // Comma-separated crop list
+  titleDocumentHash: string;   // bytes32 hex — IPFS CID hash
+  valuationUSD:      bigint;   // 18 decimals (use ethers.parseEther)
+  stateRegion:       string;
+  lastUpdated:       bigint;   // Unix timestamp
+}
+```
+
+### `CommodityMetadata`
+
+```typescript
+interface CommodityMetadata {
+  commodityType:        string;  // cocoa | coffee | maize | cotton | soybean | palm-oil
+  quantityKg:           bigint;
+  gradeClassification:  string;  // e.g. "Grade A", "FAQ", "GC1"
+  warehouseId:          string;
+  warehouseLocation:    string;
+  depositDate:          bigint;
+  expiryDate:           bigint;
+  inspectionReportHash: string;  // bytes32 hex
+  valuationUSD:         bigint;
+  harvestSeason:        string;  // e.g. "2025/2026"
+  lastUpdated:          bigint;
+}
+```
+
+### `RealEstateMetadata`
+
+```typescript
+interface RealEstateMetadata {
+  propertyId:        string;
+  propertyType:      string;   // Residential | Commercial | Industrial | Land
+  locationAddress:   string;
+  totalAreaSqMeters: bigint;
+  titleDocumentHash: string;   // bytes32 hex
+  valuationUSD:      bigint;
+  rentalYieldBps:    bigint;   // e.g. 600 = 6% annual yield
+  occupancyStatus:   string;   // Vacant | Owner-occupied | Tenanted
+  developerAddress:  string;   // Ethereum address
+  lastUpdated:       bigint;
+}
+```
+
+### `InvoiceMetadata`
+
+```typescript
+interface InvoiceMetadata {
+  invoiceNumber:       string;
+  debtorReference:     string;
+  faceValueUSD:        bigint;
+  discountRateBps:     bigint;  // e.g. 200 = 2%
+  issuanceDate:        bigint;
+  dueDate:             bigint;
+  invoiceDocumentHash: string;  // bytes32 hex
+  currency:            string;  // ISO 4217 — NGN, GHS, KES, USD
+  lastUpdated:         bigint;
+}
+```
+
+### `CarbonCreditMetadata`
+
+```typescript
+interface CarbonCreditMetadata {
+  creditType:          string;  // REDD+ | VCS | Gold Standard | GS4GG | CDM
+  verificationBodyRef: string;  // e.g. "VERRA-001"
+  vintageYear:         bigint;
+  quantityCO2e:        bigint;  // 18 decimals — 1e18 = 1 tCO2e
+  projectLocation:     string;
+  projectType:         string;  // Forestry | Agriculture | Energy | Waste
+  verificationDocHash: string;  // bytes32 hex
+  lastUpdated:         bigint;
+}
+```
+
+### `MiningRightsMetadata`
+
+```typescript
+interface MiningRightsMetadata {
+  licenseNumber:       string;
+  mineralType:         string;  // Gold | Coltan | Copper | Diamond | Coal | Lithium
+  concessionArea:      string;
+  areaHectares:        bigint;
+  licenseExpiry:       bigint;  // Unix timestamp
+  issuingAuthority:    string;
+  licenseDocumentHash: string;  // bytes32 hex
+  royaltyRateBps:      bigint;  // e.g. 300 = 3%
+  lastUpdated:         bigint;
+}
+```
+
+---
+
+## Deploy Options
+
+All deploy option types extend `BaseDeployOptions`:
+
+```typescript
+interface BaseDeployOptions {
+  name:              string;
+  symbol:            string;
+  assetId:           string;
+  countryCode:       string;
+  admin?:            string;
+  identityVerifier?: string;
+}
+
+interface DeployFarmlandOptions    extends BaseDeployOptions { metadata: FarmlandMetadata    }
+interface DeployCommodityOptions   extends BaseDeployOptions { metadata: CommodityMetadata   }
+interface DeployRealEstateOptions  extends BaseDeployOptions { metadata: RealEstateMetadata  }
+interface DeployInvoiceOptions     extends BaseDeployOptions { metadata: InvoiceMetadata     }
+interface DeployCarbonCreditOptions extends BaseDeployOptions { metadata: CarbonCreditMetadata }
+interface DeployMiningRightsOptions extends BaseDeployOptions { metadata: MiningRightsMetadata }
+```
+
+---
+
+## SDK Config
+
+### `AnkaraChainConfig`
+
+```typescript
+interface AnkaraChainConfig {
+  network:         SupportedNetwork;
+  signer?:         ethers.Signer;
+  provider?:       ethers.Provider;
+  factoryAddress?: string;
+  rpcUrl?:         string;
+}
+```
+
+---
+
+## Deploy Result
+
+```typescript
+interface DeployResult {
+  tokenAddress: string;
+  txHash:       string;
+  assetId:      string;
+  template:     AssetTemplate;
+  network:      SupportedNetwork;
+  deployedAt:   number;
+}
+```

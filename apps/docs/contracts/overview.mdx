@@ -1,0 +1,184 @@
+---
+title: Smart Contract Architecture
+description: AnkaraChainBaseToken, UUPS proxy pattern, roles, and the TokenFactory.
+---
+
+## Overview
+
+All Ankara Chain contracts are written in Solidity `^0.8.24` and use OpenZeppelin upgradeable contracts (v5). They follow the UUPS proxy pattern — each deployed token is a lightweight `ERC1967Proxy` that delegates to a shared implementation.
+
+```
+packages/contracts-evm/
+├── contracts/
+│   ├── base/
+│   │   └── AnkaraChainBaseToken.sol      ← Abstract base for all tokens
+│   ├── interfaces/
+│   │   ├── IAnkaraChainToken.sol
+│   │   └── IIdentityVerifier.sol
+│   ├── templates/
+│   │   ├── FarmlandToken.sol
+│   │   ├── CommodityReceiptToken.sol
+│   │   ├── RealEstateToken.sol
+│   │   ├── InvoiceToken.sol
+│   │   ├── CarbonCreditToken.sol
+│   │   └── MiningRightsToken.sol
+│   └── factory/
+│       └── TokenFactory.sol
+└── typechain-types/                       ← Auto-generated, gitignored
+```
+
+---
+
+## AnkaraChainBaseToken
+
+Abstract base contract inherited by all six templates. Provides:
+
+- `ERC20Upgradeable` — standard fungible token
+- `ERC20PausableUpgradeable` — halt transfers
+- `ERC20BurnableUpgradeable` — token burning
+- `AccessControlUpgradeable` — role-based permissions
+- `UUPSUpgradeable` — upgrade authorization
+
+### Storage slots (base)
+
+```solidity
+bytes32 private _assetId;
+string  private _countryCode;
+AssetStatus private _status;         // DRAFT(0) → ACTIVE(1) → ...
+IIdentityVerifier private _identityVerifier;
+address public feeRecipient;
+uint256[50] private __gap;           // Reserved for future upgrades
+```
+
+### Roles
+
+```solidity
+bytes32 public constant MINTER_ROLE   = keccak256("MINTER_ROLE");
+bytes32 public constant PAUSER_ROLE   = keccak256("PAUSER_ROLE");
+bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
+bytes32 public constant MANAGER_ROLE  = keccak256("MANAGER_ROLE");
+```
+
+All roles are granted to `admin_` at initialization. The admin also holds `DEFAULT_ADMIN_ROLE` and can delegate roles to other addresses.
+
+### Transfer Hook
+
+Every mint, burn, and transfer passes through `_update()`, which checks the identity verifier for sender and receiver (when set):
+
+```solidity
+function _update(address from, address to, uint256 amount) internal override {
+    if (from != address(0) && address(_identityVerifier) != address(0)) {
+        _checkVerified(from);
+    }
+    if (to != address(0) && address(_identityVerifier) != address(0)) {
+        _checkVerified(to);
+    }
+    super._update(from, to, amount);
+}
+```
+
+---
+
+## UUPS Proxy Pattern
+
+Each token deploy creates a new `ERC1967Proxy` pointing to a shared implementation contract. This means:
+
+1. **Gas efficient** — only one implementation bytecode on-chain, shared across all tokens of the same template
+2. **Upgradeable** — the admin can upgrade the implementation to fix bugs without migrating token holders
+3. **Isolated state** — each proxy has its own storage (balances, metadata, status)
+
+### Upgrade flow
+
+```
+TokenFactory.deployFarmlandToken(...)
+  └─► new ERC1967Proxy(farmlandImpl, initData)
+                          │
+            FarmlandToken.initialize(...)
+                          │
+            Admin receives UPGRADER_ROLE
+                          │
+            Later: token.upgradeToAndCall(newImpl, "")
+                          └─► requires UPGRADER_ROLE
+```
+
+---
+
+## TokenFactory
+
+The factory stores implementation addresses and deploys proxies:
+
+```solidity
+mapping(uint8 => address) public implementations;
+// 0 = Farmland, 1 = Commodity, 2 = RealEstate, 3 = Invoice, 4 = CarbonCredit, 5 = MiningRights
+```
+
+The factory charges a `deploymentFee` in native tokens (covers deployment gas overhead and protocol revenue). The fee is configurable by the factory admin.
+
+**Deploy event:**
+```solidity
+event TokenDeployed(
+    uint8   indexed template,
+    address indexed tokenAddress,
+    address indexed deployer,
+    bytes32 assetId,
+    string  countryCode,
+    uint256 timestamp
+);
+```
+
+---
+
+## IIdentityVerifier
+
+Pluggable KYC interface:
+
+```solidity
+interface IIdentityVerifier {
+    function isVerified(address account) external view returns (bool);
+    function verifyIdentity(address account) external;
+    function revokeIdentity(address account) external;
+    function batchVerify(address[] calldata accounts) external;
+}
+```
+
+Implement this interface with any KYC provider (Smile Identity, Persona, BVN/NIN, Ghana Card) and pass the contract address at deploy time.
+
+### WhitelistVerifier (reference implementation)
+
+A simple on-chain whitelist ships with the contracts for development and testing:
+
+```typescript
+// In tests
+const verifier = await WhitelistVerifier.deploy("TestVerifier");
+await verifier.verifyIdentity(userAddress);
+
+// In deploy options
+factory.deployFarmland({ ..., identityVerifier: verifier.address });
+```
+
+---
+
+## Running the Contracts Locally
+
+```bash
+cd packages/contracts-evm
+
+# Compile
+npm run compile
+
+# Run tests (173 tests)
+npm run test
+
+# Deploy to local Hardhat node
+npx hardhat node
+npm run deploy:localhost
+```
+
+---
+
+## Security Notes
+
+- All contracts use OpenZeppelin's audited upgradeable library (v5)
+- Storage gaps (`uint256[50] private __gap`) are reserved in both the base and each template for future storage additions without slot collisions
+- `this.setStatus(...)` is never called internally — templates use the internal `_setStatus()` to avoid RBAC bypass via external self-calls
+- Protocol fee is collected on deployment only — no ongoing fees on transfers

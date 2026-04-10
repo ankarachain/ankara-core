@@ -1,0 +1,2180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ankara Chain SDK — The Stripe for RWA Tokenization in Africa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;700;900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-void: #04080605;
+  --bg-deep: #060E09;
+  --bg-surface: #0C1C10;
+  --bg-card: #101F14;
+  --bg-card-hover: #162819;
+  --gold: #C8951E;
+  --gold-light: #F0B429;
+  --gold-glow: #F0B42922;
+  --green: #1DDE72;
+  --green-dim: #1DDE7222;
+  --green-mid: #0E7A3D;
+  --text-primary: #EDE9DC;
+  --text-secondary: #A89F87;
+  --text-muted: #5A6B5E;
+  --border: #1E2E22;
+  --border-bright: #2E4835;
+  --adinkra-color: #1A2E1E;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─── NOISE TEXTURE OVERLAY ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ─── KENTE GEOMETRIC BACKGROUND PATTERN ─── */
+.kente-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.kente-bg::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background-image:
+    repeating-linear-gradient(90deg, var(--adinkra-color) 0px, var(--adinkra-color) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(0deg, var(--adinkra-color) 0px, var(--adinkra-color) 1px, transparent 1px, transparent 40px);
+  opacity: 0.6;
+}
+.kente-bg::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 28px, var(--adinkra-color) 28px, var(--adinkra-color) 29px),
+    repeating-linear-gradient(-45deg, transparent, transparent 28px, var(--adinkra-color) 28px, var(--adinkra-color) 29px);
+  opacity: 0.3;
+}
+
+/* ─── NAV ─── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 20px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to bottom, rgba(6,14,9,0.95) 0%, rgba(6,14,9,0) 100%);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+nav.scrolled { border-bottom-color: var(--border); }
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  position: relative;
+}
+.logo-text {
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+.logo-text span { color: var(--gold-light); }
+
+.nav-links {
+  display: flex;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text-primary); }
+
+.nav-cta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.btn-ghost {
+  padding: 9px 20px;
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+}
+.btn-ghost:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+.btn-primary {
+  padding: 9px 20px;
+  background: var(--gold);
+  border: none;
+  border-radius: 6px;
+  color: #000;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+}
+.btn-primary:hover {
+  background: var(--gold-light);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(240, 180, 41, 0.25);
+}
+
+/* ─── HERO ─── */
+#hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 48px 80px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hero-glow {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 600px;
+  background: radial-gradient(ellipse, rgba(29, 222, 114, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-glow-gold {
+  position: absolute;
+  top: 30%;
+  left: 20%;
+  width: 500px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(200, 149, 30, 0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 8px;
+  background: rgba(29, 222, 114, 0.08);
+  border: 1px solid rgba(29, 222, 114, 0.2);
+  border-radius: 100px;
+  margin-bottom: 32px;
+  animation: fadeUp 0.6s ease both;
+}
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(29,222,114,0.4); }
+  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(29,222,114,0); }
+}
+.badge-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(42px, 7vw, 80px);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  animation: fadeUp 0.6s 0.1s ease both;
+}
+.hero-title .line-gold { color: var(--gold-light); }
+.hero-title .line-dim { color: var(--text-muted); font-weight: 300; }
+
+.hero-sub {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 24px auto 40px;
+  font-weight: 400;
+  line-height: 1.6;
+  animation: fadeUp 0.6s 0.2s ease both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 64px;
+  animation: fadeUp 0.6s 0.3s ease both;
+}
+.btn-hero-primary {
+  padding: 16px 32px;
+  background: var(--gold);
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-hero-primary:hover {
+  background: var(--gold-light);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(240, 180, 41, 0.3);
+}
+.btn-hero-ghost {
+  padding: 16px 32px;
+  border: 1px solid var(--border-bright);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  background: rgba(255,255,255,0.02);
+  transition: all 0.2s;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-hero-ghost:hover {
+  border-color: var(--text-secondary);
+  background: rgba(255,255,255,0.04);
+}
+
+/* ─── TERMINAL ─── */
+.hero-terminal {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  background: #080F0A;
+  border: 1px solid var(--border-bright);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(29,222,114,0.05);
+  animation: fadeUp 0.6s 0.4s ease both;
+}
+.terminal-bar {
+  padding: 12px 16px;
+  background: #0A1A0E;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.t-dot { width: 12px; height: 12px; border-radius: 50%; }
+.t-dot.red { background: #FF5F57; }
+.t-dot.yellow { background: #FFBD2E; }
+.t-dot.green { background: #28CA41; }
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.terminal-body {
+  padding: 20px 24px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: left;
+}
+.t-line { display: flex; align-items: flex-start; gap: 10px; }
+.t-prompt { color: var(--green); flex-shrink: 0; }
+.t-cmd { color: var(--text-primary); }
+.t-comment { color: var(--text-muted); font-style: italic; }
+.t-output { color: var(--text-secondary); padding-left: 22px; }
+.t-success { color: var(--green); padding-left: 22px; }
+.t-gold { color: var(--gold-light); }
+.t-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--green);
+  vertical-align: middle;
+  animation: blink 1.1s step-end infinite;
+  margin-left: 2px;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+/* ─── STATS STRIP ─── */
+.stats-strip {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  overflow: hidden;
+  position: relative;
+}
+.stats-scroll {
+  display: flex;
+  gap: 0;
+  animation: scroll-left 30s linear infinite;
+  width: max-content;
+}
+.stats-scroll:hover { animation-play-state: paused; }
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 48px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+}
+.stat-num {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold-light);
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ─── SECTION BASE ─── */
+section {
+  padding: 100px 48px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--green);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--green);
+}
+.section-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.section-desc {
+  font-size: 17px;
+  color: var(--text-secondary);
+  max-width: 560px;
+  line-height: 1.7;
+}
+
+/* ─── WHAT IS ANKARA CHAIN ─── */
+#what {
+  position: relative;
+}
+.what-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  margin-top: 60px;
+}
+.layer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.layer-row {
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.layer-row::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 0.3s;
+}
+.layer-row.active {
+  border-color: var(--green);
+  background: rgba(29,222,114,0.04);
+}
+.layer-row.active::before { background: var(--green); }
+.layer-row.dim {
+  border-color: var(--border);
+  background: rgba(255,255,255,0.01);
+  opacity: 0.5;
+}
+.layer-name {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+.layer-tech {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.layer-tag {
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tag-you { background: rgba(200,149,30,0.15); color: var(--gold-light); }
+.tag-cranebolt { background: rgba(29,222,114,0.12); color: var(--green); }
+.tag-infra { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+
+.what-points {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.what-point {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+.point-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(200,149,30,0.1);
+  border: 1px solid rgba(200,149,30,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+.point-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+.point-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ─── ASSET CLASSES ─── */
+#assets {
+  position: relative;
+}
+#assets-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.assets-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 56px;
+}
+.asset-card {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  transition: all 0.3s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.asset-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(200,149,30,0.06) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.asset-card:hover {
+  border-color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.3), 0 0 0 1px rgba(200,149,30,0.1);
+}
+.asset-card:hover::after { opacity: 1; }
+.asset-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+.asset-name {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  position: relative;
+  z-index: 1;
+}
+.asset-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  position: relative;
+  z-index: 1;
+}
+.asset-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── MODULES ─── */
+#modules {
+  position: relative;
+}
+.modules-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 60px;
+  margin-top: 60px;
+  align-items: start;
+}
+.module-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.module-tab {
+  padding: 14px 18px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.module-tab:hover {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+.module-tab.active {
+  background: var(--bg-card);
+  border-color: var(--green);
+}
+.tab-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.tab-icon.green { background: rgba(29,222,114,0.1); }
+.tab-icon.gold { background: rgba(200,149,30,0.1); }
+.tab-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.tab-desc-short {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.module-oss {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+}
+.oss-badge { color: var(--green); }
+.enterprise-badge { color: var(--gold); }
+
+.module-detail {
+  position: sticky;
+  top: 100px;
+}
+.module-panel {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.module-panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.panel-icon-large {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: rgba(29,222,114,0.1);
+  border: 1px solid rgba(29,222,114,0.2);
+}
+.panel-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+}
+.panel-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+.panel-body {
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 24px;
+}
+.panel-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.panel-feature {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+.feature-check { color: var(--green); font-size: 13px; margin-top: 2px; flex-shrink: 0; }
+.feature-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.feature-text strong { color: var(--text-primary); }
+
+/* ─── CODE SECTION ─── */
+#code {
+  position: relative;
+  background: linear-gradient(to bottom, transparent, rgba(29,222,114,0.02), transparent);
+}
+.code-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+  margin-top: 60px;
+}
+.code-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: fit-content;
+}
+.code-tab {
+  padding: 7px 16px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  color: var(--text-muted);
+  background: transparent;
+  letter-spacing: 0.03em;
+}
+.code-tab.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-bright);
+}
+.code-block {
+  background: #080F0A;
+  border: 1px solid var(--border-bright);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(0,0,0,0.4);
+}
+.code-header {
+  padding: 12px 16px;
+  background: #0A1A0E;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.code-dots { display: flex; gap: 6px; }
+.code-dot { width: 10px; height: 10px; border-radius: 50%; }
+.code-filename {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex: 1;
+  text-align: center;
+}
+.copy-btn {
+  font-size: 10px;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: none;
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+  transition: all 0.2s;
+}
+.copy-btn:hover { color: var(--green); border-color: var(--green); }
+pre {
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+.kw { color: #CE9CF1; }
+.fn { color: #7EC8E3; }
+.str { color: var(--gold-light); }
+.num { color: #F07070; }
+.cmt { color: var(--text-muted); font-style: italic; }
+.var { color: var(--text-primary); }
+.op { color: var(--green); }
+.cls { color: #F0B429; }
+
+.code-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.step-item {
+  display: flex;
+  gap: 18px;
+}
+.step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--border-bright);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-top: 3px;
+  transition: all 0.3s;
+}
+.step-item:hover .step-num {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(29,222,114,0.08);
+}
+.step-content {}
+.step-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.step-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.step-cmd {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: 5px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--green);
+}
+
+/* ─── CHAINS ─── */
+#chains {
+  text-align: center;
+}
+.chains-wrap {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 56px;
+}
+.chain-card {
+  padding: 20px 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s;
+  cursor: default;
+  min-width: 160px;
+}
+.chain-card:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+  background: var(--bg-card-hover);
+}
+.chain-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.chain-name {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.chain-type {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ─── PRICING ─── */
+#pricing {
+  position: relative;
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 56px;
+}
+.pricing-card {
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.pricing-card:hover { transform: translateY(-4px); }
+.pricing-card.featured {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, rgba(200,149,30,0.06) 0%, var(--bg-card) 60%);
+}
+.pricing-card.featured::before {
+  content: 'MOST POPULAR';
+  position: absolute;
+  top: 16px;
+  right: -28px;
+  transform: rotate(45deg);
+  background: var(--gold);
+  color: #000;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 4px 36px;
+  letter-spacing: 0.1em;
+}
+.pricing-tier {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.pricing-name {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+.pricing-price {
+  margin-bottom: 24px;
+}
+.price-main {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+.price-period {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+.price-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.pricing-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 24px 0;
+}
+.pricing-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pricing-features li {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.pf-check { color: var(--green); flex-shrink: 0; margin-top: 2px; }
+.pf-cross { color: var(--text-muted); flex-shrink: 0; margin-top: 2px; }
+.btn-pricing {
+  display: block;
+  width: 100%;
+  margin-top: 28px;
+  padding: 14px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border-bright);
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.03);
+}
+.btn-pricing:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: var(--text-secondary);
+}
+.btn-pricing.gold {
+  background: var(--gold);
+  border-color: transparent;
+  color: #000;
+}
+.btn-pricing.gold:hover {
+  background: var(--gold-light);
+  box-shadow: 0 8px 24px rgba(240,180,41,0.25);
+}
+
+/* ─── COMMUNITY ─── */
+#community {
+  position: relative;
+}
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 56px;
+}
+.kpi-card {
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  text-align: center;
+}
+.kpi-period {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--gold);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.kpi-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.kpi-item {}
+.kpi-value {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+.kpi-name {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.events-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.event-badge {
+  padding: 8px 16px;
+  border: 1px solid var(--border-bright);
+  border-radius: 100px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ─── CTA ─── */
+#cta {
+  text-align: center;
+  padding: 80px 48px 120px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.cta-box {
+  padding: 80px 48px;
+  border: 1px solid var(--border-bright);
+  border-radius: 24px;
+  background: var(--bg-surface);
+  position: relative;
+  overflow: hidden;
+}
+.cta-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 600px;
+  height: 300px;
+  background: radial-gradient(ellipse, rgba(200,149,30,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-title {
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(28px, 4vw, 48px);
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+  position: relative;
+}
+.cta-sub {
+  font-size: 17px;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+  position: relative;
+}
+.cta-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+/* ─── FOOTER ─── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.footer-logo {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.footer-logo span { color: var(--gold-light); }
+.footer-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+}
+.footer-links {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+}
+.footer-links a {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--text-secondary); }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── FLOATING ORBS ─── */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+}
+.orb-green {
+  width: 400px; height: 400px;
+  background: rgba(29,222,114,0.04);
+  top: 20%; right: -10%;
+}
+.orb-gold {
+  width: 300px; height: 300px;
+  background: rgba(200,149,30,0.05);
+  bottom: 10%; left: -5%;
+}
+
+/* ─── ADINKRA SYMBOL ─── */
+.adinkra-watermark {
+  position: absolute;
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.04;
+  pointer-events: none;
+}
+
+/* responsive */
+@media (max-width: 900px) {
+  nav { padding: 16px 24px; }
+  .nav-links { display: none; }
+  section { padding: 72px 24px; }
+  #hero { padding: 100px 24px 72px; }
+  .what-grid { grid-template-columns: 1fr; gap: 40px; }
+  .assets-grid { grid-template-columns: 1fr 1fr; }
+  .modules-layout { grid-template-columns: 1fr; }
+  .code-layout { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: 1fr; }
+  footer { flex-direction: column; padding: 32px 24px; }
+  .chains-wrap { gap: 10px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="main-nav">
+  <a href="#" class="nav-logo">
+    <svg class="logo-mark" viewBox="0 0 36 36" fill="none">
+      <rect width="36" height="36" rx="8" fill="#0C1C10"/>
+      <path d="M18 4L32 12V24L18 32L4 24V12L18 4Z" stroke="#1DDE72" stroke-width="1.5" fill="none"/>
+      <path d="M18 10L26 15V21L18 26L10 21V15L18 10Z" fill="rgba(200,149,30,0.3)" stroke="#C8951E" stroke-width="1"/>
+      <circle cx="18" cy="18" r="3" fill="#1DDE72"/>
+    </svg>
+    <span class="logo-text">Ankara <span>Chain</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#what">What is it</a></li>
+    <li><a href="#assets">Asset Classes</a></li>
+    <li><a href="#modules">Modules</a></li>
+    <li><a href="#code">Quick Start</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="#" class="btn-ghost">GitHub</a>
+    <a href="#" class="btn-primary">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div style="position:relative; overflow:hidden;">
+  <div class="kente-bg"></div>
+  <div class="orb orb-green"></div>
+  <div class="orb orb-gold"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow-gold"></div>
+
+  <section id="hero">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      <span class="badge-text">Open Source · MIT Licensed · v1.0 Coming Soon</span>
+    </div>
+
+    <h1 class="hero-title">
+      <div>The Stripe for</div>
+      <div class="line-gold">RWA Tokenization</div>
+      <div class="line-dim">in Africa.</div>
+    </h1>
+
+    <p class="hero-sub">
+      Deploy real-world asset tokens on-chain in 30 minutes. Smart contract templates, multi-chain APIs, and pluggable compliance — built for African developers.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#code" class="btn-hero-primary">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 2L14 8L8 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M2 8H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        Start Building
+      </a>
+      <a href="#" class="btn-hero-ghost">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        View on GitHub
+      </a>
+    </div>
+
+    <div class="hero-terminal">
+      <div class="terminal-bar">
+        <div class="t-dot red"></div>
+        <div class="t-dot yellow"></div>
+        <div class="t-dot green"></div>
+        <div class="terminal-title">ankara — bash</div>
+      </div>
+      <div class="terminal-body">
+        <div class="t-line">
+          <span class="t-prompt">$</span>
+          <span class="t-cmd">npm install <span class="t-gold">@ankarachain/sdk</span></span>
+        </div>
+        <div class="t-output">✓ Added 1 package, audited 342 packages in 2s</div>
+        <div style="height:10px"></div>
+        <div class="t-line">
+          <span class="t-prompt">$</span>
+          <span class="t-cmd">npx ankara init <span class="t-gold">my-farmland-dapp</span></span>
+        </div>
+        <div class="t-success">✓ Project initialized — polygon-testnet configured</div>
+        <div class="t-success">✓ Templates available: farmland, commodity, real-estate</div>
+        <div style="height:10px"></div>
+        <div class="t-line">
+          <span class="t-prompt">$</span>
+          <span class="t-cmd">npx ankara deploy <span class="t-gold">--template farmland --network polygon-testnet</span></span>
+        </div>
+        <div class="t-success">✓ FarmlandToken deployed: <span class="t-gold">0x4Ac9...dB2F</span></div>
+        <div class="t-success">✓ AssetRegistry linked — ready to mint</div>
+        <div style="height:10px"></div>
+        <div class="t-line">
+          <span class="t-prompt">$</span>
+          <span class="t-cmd"><span class="t-cursor"></span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- STATS STRIP -->
+<div class="stats-strip">
+  <div class="stats-scroll">
+    <div class="stat-item"><span class="stat-num">5</span><span class="stat-label">Supported Chains</span></div>
+    <div class="stat-item"><span class="stat-num">6</span><span class="stat-label">African Asset Classes</span></div>
+    <div class="stat-item"><span class="stat-num">30min</span><span class="stat-label">First Token Deploy</span></div>
+    <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Open Source License</span></div>
+    <div class="stat-item"><span class="stat-num">ERC-3643</span><span class="stat-label">Compliance Standard</span></div>
+    <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">African ID Primitives</span></div>
+    <div class="stat-item"><span class="stat-num">&lt;150KB</span><span class="stat-label">Bundle Size</span></div>
+    <div class="stat-item"><span class="stat-num">2G/3G</span><span class="stat-label">Low-Bandwidth Ready</span></div>
+    <!-- duplicate for seamless scroll -->
+    <div class="stat-item"><span class="stat-num">5</span><span class="stat-label">Supported Chains</span></div>
+    <div class="stat-item"><span class="stat-num">6</span><span class="stat-label">African Asset Classes</span></div>
+    <div class="stat-item"><span class="stat-num">30min</span><span class="stat-label">First Token Deploy</span></div>
+    <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Open Source License</span></div>
+    <div class="stat-item"><span class="stat-num">ERC-3643</span><span class="stat-label">Compliance Standard</span></div>
+    <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">African ID Primitives</span></div>
+    <div class="stat-item"><span class="stat-num">&lt;150KB</span><span class="stat-label">Bundle Size</span></div>
+    <div class="stat-item"><span class="stat-num">2G/3G</span><span class="stat-label">Low-Bandwidth Ready</span></div>
+  </div>
+</div>
+
+<!-- WHAT IS ANKARA CHAIN -->
+<section id="what" style="position:relative; overflow:hidden;">
+  <div class="orb orb-green" style="top:-20%; left:-15%; opacity:0.6;"></div>
+
+  <div class="reveal">
+    <div class="section-label">Infrastructure Layer</div>
+    <h2 class="section-title">Not a platform.<br>Infrastructure.</h2>
+    <p class="section-desc">Ankara Chain sits between raw blockchain protocols and your product. Plug it in the same way you'd plug Stripe for payments — and keep full control of your business logic.</p>
+  </div>
+
+  <div class="what-grid reveal">
+    <div>
+      <div style="margin-bottom:12px; font-size:12px; font-family:'DM Mono',monospace; color:var(--text-muted); letter-spacing:0.08em;">ARCHITECTURE STACK</div>
+      <div class="layer-stack">
+        <div class="layer-row dim">
+          <div>
+            <div class="layer-name">Blockchain Protocol</div>
+            <div class="layer-tech">Ethereum · Polygon · Stellar · Celo · BNB</div>
+          </div>
+          <span class="layer-tag tag-infra">Protocol</span>
+        </div>
+        <div class="layer-row active">
+          <div>
+            <div class="layer-name">Ankara Chain SDK</div>
+            <div class="layer-tech">Smart Contracts · APIs · CLI · Templates</div>
+          </div>
+          <span class="layer-tag tag-cranebolt">Cranebolt</span>
+        </div>
+        <div class="layer-row dim">
+          <div>
+            <div class="layer-name">Your Application</div>
+            <div class="layer-tech">Business logic · UX · Compliance decisions</div>
+          </div>
+          <span class="layer-tag tag-you">You</span>
+        </div>
+        <div class="layer-row dim">
+          <div>
+            <div class="layer-name">End Users & Investors</div>
+            <div class="layer-tech">Farmers · Businesses · Diaspora investors</div>
+          </div>
+          <span class="layer-tag tag-infra">Users</span>
+        </div>
+      </div>
+    </div>
+    <div class="what-points">
+      <div class="what-point">
+        <div class="point-icon">🔌</div>
+        <div>
+          <div class="point-title">Plug in, not lock in</div>
+          <p class="point-desc">Import <code style="font-size:12px; color:var(--green);">@ankarachain/sdk</code> into your existing Node.js or React app. No platform dependency. Full chain custody stays with you.</p>
+        </div>
+      </div>
+      <div class="what-point">
+        <div class="point-icon">🌍</div>
+        <div>
+          <div class="point-title">Built for African context</div>
+          <p class="point-desc">Asset schemas for farmland, commodities, and receivables. Identity hooks for BVN, NIN, Huduma Namba, and Ghana Card — not retrofitted from European standards.</p>
+        </div>
+      </div>
+      <div class="what-point">
+        <div class="point-icon">⚖️</div>
+        <div>
+          <div class="point-title">Compliance hooks, not compliance</div>
+          <p class="point-desc">Ankara Chain provides the interfaces. You plug in your KYC provider — Smile Identity, Persona, or custom — without redeploying core contracts.</p>
+        </div>
+      </div>
+      <div class="what-point">
+        <div class="point-icon">🔓</div>
+        <div>
+          <div class="point-title">Open core, enterprise layer</div>
+          <p class="point-desc">Smart contracts and SDK core are MIT licensed. Dashboard, regulatory compliance modules, and audit reporting are paid enterprise tiers. Like Terraform, but for RWA.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ASSET CLASSES -->
+<div style="position:relative; overflow:hidden; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background: var(--bg-surface);">
+  <div class="kente-bg" style="opacity:0.4;"></div>
+  <section id="assets">
+    <div class="reveal">
+      <div class="section-label">Supported Assets</div>
+      <h2 class="section-title">African asset classes,<br>natively on-chain.</h2>
+      <p class="section-desc">Pre-audited smart contract templates for the asset classes that matter most across African markets — not generic ERC-20 wrappers.</p>
+    </div>
+    <div class="assets-grid reveal">
+      <div class="asset-card">
+        <span class="asset-icon">🌾</span>
+        <div class="asset-name">Farmland</div>
+        <p class="asset-desc">Tokenize agricultural land with GPS coordinates, soil classification, irrigation data, and title document hashes linked to IPFS.</p>
+        <span class="asset-tag"><code>FarmlandToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">🌽</span>
+        <div class="asset-name">Commodity Receipts</div>
+        <p class="asset-desc">On-chain warehouse receipts for cocoa, coffee, maize, and cotton — with inspection reports, grade classification, and expiry tracking.</p>
+        <span class="asset-tag"><code>CommodityReceiptToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">🏢</span>
+        <div class="asset-name">Real Estate</div>
+        <p class="asset-desc">Fractional property ownership tokens for Lagos, Nairobi, Accra, and Cape Town markets. ERC-20 fungible shares or ERC-721 unique parcels.</p>
+        <span class="asset-tag"><code>RealEstateToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">📄</span>
+        <div class="asset-name">Invoices & Receivables</div>
+        <p class="asset-desc">Trade finance on-chain. Tokenize invoices with face value, discount rates, due dates, and debtor references for financing workflows.</p>
+        <span class="asset-tag"><code>InvoiceToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">🌱</span>
+        <div class="asset-name">Carbon Credits</div>
+        <p class="asset-desc">Verified emission reduction units with provenance, verification body reference, and retirement tracking baked into the token standard.</p>
+        <span class="asset-tag"><code>CarbonCreditToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">⛏️</span>
+        <div class="asset-name">Mining Rights</div>
+        <p class="asset-desc">Tokenize mineral rights and extraction licenses with jurisdiction metadata, license expiry, and royalty distribution hooks.</p>
+        <span class="asset-tag"><code>MiningRightsToken.sol</code></span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- CORE MODULES -->
+<section id="modules">
+  <div class="reveal">
+    <div class="section-label">SDK Architecture</div>
+    <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+    <p class="section-desc">Six core modules — all open source — plus enterprise layers for compliance, dashboards, and reporting.</p>
+  </div>
+
+  <div class="modules-layout reveal">
+    <div class="module-tabs" id="module-tabs">
+      <div class="module-tab active" data-tab="factory">
+        <div class="tab-icon green">🏭</div>
+        <div>
+          <div class="tab-name">Token Factory</div>
+          <div class="tab-desc-short">Deploy RWA tokens from templates</div>
+          <div class="module-oss"><span class="oss-badge">● MIT</span></div>
+        </div>
+      </div>
+      <div class="module-tab" data-tab="registry">
+        <div class="tab-icon green">📋</div>
+        <div>
+          <div class="tab-name">Asset Registry</div>
+          <div class="tab-desc-short">On-chain metadata & lifecycle</div>
+          <div class="module-oss"><span class="oss-badge">● MIT</span></div>
+        </div>
+      </div>
+      <div class="module-tab" data-tab="transfer">
+        <div class="tab-icon green">⚡</div>
+        <div>
+          <div class="tab-name">Transfer Engine</div>
+          <div class="tab-desc-short">Permissioned token transfers</div>
+          <div class="module-oss"><span class="oss-badge">● MIT</span></div>
+        </div>
+      </div>
+      <div class="module-tab" data-tab="identity">
+        <div class="tab-icon green">🔐</div>
+        <div>
+          <div class="tab-name">Identity Hooks</div>
+          <div class="tab-desc-short">Pluggable KYC interface</div>
+          <div class="module-oss"><span class="oss-badge">● MIT</span></div>
+        </div>
+      </div>
+      <div class="module-tab" data-tab="multichain">
+        <div class="tab-icon green">🔗</div>
+        <div>
+          <div class="tab-name">Multi-Chain Adapter</div>
+          <div class="tab-desc-short">EVM + Stellar unified API</div>
+          <div class="module-oss"><span class="oss-badge">● MIT</span></div>
+        </div>
+      </div>
+      <div class="module-tab" data-tab="dashboard">
+        <div class="tab-icon gold">📊</div>
+        <div>
+          <div class="tab-name">Enterprise Dashboard</div>
+          <div class="tab-desc-short">Web UI + compliance modules</div>
+          <div class="module-oss"><span class="enterprise-badge">★ Enterprise</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="module-detail" id="module-detail">
+      <!-- Factory -->
+      <div class="module-panel active" id="panel-factory">
+        <div class="panel-header">
+          <div class="panel-icon-large">🏭</div>
+          <div>
+            <div class="panel-title">Token Factory</div>
+            <div class="panel-subtitle">Deploy ERC-20, ERC-721, or ERC-3643 tokens from a single CLI command</div>
+          </div>
+        </div>
+        <p class="panel-body">The Token Factory provides pre-audited smart contract templates for every African asset class. Configure via JSON, deploy in seconds — no Solidity knowledge required.</p>
+        <div class="panel-features">
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>Fungible (ERC-20)</strong> for fractional ownership shares</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>Non-fungible (ERC-721)</strong> for unique asset representation</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>ERC-3643 permissioned tokens</strong> for compliance-enabled use cases</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Configurable templates via <code style="font-size:11px;color:var(--green)">ankara.config.json</code></span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Mint, burn, pause, and ownership transfer with role-based access</span></div>
+        </div>
+      </div>
+      <!-- Registry -->
+      <div class="module-panel" id="panel-registry">
+        <div class="panel-header">
+          <div class="panel-icon-large">📋</div>
+          <div>
+            <div class="panel-title">Asset Registry</div>
+            <div class="panel-subtitle">Standard on-chain metadata schema for African asset classes</div>
+          </div>
+        </div>
+        <p class="panel-body">Links every token to its real-world asset. Defines a standardized metadata schema with IPFS/Arweave document linking, GPS coordinates, valuations, and full lifecycle management.</p>
+        <div class="panel-features">
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>5-stage lifecycle:</strong> Draft → Active → Suspended → Redeemed → Expired</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">IPFS / Arweave document linking with hash verification</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">On-chain event emission for every state transition</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Versioned metadata updates — fully auditable history</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Batch registration — up to 500 assets per transaction</span></div>
+        </div>
+      </div>
+      <!-- Transfer -->
+      <div class="module-panel" id="panel-transfer">
+        <div class="panel-header">
+          <div class="panel-icon-large">⚡</div>
+          <div>
+            <div class="panel-title">Transfer Engine</div>
+            <div class="panel-subtitle">Pluggable transfer rules without modifying core contracts</div>
+          </div>
+        </div>
+        <p class="panel-body">Full token transfer orchestration with pre-transfer hooks, time-locks, batch operations, and escrow — all configurable per asset class without touching core contracts.</p>
+        <div class="panel-features">
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>Pre-transfer hooks</strong> — enforce whitelist, holding periods, custom rules</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Time-locked transfers (block or timestamp-based)</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Escrow for delivery-vs-payment and conditional flows</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Batch transfers for operational efficiency</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Full event log: sender, receiver, amount, timestamp, asset ID</span></div>
+        </div>
+      </div>
+      <!-- Identity -->
+      <div class="module-panel" id="panel-identity">
+        <div class="panel-header">
+          <div class="panel-icon-large">🔐</div>
+          <div>
+            <div class="panel-title">Identity Hooks</div>
+            <div class="panel-subtitle">Bring your own KYC provider — BVN, NIN, Smile Identity, or custom</div>
+          </div>
+        </div>
+        <p class="panel-body">Ankara Chain defines the <code style="font-size:12px;color:var(--green)">IIdentityVerifier</code> interface. You connect your chosen provider — without redeploying core asset contracts. African identity primitives built in.</p>
+        <div class="panel-features">
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Standard interface: <code style="font-size:11px;color:var(--green)">verifyIdentity()</code> · <code style="font-size:11px;color:var(--green)">revokeIdentity()</code> · <code style="font-size:11px;color:var(--green)">isVerified()</code></span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Reference implementations: Smile Identity, Persona, Shufti Pro</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">African IDs: Nigeria BVN/NIN · Ghana Card · Kenya Huduma Namba</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Swap providers without redeploying asset contracts</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Whitelist mock for testnet — no real KYC in development</span></div>
+        </div>
+      </div>
+      <!-- Multi-chain -->
+      <div class="module-panel" id="panel-multichain">
+        <div class="panel-header">
+          <div class="panel-icon-large">🔗</div>
+          <div>
+            <div class="panel-title">Multi-Chain Adapter</div>
+            <div class="panel-subtitle">One API, five chains — EVM and Stellar</div>
+          </div>
+        </div>
+        <p class="panel-body">Deploy to Ethereum, Polygon, BNB Chain, Celo, or Stellar without rewriting integration code. The adapter abstracts chain-specific differences behind a unified TypeScript API.</p>
+        <div class="panel-features">
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Unified API across all EVM chains and Stellar Soroban</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Chain config via environment variables or <code style="font-size:11px;color:var(--green)">ankara.config.json</code></span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Gas estimation before deployment — no surprise fees</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">EVM ERC-20/721 and Stellar native asset standard bridging</span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Retry logic with exponential backoff on RPC failures</span></div>
+        </div>
+      </div>
+      <!-- Dashboard -->
+      <div class="module-panel" id="panel-dashboard">
+        <div class="panel-header">
+          <div class="panel-icon-large" style="background:rgba(200,149,30,0.1); border-color:rgba(200,149,30,0.2);">📊</div>
+          <div>
+            <div class="panel-title">Enterprise Layer</div>
+            <div class="panel-subtitle">Dashboard · Compliance · Reporting · $299–$2,999/month</div>
+          </div>
+        </div>
+        <p class="panel-body">The enterprise tier adds a full web dashboard for asset management, pre-built African regulatory compliance modules, and audit-grade reporting — all maintained and updated as regulations evolve.</p>
+        <div class="panel-features">
+          <div class="panel-feature"><span class="feature-check" style="color:var(--gold)">★</span><span class="feature-text"><strong>Web Dashboard</strong> — asset management, monitoring, analytics</span></div>
+          <div class="panel-feature"><span class="feature-check" style="color:var(--gold)">★</span><span class="feature-text"><strong>Nigerian ISA 2025</strong> compliance module — SEC Nigeria compliant</span></div>
+          <div class="panel-feature"><span class="feature-check" style="color:var(--gold)">★</span><span class="feature-text"><strong>Ghana/Kenya/SA modules</strong> — regional regulatory frameworks</span></div>
+          <div class="panel-feature"><span class="feature-check" style="color:var(--gold)">★</span><span class="feature-text"><strong>Audit Trail</strong> — regulatory-grade export and reporting</span></div>
+          <div class="panel-feature"><span class="feature-check" style="color:var(--gold)">★</span><span class="feature-text"><strong>BVN/NIN integration</strong> — pre-built Nigerian identity hooks</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CODE / QUICK START -->
+<div style="border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:linear-gradient(to bottom, var(--bg-surface), var(--bg-deep));">
+<section id="code">
+  <div class="reveal">
+    <div class="section-label">Developer Experience</div>
+    <h2 class="section-title">From npm install<br>to mainnet in a day.</h2>
+    <p class="section-desc">Designed for developers who've never touched blockchain before. Full testnet token in 30 minutes — no Solidity required.</p>
+  </div>
+
+  <div class="code-layout reveal">
+    <div>
+      <div class="code-tabs">
+        <button class="code-tab active" data-code="install">Install</button>
+        <button class="code-tab" data-code="deploy">Deploy</button>
+        <button class="code-tab" data-code="mint">Mint</button>
+        <button class="code-tab" data-code="react">React</button>
+      </div>
+
+      <div class="code-block" id="code-install">
+        <div class="code-header">
+          <div class="code-dots">
+            <div class="code-dot" style="background:#FF5F57"></div>
+            <div class="code-dot" style="background:#FFBD2E"></div>
+            <div class="code-dot" style="background:#28CA41"></div>
+          </div>
+          <span class="code-filename">terminal</span>
+          <button class="copy-btn" onclick="copyCode('install')">copy</button>
+        </div>
+        <pre id="code-content-install"><span class="cmt"># Install the SDK</span>
+<span class="op">npm</span> install <span class="str">@ankarachain/sdk</span>
+
+<span class="cmt"># Scaffold a new project</span>
+<span class="op">npx</span> ankara init <span class="str">my-rwa-project</span>
+
+<span class="cmt"># Verify pre-deployment checks</span>
+<span class="op">npx</span> ankara verify <span class="cls">--network</span> polygon-testnet</pre>
+      </div>
+
+      <div class="code-block" id="code-deploy" style="display:none;">
+        <div class="code-header">
+          <div class="code-dots">
+            <div class="code-dot" style="background:#FF5F57"></div>
+            <div class="code-dot" style="background:#FFBD2E"></div>
+            <div class="code-dot" style="background:#28CA41"></div>
+          </div>
+          <span class="code-filename">deploy.ts</span>
+          <button class="copy-btn" onclick="copyCode('deploy')">copy</button>
+        </div>
+        <pre id="code-content-deploy"><span class="kw">import</span> { <span class="cls">TokenFactory</span>, <span class="cls">AssetRegistry</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk'</span>;
+
+<span class="kw">const</span> <span class="var">factory</span> = <span class="kw">new</span> <span class="cls">TokenFactory</span>({
+  <span class="var">network</span>: <span class="str">'polygon-testnet'</span>,
+  <span class="var">wallet</span>: <span class="var">signer</span>,        <span class="cmt">// your wallet provider</span>
+});
+
+<span class="cmt">// Deploy a farmland token in 3 lines</span>
+<span class="kw">const</span> { <span class="var">contractAddress</span>, <span class="var">abi</span> } = <span class="kw">await</span> <span class="var">factory</span>.<span class="fn">deploy</span>({
+  <span class="var">template</span>: <span class="str">'farmland'</span>,
+  <span class="var">name</span>: <span class="str">'Kano Farmland Token'</span>,
+  <span class="var">symbol</span>: <span class="str">'KFT'</span>,
+  <span class="var">identityVerifier</span>: <span class="var">myKYCContractAddress</span>,
+});
+
+<span class="var">console</span>.<span class="fn">log</span>(<span class="str">`Deployed: <span class="op">${</span><span class="var">contractAddress</span><span class="op">}</span>`</span>);</pre>
+      </div>
+
+      <div class="code-block" id="code-mint" style="display:none;">
+        <div class="code-header">
+          <div class="code-dots">
+            <div class="code-dot" style="background:#FF5F57"></div>
+            <div class="code-dot" style="background:#FFBD2E"></div>
+            <div class="code-dot" style="background:#28CA41"></div>
+          </div>
+          <span class="code-filename">mint-asset.ts</span>
+          <button class="copy-btn" onclick="copyCode('mint')">copy</button>
+        </div>
+        <pre id="code-content-mint"><span class="kw">import</span> { <span class="cls">AssetRegistry</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk'</span>;
+
+<span class="kw">const</span> <span class="var">registry</span> = <span class="kw">new</span> <span class="cls">AssetRegistry</span>({ <span class="var">contractAddress</span>, <span class="var">signer</span> });
+
+<span class="cmt">// Register the real-world asset</span>
+<span class="kw">const</span> <span class="var">assetId</span> = <span class="kw">await</span> <span class="var">registry</span>.<span class="fn">register</span>({
+  <span class="var">assetType</span>: <span class="str">'farmland'</span>,
+  <span class="var">location</span>: <span class="str">'12.0022° N, 8.5919° E'</span>,   <span class="cmt">// Kano, Nigeria</span>
+  <span class="var">areaSqMeters</span>: <span class="num">50000</span>,
+  <span class="var">valuationUSD</span>: <span class="num">125000</span>,
+  <span class="var">titleDocumentHash</span>: ipfs.<span class="fn">upload</span>(<span class="var">titlePDF</span>),
+  <span class="var">countryCode</span>: <span class="str">'NG'</span>,
+});
+
+<span class="cmt">// Mint fractional shares to investors</span>
+<span class="kw">await</span> <span class="var">token</span>.<span class="fn">mint</span>(<span class="var">investorAddress</span>, <span class="num">1000</span>);</pre>
+      </div>
+
+      <div class="code-block" id="code-react" style="display:none;">
+        <div class="code-header">
+          <div class="code-dots">
+            <div class="code-dot" style="background:#FF5F57"></div>
+            <div class="code-dot" style="background:#FFBD2E"></div>
+            <div class="code-dot" style="background:#28CA41"></div>
+          </div>
+          <span class="code-filename">PortfolioWidget.tsx</span>
+          <button class="copy-btn" onclick="copyCode('react')">copy</button>
+        </div>
+        <pre id="code-content-react"><span class="kw">import</span> { <span class="fn">useAsset</span>, <span class="fn">useTokenBalance</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk/react'</span>;
+
+<span class="kw">export function</span> <span class="fn">AssetPortfolio</span>({ <span class="var">walletAddress</span> }) {
+  <span class="kw">const</span> { <span class="var">asset</span>, <span class="var">loading</span> } = <span class="fn">useAsset</span>(<span class="var">contractAddress</span>);
+  <span class="kw">const</span> { <span class="var">balance</span> } = <span class="fn">useTokenBalance</span>(<span class="var">walletAddress</span>);
+
+  <span class="kw">if</span> (<span class="var">loading</span>) <span class="kw">return</span> <span class="str">&lt;Spinner /&gt;</span>;
+
+  <span class="kw">return</span> (
+    <span class="str">&lt;div className=</span><span class="op">"portfolio"</span><span class="str">&gt;</span>
+      <span class="str">&lt;h2&gt;</span>{<span class="var">asset</span>.<span class="var">name</span>}<span class="str">&lt;/h2&gt;</span>
+      <span class="str">&lt;p&gt;</span>Your shares: <span class="str">&lt;strong&gt;</span>{<span class="var">balance</span>}<span class="str">&lt;/strong&gt;&lt;/p&gt;</span>
+      <span class="str">&lt;p&gt;</span>Status: <span class="str">&lt;Badge&gt;</span>{<span class="var">asset</span>.<span class="var">status</span>}<span class="str">&lt;/Badge&gt;&lt;/p&gt;</span>
+    <span class="str">&lt;/div&gt;</span>
+  );
+}</pre>
+      </div>
+    </div>
+
+    <div class="code-steps">
+      <div class="section-label" style="margin-bottom:24px;">5 steps to your first token</div>
+      <div class="step-item">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-title">Install</div>
+          <div class="step-desc">Add Ankara Chain to your project with a single command.</div>
+          <code class="step-cmd">npm install @ankarachain/sdk</code>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-title">Initialize Project</div>
+          <div class="step-desc">Scaffold your project with the interactive setup wizard.</div>
+          <code class="step-cmd">npx ankara init my-project</code>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-title">Configure</div>
+          <div class="step-desc">Edit <code style="color:var(--green);font-size:12px">ankara.config.json</code> with your network, wallet, and chosen asset class template.</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <div class="step-title">Deploy Contracts</div>
+          <div class="step-desc">Deploy pre-audited smart contracts to testnet in seconds.</div>
+          <code class="step-cmd">npx ankara deploy --template farmland</code>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">05</div>
+        <div class="step-content">
+          <div class="step-title">Mint Your First Token</div>
+          <div class="step-desc">Register an asset and mint fractional shares to investors.</div>
+          <code class="step-cmd">npx ankara mint --metadata ./asset.json</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- CHAINS -->
+<section id="chains">
+  <div class="reveal">
+    <div class="section-label" style="justify-content:center;">Multi-Chain Support</div>
+    <h2 class="section-title" style="text-align:center;">Deploy once.<br>Run anywhere.</h2>
+    <p class="section-desc" style="margin:0 auto; text-align:center;">One SDK, five chains. Switch networks with a config flag — no rewriting integration code.</p>
+  </div>
+  <div class="chains-wrap reveal">
+    <div class="chain-card">
+      <div class="chain-logo" style="background:#627EEA22; font-size:22px;">Ξ</div>
+      <div><div class="chain-name">Ethereum</div><div class="chain-type">EVM · Mainnet</div></div>
+    </div>
+    <div class="chain-card">
+      <div class="chain-logo" style="background:#8247E522;">
+        <svg width="22" height="22" viewBox="0 0 38 38" fill="#8247E5"><path d="M29 13.5l-5-2.9-5 2.9v5.8l5 2.9 5-2.9v-5.8z"/><path d="M19 7.5l-5 2.9v5.8l5 2.9 5-2.9V10.4l-5-2.9z" opacity=".6"/></svg>
+      </div>
+      <div><div class="chain-name">Polygon</div><div class="chain-type">EVM · Low fees</div></div>
+    </div>
+    <div class="chain-card">
+      <div class="chain-logo" style="background:#F3BA2F22; color:#F3BA2F; font-size:18px; font-weight:800; font-family:'Unbounded',sans-serif;">B</div>
+      <div><div class="chain-name">BNB Chain</div><div class="chain-type">EVM · Mainnet</div></div>
+    </div>
+    <div class="chain-card">
+      <div class="chain-logo" style="background:#FCFF5222; color:#FCFF52; font-size:18px; font-weight:800;">C</div>
+      <div><div class="chain-name">Celo</div><div class="chain-type">EVM · Mobile-first</div></div>
+    </div>
+    <div class="chain-card">
+      <div class="chain-logo" style="background:#3E1BDB22;">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><path d="M16 4L28 10V22L16 28L4 22V10L16 4Z" fill="#3E1BDB40" stroke="#3E1BDB" stroke-width="2"/><circle cx="16" cy="16" r="4" fill="#3E1BDB"/></svg>
+      </div>
+      <div><div class="chain-name">Stellar</div><div class="chain-type">Soroban · Africa-first</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<div style="border-top:1px solid var(--border); background:var(--bg-surface);">
+<section id="pricing">
+  <div class="reveal">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Open source core.<br>Enterprise power.</h2>
+    <p class="section-desc">The HashiCorp model for African RWA. Build for free. Scale with us.</p>
+  </div>
+  <div class="pricing-grid reveal">
+    <div class="pricing-card">
+      <div class="pricing-tier">Open Source</div>
+      <div class="pricing-name">Core SDK</div>
+      <div class="pricing-price">
+        <span class="price-main">Free</span>
+        <div class="price-sub">MIT License · Always free</div>
+      </div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li><span class="pf-check">✓</span> Token Factory (all templates)</li>
+        <li><span class="pf-check">✓</span> Asset Registry</li>
+        <li><span class="pf-check">✓</span> Transfer Engine</li>
+        <li><span class="pf-check">✓</span> Identity Hooks Interface</li>
+        <li><span class="pf-check">✓</span> Multi-Chain Adapter</li>
+        <li><span class="pf-check">✓</span> CLI Tools</li>
+        <li><span class="pf-check">✓</span> React Hooks</li>
+        <li><span class="pf-cross">–</span> <span style="color:var(--text-muted)">Enterprise Dashboard</span></li>
+        <li><span class="pf-cross">–</span> <span style="color:var(--text-muted)">Compliance Modules</span></li>
+      </ul>
+      <a href="#" class="btn-pricing">Get Started Free</a>
+    </div>
+
+    <div class="pricing-card featured">
+      <div class="pricing-tier">Enterprise</div>
+      <div class="pricing-name">Pro Platform</div>
+      <div class="pricing-price">
+        <span class="price-main">$299</span><span class="price-period">/mo</span>
+        <div class="price-sub">Billed annually · Up to $2,999/mo</div>
+      </div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li><span class="pf-check">✓</span> Everything in Core SDK</li>
+        <li><span class="pf-check" style="color:var(--gold)">★</span> Enterprise Web Dashboard</li>
+        <li><span class="pf-check" style="color:var(--gold)">★</span> Nigerian ISA 2025 Module</li>
+        <li><span class="pf-check" style="color:var(--gold)">★</span> BVN / NIN Identity Hooks</li>
+        <li><span class="pf-check" style="color:var(--gold)">★</span> Audit Trail & Reporting</li>
+        <li><span class="pf-check" style="color:var(--gold)">★</span> 99.5% Uptime SLA</li>
+        <li><span class="pf-check" style="color:var(--gold)">★</span> Priority support</li>
+        <li><span class="pf-check" style="color:var(--gold)">★</span> Contract audit assistance</li>
+      </ul>
+      <a href="#" class="btn-pricing gold">Start Free Trial</a>
+    </div>
+
+    <div class="pricing-card">
+      <div class="pricing-tier">Compliance</div>
+      <div class="pricing-name">Regulatory Modules</div>
+      <div class="pricing-price">
+        <span class="price-main">$99</span><span class="price-period">/mo</span>
+        <div class="price-sub">Per module · Ghana, Kenya, SA</div>
+      </div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li><span class="pf-check">✓</span> Ghana SEC Framework Module</li>
+        <li><span class="pf-check">✓</span> Kenya CMA Module</li>
+        <li><span class="pf-check">✓</span> South Africa FSCA Module</li>
+        <li><span class="pf-check">✓</span> Automatic regulatory updates</li>
+        <li><span class="pf-check">✓</span> Legal advisory notes</li>
+        <li><span class="pf-cross">–</span> <span style="color:var(--text-muted)">Full Dashboard (requires Pro)</span></li>
+      </ul>
+      <a href="#" class="btn-pricing">Talk to Sales</a>
+    </div>
+  </div>
+  <p style="text-align:center; margin-top:24px; font-size:13px; color:var(--text-muted);">
+    Protocol fees of 0.1–0.5% apply on asset issuance via TokenFactory. <a href="#" style="color:var(--text-secondary);">See fee schedule →</a>
+  </p>
+</section>
+</div>
+
+<!-- COMMUNITY -->
+<section id="community">
+  <div class="reveal">
+    <div class="section-label">Community & Ecosystem</div>
+    <h2 class="section-title">Built by Africa.<br>For Africa.</h2>
+    <p class="section-desc">We're building the developer ecosystem, not just the tool. Grants, hackathons, university partnerships, and a public roadmap.</p>
+  </div>
+
+  <div class="kpi-grid reveal">
+    <div class="kpi-card">
+      <div class="kpi-period">6-Month Targets</div>
+      <div class="kpi-items">
+        <div class="kpi-item">
+          <div class="kpi-value">500</div>
+          <div class="kpi-name">GitHub Stars</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">1,000</div>
+          <div class="kpi-name">npm Weekly Downloads</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value">10</div>
+          <div class="kpi-name">Projects Built on SDK</div>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-period">12-Month Targets</div>
+      <div class="kpi-items">
+        <div class="kpi-item">
+          <div class="kpi-value" style="color:var(--gold-light);">2,000</div>
+          <div class="kpi-name">GitHub Stars</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value" style="color:var(--gold-light);">$10M+</div>
+          <div class="kpi-name">Asset Value Tokenized</div>
+        </div>
+        <div class="kpi-item">
+          <div class="kpi-value" style="color:var(--gold-light);">10</div>
+          <div class="kpi-name">Enterprise Customers</div>
+        </div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-period">Community</div>
+      <div class="kpi-items" style="text-align:left;">
+        <div style="font-size:13px; color:var(--text-secondary); margin-bottom:16px; line-height:1.6;">
+          Join the ecosystem. Grants available for developers building on Ankara Chain.
+        </div>
+        <div class="events-row">
+          <span class="event-badge">🌍 ETHSafari</span>
+          <span class="event-badge">🇳🇬 Web3Lagos</span>
+          <span class="event-badge">💻 Devfest Nigeria</span>
+        </div>
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px; font-family:'DM Mono',monospace; letter-spacing:0.06em;">SUPPORTED COUNTRIES</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <span style="font-size:12px; color:var(--text-secondary); background:var(--bg-surface); padding:3px 10px; border-radius:100px; border:1px solid var(--border);">🇳🇬 Nigeria</span>
+            <span style="font-size:12px; color:var(--text-secondary); background:var(--bg-surface); padding:3px 10px; border-radius:100px; border:1px solid var(--border);">🇬🇭 Ghana</span>
+            <span style="font-size:12px; color:var(--text-secondary); background:var(--bg-surface); padding:3px 10px; border-radius:100px; border:1px solid var(--border);">🇰🇪 Kenya</span>
+            <span style="font-size:12px; color:var(--text-secondary); background:var(--bg-surface); padding:3px 10px; border-radius:100px; border:1px solid var(--border);">🇿🇦 South Africa</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta" style="max-width:1200px; margin:0 auto; padding:80px 48px 120px;">
+  <div class="cta-box reveal">
+    <h2 class="cta-title">
+      Your first tokenized<br>
+      <span style="color:var(--gold-light);">African asset</span><br>
+      is 30 minutes away.
+    </h2>
+    <p class="cta-sub">No blockchain expertise required. Open source. Built for African developers and the asset classes they know.</p>
+    <div class="cta-actions">
+      <a href="#code" class="btn-hero-primary">
+        Install @ankarachain/sdk
+      </a>
+      <a href="#" class="btn-hero-ghost">
+        Read the Docs
+      </a>
+    </div>
+    <div style="margin-top:32px; display:flex; gap:24px; justify-content:center; flex-wrap:wrap;">
+      <span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+        <span style="color:var(--green);">✓</span> MIT Licensed
+      </span>
+      <span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+        <span style="color:var(--green);">✓</span> No vendor lock-in
+      </span>
+      <span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+        <span style="color:var(--green);">✓</span> Third-party audited
+      </span>
+      <span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+        <span style="color:var(--green);">✓</span> Testnet faucets included
+      </span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo">Ankara <span>Chain</span></div>
+    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">by Cranebolt · Digital Solutions & AI Infrastructure</div>
+  </div>
+  <ul class="footer-links">
+    <li><a href="#">Documentation</a></li>
+    <li><a href="#">GitHub</a></li>
+    <li><a href="#">Discord</a></li>
+    <li><a href="#">Changelog</a></li>
+    <li><a href="#">Grants</a></li>
+  </ul>
+  <div class="footer-meta">© 2026 Cranebolt. All rights reserved.</div>
+</footer>
+
+<script>
+// NAV scroll
+window.addEventListener('scroll', () => {
+  document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// Reveal on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+document.querySelectorAll('.reveal').forEach(el => {
+  observer.observe(el);
+  // stagger children
+  const children = el.children;
+  [...children].forEach((c, i) => {
+    c.style.transitionDelay = `${i * 0.07}s`;
+  });
+});
+
+// Module tabs
+document.querySelectorAll('.module-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const id = tab.dataset.tab;
+    document.querySelectorAll('.module-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.module-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + id).classList.add('active');
+  });
+});
+
+// Code tabs
+document.querySelectorAll('.code-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const id = tab.dataset.code;
+    document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('[id^="code-"]').forEach(p => {
+      if (p.id !== 'code-' + id && p.tagName === 'DIV') p.style.display = 'none';
+    });
+    tab.classList.add('active');
+    document.getElementById('code-' + id).style.display = 'block';
+  });
+});
+
+// Copy code
+function copyCode(tab) {
+  const content = document.getElementById('code-content-' + tab).innerText;
+  navigator.clipboard.writeText(content).then(() => {
+    const btn = event.target;
+    btn.textContent = 'copied!';
+    btn.style.color = 'var(--green)';
+    setTimeout(() => { btn.textContent = 'copy'; btn.style.color = ''; }, 2000);
+  });
+}
+
+// Terminal typing animation
+const lines = document.querySelectorAll('.t-success, .t-output');
+lines.forEach((line, i) => {
+  line.style.opacity = '0';
+  setTimeout(() => {
+    line.style.transition = 'opacity 0.3s ease';
+    line.style.opacity = '1';
+  }, 800 + i * 350);
+});
+</script>
+</body>
+</html>

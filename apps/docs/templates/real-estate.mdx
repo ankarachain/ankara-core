@@ -1,0 +1,89 @@
+---
+title: Real Estate Token
+description: Fractional property ownership tokens with rental yield distribution and occupancy tracking.
+---
+
+## Overview
+
+`RealEstateToken` represents fractional ownership in a real property. Use cases include Lagos/Nairobi/Accra fractional property investment, rental yield distribution, and developer pre-sales.
+
+**Contract:** `RealEstateToken.sol`  
+**CLI template:** `real-estate`  
+**SDK method:** `factory.deployRealEstate(opts)`
+
+---
+
+## Metadata Schema
+
+```typescript
+interface RealEstateMetadata {
+  propertyId:        string;
+  propertyType:      string;   // Residential | Commercial | Industrial | Land
+  locationAddress:   string;
+  totalAreaSqMeters: bigint;
+  titleDocumentHash: string;   // bytes32
+  valuationUSD:      bigint;   // 18 decimals
+  rentalYieldBps:    bigint;   // Annual yield, e.g. 600 = 6%
+  occupancyStatus:   string;   // Vacant | Owner-occupied | Tenanted
+  developerAddress:  string;   // Developer/issuer Ethereum address
+  lastUpdated:       bigint;
+}
+```
+
+---
+
+## Deploy
+
+```typescript
+const result = await factory.deployRealEstate({
+  name:        "Victoria Island Commercial Unit",
+  symbol:      "VICU",
+  assetId:     "PROP-LAGOS-001",
+  countryCode: "NG",
+  metadata: {
+    propertyId:        "PROP-001",
+    propertyType:      "Commercial",
+    locationAddress:   "12 Adeola Odeku Street, Victoria Island, Lagos",
+    totalAreaSqMeters: BigInt(300),
+    titleDocumentHash: ethers.ZeroHash,
+    valuationUSD:      ethers.parseEther("500000"),
+    rentalYieldBps:    BigInt(650),  // 6.5%
+    occupancyStatus:   "Tenanted",
+    developerAddress:  ethers.ZeroAddress,
+    lastUpdated:       BigInt(Math.floor(Date.now() / 1000)),
+  },
+});
+```
+
+---
+
+## Contract-Specific Functions
+
+### Reads
+
+| Function | Returns | Description |
+|----------|---------|-------------|
+| `getMetadata()` | `RealEstateMetadata` | Full metadata struct |
+| `valuationUSD()` | `uint256` | Current property valuation |
+| `rentalYieldBps()` | `uint256` | Annual rental yield in bps |
+| `occupancyStatus()` | `string` | Current occupancy status |
+| `totalRentalDistributed()` | `uint256` | Cumulative rental declared (USD, 18 dec) |
+| `metadataVersion()` | `uint256` | Metadata update counter |
+
+### Writes (MANAGER\_ROLE)
+
+| Function | Description |
+|----------|-------------|
+| `updateValuation(uint256 newValuationUSD)` | Update property valuation |
+| `updateOccupancyStatus(string newStatus)` | Update occupancy (Vacant / Tenanted / Owner-occupied) |
+| `declareRentalDistribution(uint256 amountUSD)` | Record a rental income distribution event |
+
+---
+
+## Events
+
+```
+Transfer(address indexed from, address indexed to, uint256 value)
+MetadataUpdated(uint256 indexed version, uint256 timestamp)
+RentalDeclared(uint256 amountUSD, uint256 perTokenUSD, uint256 timestamp)
+```

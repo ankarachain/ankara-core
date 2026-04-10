@@ -1,0 +1,13 @@
+{
+  "name": "@ankarachain/docs",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ankara Chain — Mintlify documentation",
+  "scripts": {
+    "dev": "mintlify dev",
+    "build": "mintlify build"
+  },
+  "devDependencies": {
+    "mintlify": "latest"
+  }
+}
