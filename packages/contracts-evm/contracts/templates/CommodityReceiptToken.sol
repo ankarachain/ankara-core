@@ -93,7 +93,7 @@ contract CommodityReceiptToken is AnkaraChainBaseToken {
     }
 
     function markExpired() external onlyRole(MANAGER_ROLE) {
-        this.setStatus(AssetStatus.EXPIRED);
+        _setStatus(AssetStatus.EXPIRED);
         emit ReceiptExpired(this.assetId(), block.timestamp);
     }
 }

@@ -119,7 +119,7 @@ contract InvoiceToken is AnkaraChainBaseToken {
     function markFunded() external onlyRole(MANAGER_ROLE) {
         InvoiceStatus old = _invoiceStatus;
         _invoiceStatus = InvoiceStatus.FUNDED;
-        this.setStatus(AssetStatus.ACTIVE);
+        _setStatus(AssetStatus.ACTIVE);
         emit InvoiceStatusChanged(old, InvoiceStatus.FUNDED, block.timestamp);
     }
 
@@ -134,7 +134,7 @@ contract InvoiceToken is AnkaraChainBaseToken {
         }
         InvoiceStatus old = _invoiceStatus;
         _invoiceStatus = InvoiceStatus.REPAID;
-        this.setStatus(AssetStatus.REDEEMED);
+        _setStatus(AssetStatus.REDEEMED);
         emit InvoiceRepaid(_metadata.faceValueUSD, block.timestamp);
         emit InvoiceStatusChanged(old, InvoiceStatus.REPAID, block.timestamp);
     }
@@ -150,7 +150,7 @@ contract InvoiceToken is AnkaraChainBaseToken {
         }
         InvoiceStatus old = _invoiceStatus;
         _invoiceStatus = InvoiceStatus.DEFAULTED;
-        this.setStatus(AssetStatus.SUSPENDED);
+        _setStatus(AssetStatus.SUSPENDED);
         emit InvoiceDefaulted(reason, block.timestamp);
         emit InvoiceStatusChanged(old, InvoiceStatus.DEFAULTED, block.timestamp);
     }

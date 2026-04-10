@@ -110,6 +110,10 @@ abstract contract AnkaraChainBaseToken is
         override
         onlyRole(MANAGER_ROLE)
     {
+        _setStatus(newStatus);
+    }
+
+    function _setStatus(AssetStatus newStatus) internal {
         AssetStatus old = _status;
         _status = newStatus;
         emit AssetStatusChanged(old, newStatus, block.timestamp);

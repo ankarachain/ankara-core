@@ -150,7 +150,7 @@ contract MiningRightsToken is AnkaraChainBaseToken {
      */
     function markLicenseExpired() external onlyRole(MANAGER_ROLE) {
         if (block.timestamp <= _metadata.licenseExpiry) revert LicenseAlreadyExpired();
-        this.setStatus(AssetStatus.EXPIRED);
+        _setStatus(AssetStatus.EXPIRED);
         emit LicenseExpired(this.assetId(), block.timestamp);
     }
 }
