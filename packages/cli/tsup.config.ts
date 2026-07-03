@@ -9,5 +9,9 @@ export default defineConfig({
   banner: {
     js: "#!/usr/bin/env node",
   },
+  // Bundle workspace package; keep heavy peer dep external
+  noExternal: ["@ankarachain/sdk"],
   external: ["ethers"],
+  // Output as .js so the shebang + bin field work without .mjs extension
+  outExtension: () => ({ js: ".js" }),
 });

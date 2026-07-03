@@ -11,6 +11,13 @@ import type {
   DeployMiningRightsOptions,
   DeployResult,
   SupportedNetwork,
+  DeployFarmlandNFTOptions,
+  DeployRealEstateNFTOptions,
+  DeployMiningRightsNFTOptions,
+  DeployCommodityVaultNFTOptions,
+  NFTDeployResult,
+  DeployEscrowOptions,
+  EscrowDeployResult,
 } from "../types";
 
 /**
@@ -62,7 +69,9 @@ export class TokenFactory {
       config.network,
       provider,
       config.signer,
-      config.factoryAddress
+      config.factoryAddress,
+      config.nftFactoryAddress,
+      config.escrowFactoryAddress
     );
   }
 
@@ -108,6 +117,50 @@ export class TokenFactory {
    */
   async deployMiningRights(opts: DeployMiningRightsOptions): Promise<DeployResult> {
     return this._adapter.deployMiningRightsToken(opts);
+  }
+
+  // ─── NFT Deploy ──────────────────────────────────────────────────────────
+
+  async deployFarmlandNFT(opts: DeployFarmlandNFTOptions): Promise<NFTDeployResult> {
+    return this._adapter.deployFarmlandNFT(opts);
+  }
+
+  async deployRealEstateNFT(opts: DeployRealEstateNFTOptions): Promise<NFTDeployResult> {
+    return this._adapter.deployRealEstateNFT(opts);
+  }
+
+  async deployMiningRightsNFT(opts: DeployMiningRightsNFTOptions): Promise<NFTDeployResult> {
+    return this._adapter.deployMiningRightsNFT(opts);
+  }
+
+  async deployCommodityVaultNFT(opts: DeployCommodityVaultNFTOptions): Promise<NFTDeployResult> {
+    return this._adapter.deployCommodityVaultNFT(opts);
+  }
+
+  async getDeployedNFTs(address?: string): Promise<string[]> {
+    return this._adapter.getDeployerNFTs(address);
+  }
+
+  async totalDeployedNFTs(): Promise<number> {
+    return this._adapter.totalDeployedNFTs();
+  }
+
+  // ─── Escrow Deploy ───────────────────────────────────────────────────────
+
+  /**
+   * Deploy a new MilestoneEscrow for a payer/payee deal via the on-chain EscrowFactory.
+   * `opts.token` must be a stablecoin whitelisted on the EscrowFactory.
+   */
+  async deployEscrow(opts: DeployEscrowOptions): Promise<EscrowDeployResult> {
+    return this._adapter.deployEscrow(opts);
+  }
+
+  async getDeployedEscrows(address?: string): Promise<string[]> {
+    return this._adapter.getDeployerEscrows(address);
+  }
+
+  async totalDeployedEscrows(): Promise<number> {
+    return this._adapter.totalDeployedEscrows();
   }
 
   // ─── Queries ─────────────────────────────────────────────────────────────

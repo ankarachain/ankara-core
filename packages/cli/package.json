@@ -2,6 +2,7 @@
   "name": "@ankarachain/cli",
   "version": "0.0.1",
   "description": "Ankara Chain CLI — deploy RWA tokens from the command line",
+  "type": "module",
   "bin": {
     "ankara": "./dist/index.js"
   },

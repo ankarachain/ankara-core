@@ -38,6 +38,12 @@ export type AssetTemplate =
   | "carbon-credit"
   | "mining-rights";
 
+export type NFTAssetTemplate =
+  | "farmland-nft"
+  | "real-estate-nft"
+  | "mining-rights-nft"
+  | "commodity-vault-nft";
+
 // ─── Metadata types ──────────────────────────────────────────────────────────
 
 export interface FarmlandMetadata {
@@ -79,6 +85,14 @@ export interface RealEstateMetadata {
   lastUpdated: bigint;
 }
 
+/** Mirrors the on-chain InvoiceToken.InvoiceStatus enum */
+export enum InvoiceStatus {
+  PENDING   = 0,
+  FUNDED    = 1,
+  REPAID    = 2,
+  DEFAULTED = 3,
+}
+
 export interface InvoiceMetadata {
   invoiceNumber: string;
   debtorReference: string;
@@ -102,6 +116,15 @@ export interface CarbonCreditMetadata {
   lastUpdated: bigint;
 }
 
+/** On-chain record of a single carbon credit retirement event */
+export interface RetirementRecord {
+  retiredBy:      string;   // wallet address
+  amount:         bigint;   // wei (1e18 = 1 tCO2e)
+  timestamp:      bigint;
+  beneficiary:    string;   // entity the offset is on behalf of
+  retirementNote: string;   // reason / project reference
+}
+
 export interface MiningRightsMetadata {
   licenseNumber: string;
   mineralType: string;         // Gold | Coltan | Copper | Diamond | Coal | Lithium
@@ -112,6 +135,94 @@ export interface MiningRightsMetadata {
   licenseDocumentHash: string;
   royaltyRateBps: bigint;
   lastUpdated: bigint;
+}
+
+// ─── NFT Metadata types ──────────────────────────────────────────────────────
+
+export interface FarmlandNFTMetadata {
+  location: string;
+  areaSqMeters: bigint;
+  soilType: string;
+  irrigationType: string;
+  cropHistory: string;
+  titleDocumentHash: string;  // bytes32 hex
+  surveyReportHash: string;   // bytes32 hex
+  stateRegion: string;
+  lastUpdated: bigint;
+}
+
+export interface RealEstateNFTMetadata {
+  propertyId: string;
+  propertyType: string;         // Residential | Commercial | Industrial | Land
+  locationAddress: string;
+  totalAreaSqMeters: bigint;
+  titleDocumentHash: string;    // bytes32 hex
+  valuationUSD: bigint;
+  rentalYieldBps: bigint;
+  developerAddress: string;
+  lastUpdated: bigint;
+}
+
+export interface MiningRightsNFTMetadata {
+  licenseNumber: string;
+  mineralType: string;
+  concessionArea: string;
+  areaHectares: bigint;
+  licenseExpiry: bigint;
+  issuingAuthority: string;
+  licenseDocumentHash: string;  // bytes32 hex
+  royaltyRateBps: bigint;
+  lastUpdated: bigint;
+}
+
+export interface CommodityVaultNFTMetadata {
+  warehouseId: string;
+  warehouseLocation: string;
+  operatorAddress: string;
+  commodityType: string;
+  quantityKg: bigint;
+  gradeClassification: string;
+  certificateHash: string;      // bytes32 hex
+  depositDate: bigint;
+  lastUpdated: bigint;
+}
+
+// ─── NFT Deploy options ──────────────────────────────────────────────────────
+
+export interface BaseDeployNFTOptions {
+  name: string;
+  symbol: string;
+  assetId: string;
+  countryCode: string;
+  admin?: string;
+  identityVerifier?: string;
+}
+
+export interface DeployFarmlandNFTOptions extends BaseDeployNFTOptions {
+  metadata: FarmlandNFTMetadata;
+}
+
+export interface DeployRealEstateNFTOptions extends BaseDeployNFTOptions {
+  metadata: RealEstateNFTMetadata;
+}
+
+export interface DeployMiningRightsNFTOptions extends BaseDeployNFTOptions {
+  metadata: MiningRightsNFTMetadata;
+}
+
+export interface DeployCommodityVaultNFTOptions extends BaseDeployNFTOptions {
+  metadata: CommodityVaultNFTMetadata;
+}
+
+// ─── NFT Deploy result ───────────────────────────────────────────────────────
+
+export interface NFTDeployResult {
+  nftAddress: string;
+  txHash: string;
+  assetId: string;
+  template: NFTAssetTemplate;
+  network: SupportedNetwork;
+  deployedAt: number;
 }
 
 // ─── Deploy options ──────────────────────────────────────────────────────────
@@ -160,12 +271,59 @@ export interface DeployResult {
   deployedAt: number;
 }
 
+// ─── Milestone Escrow ────────────────────────────────────────────────────────
+
+/** Mirrors the on-chain MilestoneEscrow.MilestoneStatus enum */
+export enum MilestoneStatus {
+  PENDING   = 0,
+  DELIVERED = 1,
+  DISPUTED  = 2,
+  RELEASED  = 3,
+  REFUNDED  = 4,
+}
+
+export interface Milestone {
+  amount: bigint;
+  descriptionHash: string;
+  status: MilestoneStatus;
+  deliveredAt: bigint;
+}
+
+export interface EscrowMilestoneInput {
+  amount: bigint;
+  descriptionHash?: string;  // bytes32 hex; defaults to zero hash if omitted
+}
+
+export interface DeployEscrowOptions {
+  payer: string;
+  payee: string;
+  token: string;                  // stablecoin address — must be whitelisted on EscrowFactory
+  milestones: EscrowMilestoneInput[];
+  arbiter?: string;                // defaults to no arbiter (address(0))
+  identityVerifier?: string;       // defaults to no KYC gating (address(0))
+  timelockDurationSeconds?: number; // defaults to 7 days on-chain when 0/omitted
+  admin?: string;                  // defaults to the connected signer
+}
+
+export interface EscrowDeployResult {
+  escrowAddress: string;
+  txHash: string;
+  payer: string;
+  payee: string;
+  token: string;
+  totalAmount: bigint;
+  network: SupportedNetwork;
+  deployedAt: number;
+}
+
 // ─── SDK config ──────────────────────────────────────────────────────────────
 
 export interface AnkaraChainConfig {
   network: SupportedNetwork;
   signer?: Signer;
   provider?: Provider;
-  factoryAddress?: string;  // Override default factory address
-  rpcUrl?: string;          // Override default RPC
+  factoryAddress?: string;        // Override default ERC-20 factory address
+  nftFactoryAddress?: string;     // Override default NFT factory address
+  escrowFactoryAddress?: string;  // Override default EscrowFactory address
+  rpcUrl?: string;                // Override default RPC
 }

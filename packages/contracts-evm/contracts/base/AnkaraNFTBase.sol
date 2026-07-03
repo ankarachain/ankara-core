@@ -1,37 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "../interfaces/IIdentityVerifier.sol";
-import "../interfaces/IAnkaraChainToken.sol";
+import "../interfaces/IAnkaraNFT.sol";
 
 /**
- * @title AnkaraChainBaseToken
+ * @title AnkaraNFTBase
  * @author Cranebolt Technologies
- * @notice Base ERC-20 contract inherited by all Ankara Chain asset templates.
+ * @notice Abstract base inherited by all Ankara Chain NFT asset record templates.
  *
  * Provides:
- * - ERC-20 with mint, burn, pause
+ * - ERC-721 with mint, burn, pause
  * - Role-based access control (MINTER, PAUSER, UPGRADER, MANAGER)
  * - Pluggable identity verifier hook (optional — address(0) = open)
  * - Asset lifecycle status (DRAFT → ACTIVE → SUSPENDED → REDEEMED/EXPIRED)
- * - UUPS upgradeable proxy — fix bugs without redeploying token
+ * - Optional link to a corresponding ERC-20 investment token
+ * - UUPS upgradeable proxy
  *
- * Deploy via TokenFactory only. Never deploy this directly.
+ * Deploy via NFTFactory only. Never deploy this directly.
  */
-abstract contract AnkaraChainBaseToken is
+abstract contract AnkaraNFTBase is
     Initializable,
-    ERC20Upgradeable,
-    ERC20PausableUpgradeable,
-    ERC20BurnableUpgradeable,
+    ERC721Upgradeable,
+    ERC721PausableUpgradeable,
+    ERC721BurnableUpgradeable,
     AccessControlUpgradeable,
     UUPSUpgradeable,
-    IAnkaraChainToken
+    IAnkaraNFT
 {
     // ─── Roles ─────────────────────────────────────────────────────────────
     bytes32 public constant MINTER_ROLE   = keccak256("MINTER_ROLE");
@@ -44,16 +45,15 @@ abstract contract AnkaraChainBaseToken is
     string  private _countryCode;
     AssetStatus private _status;
     IIdentityVerifier private _identityVerifier;
-    address public feeRecipient;
 
-    // NFT deed contract linked to this investment token (address(0) if standalone)
-    address public linkedNFT;
+    // ERC-20 investment token linked to this NFT deed (address(0) if standalone)
+    address public linkedERC20;
 
-    // ─── Storage gap — 49 slots (50 - 1 used by linkedNFT) ────────────────
+    // Token ID counter — starts at 1, increments before each mint
+    uint256 private _nextTokenId;
+
+    // ─── Storage gap — 49 slots (50 total - 1 used by linkedERC20 declaration above) ──
     uint256[49] private __gap;
-
-    // ─── Events ─────────────────────────────────────────────────────────────
-    event NFTLinked(address indexed nftAddress);
 
     // ─── Errors ─────────────────────────────────────────────────────────────
     error NotVerified(address account);
@@ -61,18 +61,17 @@ abstract contract AnkaraChainBaseToken is
 
     // ─── Initializer ────────────────────────────────────────────────────────
 
-    function __AnkaraChainBaseToken_init(
+    function __AnkaraNFTBase_init(
         string memory name_,
         string memory symbol_,
         bytes32 assetId_,
         string memory countryCode_,
         address admin_,
-        address verifier_,
-        address feeRecipient_
+        address verifier_
     ) internal onlyInitializing {
-        __ERC20_init(name_, symbol_);
-        __ERC20Pausable_init();
-        __ERC20Burnable_init();
+        __ERC721_init(name_, symbol_);
+        __ERC721Pausable_init();
+        __ERC721Burnable_init();
         __AccessControl_init();
 
         if (admin_ == address(0)) revert ZeroAddress();
@@ -80,7 +79,7 @@ abstract contract AnkaraChainBaseToken is
         _assetId      = assetId_;
         _countryCode  = countryCode_;
         _status       = AssetStatus.DRAFT;
-        feeRecipient  = feeRecipient_;
+        _nextTokenId  = 1;
 
         if (verifier_ != address(0)) {
             _identityVerifier = IIdentityVerifier(verifier_);
@@ -93,7 +92,7 @@ abstract contract AnkaraChainBaseToken is
         _grantRole(MANAGER_ROLE,       admin_);
     }
 
-    // ─── IAnkaraChainToken ─────────────────────────────────────────────────
+    // ─── IAnkaraNFT ────────────────────────────────────────────────────────
 
     function assetId() external view override returns (bytes32) {
         return _assetId;
@@ -138,37 +137,41 @@ abstract contract AnkaraChainBaseToken is
     function pause() external override onlyRole(PAUSER_ROLE) { _pause(); }
     function unpause() external override onlyRole(PAUSER_ROLE) { _unpause(); }
 
-    function linkToNFT(address nftAddress)
+    function linkToERC20(address erc20Address)
         external
+        override
         onlyRole(MANAGER_ROLE)
     {
-        linkedNFT = nftAddress;
-        emit NFTLinked(nftAddress);
+        linkedERC20 = erc20Address;
+        emit ERC20Linked(erc20Address);
     }
 
-    // ─── Minting ────────────────────────────────────────────────────────────
+    // ─── Internal mint helper ────────────────────────────────────────────────
 
-    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+    function _mintNext(address to) internal returns (uint256 tokenId) {
+        tokenId = _nextTokenId++;
         _checkVerified(to);
-        _mint(to, amount);
+        _safeMint(to, tokenId);
     }
 
     // ─── Transfer hook — runs on every mint, burn, transfer ─────────────────
+    // OZ v5 ERC-721: _update(to, tokenId, auth) — "from" derived via _ownerOf
 
     function _update(
-        address from,
         address to,
-        uint256 amount
-    ) internal virtual override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+        uint256 tokenId,
+        address auth
+    ) internal virtual override(ERC721Upgradeable, ERC721PausableUpgradeable) returns (address) {
+        address from = _ownerOf(tokenId);
         // Minting (from == address(0)) skips identity check on sender
         if (from != address(0) && address(_identityVerifier) != address(0)) {
             _checkVerified(from);
         }
-        // Always check receiver if verifier is set (except burns)
+        // Always check receiver if verifier set (except burns)
         if (to != address(0) && address(_identityVerifier) != address(0)) {
             _checkVerified(to);
         }
-        super._update(from, to, amount);
+        return super._update(to, tokenId, auth);
     }
 
     function _checkVerified(address account) internal view {
@@ -194,7 +197,7 @@ abstract contract AnkaraChainBaseToken is
         public
         view
         virtual
-        override(AccessControlUpgradeable)
+        override(ERC721Upgradeable, AccessControlUpgradeable)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

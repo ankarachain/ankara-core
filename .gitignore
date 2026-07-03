@@ -14,3 +14,4 @@ deployments/
 .DS_Store
 *.log
 ankara.config.json
+_private/

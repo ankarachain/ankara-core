@@ -3,11 +3,14 @@ import { join } from "path";
 import type { SupportedNetwork } from "@ankarachain/sdk";
 
 export interface AnkaraChainProjectConfig {
-  version:        string;
-  network:        SupportedNetwork;
-  factoryAddress: string;
-  rpcUrl?:        string;
-  deployments:    DeploymentRecord[];
+  version:           string;
+  network:           SupportedNetwork;
+  factoryAddress:           string;
+  nftFactoryAddress?:       string;
+  multiTokenFactoryAddress?: string;
+  escrowFactoryAddress?:    string;
+  rpcUrl?:           string;
+  deployments:       DeploymentRecord[];
 }
 
 export interface DeploymentRecord {
