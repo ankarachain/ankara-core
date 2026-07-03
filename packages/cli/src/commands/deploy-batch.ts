@@ -1,7 +1,7 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { MULTI_TOKEN_FACTORY_ABI } from "@ankarachain/sdk";
+import { TokenFactory } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
 import {
   readConfig,
@@ -62,59 +62,39 @@ export async function deployBatchCommand() {
     const provider   = new ethers.JsonRpcProvider(rpcUrl);
     const wallet     = new ethers.Wallet(privateKey, provider);
 
-    const factory = new ethers.Contract(
-      config.multiTokenFactoryAddress,
-      MULTI_TOKEN_FACTORY_ABI,
-      wallet
-    );
+    const factory = new TokenFactory({
+      network: config.network,
+      signer: wallet,
+      multiTokenFactoryAddress: config.multiTokenFactoryAddress,
+    });
 
-    const warehouseMeta = {
-      warehouseId:          details.warehouseId,
-      warehouseLocation:    details.warehouseLocation,
-      operatorAddress:      wallet.address,
-      warehouseLicenseHash: ethers.ZeroHash,
-      certificationExpiry:  BigInt(9_999_999_999),
-    };
+    const result = await factory.deployCommodityBatchToken({
+      name:        details.name,
+      countryCode: details.countryCode,
+      baseURI:     details.baseURI,
+      warehouse: {
+        warehouseId:       details.warehouseId,
+        warehouseLocation: details.warehouseLocation,
+      },
+    });
 
-    const tx = await factory.deployCommodityBatchToken(
-      details.name,
-      details.countryCode,
-      details.baseURI,
-      wallet.address,
-      warehouseMeta
-    );
-    const receipt = await tx.wait();
-
-    // Parse contract address from event
-    const iface = new ethers.Interface(MULTI_TOKEN_FACTORY_ABI as readonly string[]);
-    let contractAddress = "";
-    for (const log of receipt.logs) {
-      try {
-        const parsed = iface.parseLog(log);
-        if (parsed?.name === "MultiTokenDeployed") {
-          contractAddress = parsed.args.contractAddress;
-          break;
-        }
-      } catch {}
-    }
-
-    spinner.succeed(`CommodityBatchToken deployed: ${contractAddress}`);
+    spinner.succeed(`CommodityBatchToken deployed: ${result.contractAddress}`);
 
     addDeployment({
-      tokenAddress: contractAddress,
+      tokenAddress: result.contractAddress,
       assetId:      ethers.ZeroHash,
       template:     "commodity-batch",
       name:         details.name,
       symbol:       "ERC1155",
       countryCode:  details.countryCode,
-      txHash:       receipt.hash,
-      deployedAt:   Date.now(),
+      txHash:       result.txHash,
+      deployedAt:   result.deployedAt,
       network:      config.network,
     });
 
     logger.blank();
-    logger.info(`Contract : ${contractAddress}`);
-    logger.info(`Tx hash  : ${receipt.hash}`);
+    logger.info(`Contract : ${result.contractAddress}`);
+    logger.info(`Tx hash  : ${result.txHash}`);
     logger.info("Saved to ankara.config.json");
   } catch (err: any) {
     spinner.fail("Deployment failed");

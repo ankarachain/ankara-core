@@ -7,6 +7,7 @@ import {
 import {
   TOKEN_FACTORY_ABI,
   NFT_FACTORY_ABI,
+  MULTI_TOKEN_FACTORY_ABI,
   ESCROW_FACTORY_ABI,
   MILESTONE_ESCROW_ABI,
   FARMLAND_TOKEN_ABI,
@@ -19,6 +20,8 @@ import {
   REAL_ESTATE_NFT_ABI,
   MINING_RIGHTS_NFT_ABI,
   COMMODITY_VAULT_NFT_ABI,
+  COMMODITY_BATCH_TOKEN_ABI,
+  POOL_VAULT_ABI,
   WHITELIST_VERIFIER_ABI,
 } from "../utils/abis";
 import { getNetwork } from "../utils/networks";
@@ -44,6 +47,9 @@ import type {
   NFTDeployResult,
   DeployEscrowOptions,
   EscrowDeployResult,
+  DeployCommodityBatchOptions,
+  DeployPoolVaultOptions,
+  MultiTokenDeployResult,
 } from "../types";
 
 /**
@@ -59,6 +65,7 @@ export class EVMAdapter {
   private _network: SupportedNetwork;
   private _factoryAddress: string | null = null;
   private _nftFactoryAddress: string | null = null;
+  private _multiTokenFactoryAddress: string | null = null;
   private _escrowFactoryAddress: string | null = null;
 
   constructor(
@@ -67,14 +74,16 @@ export class EVMAdapter {
     signer?: Signer,
     factoryAddress?: string,
     nftFactoryAddress?: string,
-    escrowFactoryAddress?: string
+    escrowFactoryAddress?: string,
+    multiTokenFactoryAddress?: string
   ) {
-    this._network              = network;
-    this._provider             = provider;
-    this._signer               = signer ?? null;
-    this._factoryAddress       = factoryAddress ?? null;
-    this._nftFactoryAddress    = nftFactoryAddress ?? null;
-    this._escrowFactoryAddress = escrowFactoryAddress ?? null;
+    this._network                   = network;
+    this._provider                  = provider;
+    this._signer                    = signer ?? null;
+    this._factoryAddress            = factoryAddress ?? null;
+    this._nftFactoryAddress         = nftFactoryAddress ?? null;
+    this._escrowFactoryAddress      = escrowFactoryAddress ?? null;
+    this._multiTokenFactoryAddress  = multiTokenFactoryAddress ?? null;
   }
 
   // ─── Connection helpers ───────────────────────────────────────────────────
@@ -112,6 +121,15 @@ export class EVMAdapter {
 
   setEscrowFactoryAddress(address: string) {
     this._escrowFactoryAddress = address;
+  }
+
+  get multiTokenFactoryAddress(): string {
+    if (!this._multiTokenFactoryAddress) throw new Error("No multi-token factory address configured.");
+    return this._multiTokenFactoryAddress;
+  }
+
+  setMultiTokenFactoryAddress(address: string) {
+    this._multiTokenFactoryAddress = address;
   }
 
   async getSignerAddress(): Promise<string> {
@@ -436,6 +454,104 @@ export class EVMAdapter {
     return new ethers.Contract(address, MILESTONE_ESCROW_ABI, this.signer);
   }
 
+  // ─── Multi-Token Factory interactions ─────────────────────────────────────
+
+  private multiTokenFactoryContract() {
+    return new ethers.Contract(
+      this.multiTokenFactoryAddress,
+      MULTI_TOKEN_FACTORY_ABI,
+      this.signer
+    );
+  }
+
+  async deployCommodityBatchToken(
+    opts: DeployCommodityBatchOptions
+  ): Promise<MultiTokenDeployResult> {
+    const factory   = this.multiTokenFactoryContract();
+    const adminAddr = opts.admin ?? await this.getSignerAddress();
+
+    const warehouseMeta = {
+      warehouseId:          opts.warehouse.warehouseId,
+      warehouseLocation:    opts.warehouse.warehouseLocation,
+      operatorAddress:      opts.warehouse.operatorAddress ?? adminAddr,
+      warehouseLicenseHash: opts.warehouse.warehouseLicenseHash?.startsWith("0x")
+        ? opts.warehouse.warehouseLicenseHash
+        : ethers.ZeroHash,
+      certificationExpiry:  opts.warehouse.certificationExpiry ?? BigInt(9_999_999_999),
+    };
+
+    const tx = await factory.deployCommodityBatchToken(
+      opts.name,
+      opts.countryCode,
+      opts.baseURI,
+      adminAddr,
+      warehouseMeta,
+      { value: await factory.deploymentFee() }
+    );
+
+    const receipt: ContractTransactionReceipt = await tx.wait();
+    const contractAddress = await this._extractMultiTokenAddress(receipt);
+
+    return {
+      contractAddress,
+      txHash:     receipt.hash,
+      template:   "commodity-batch",
+      network:    this._network,
+      deployedAt: Math.floor(Date.now() / 1000),
+    };
+  }
+
+  async deployPoolVault(opts: DeployPoolVaultOptions): Promise<MultiTokenDeployResult> {
+    const factory    = this.multiTokenFactoryContract();
+    const adminAddr  = opts.admin ?? await this.getSignerAddress();
+    const verifier   = opts.identityVerifier ?? ethers.ZeroAddress;
+    const oracle     = opts.oracle ?? ethers.ZeroAddress;
+    const assetIdB32 = ethers.keccak256(ethers.toUtf8Bytes(opts.assetId));
+
+    const tx = await factory.deployPoolVault(
+      opts.name,
+      opts.symbol,
+      assetIdB32,
+      opts.countryCode,
+      adminAddr,
+      verifier,
+      oracle,
+      BigInt(opts.managementFeeBps ?? 0),
+      { value: await factory.deploymentFee() }
+    );
+
+    const receipt: ContractTransactionReceipt = await tx.wait();
+    const contractAddress = await this._extractMultiTokenAddress(receipt);
+
+    return {
+      contractAddress,
+      txHash:     receipt.hash,
+      template:   "pool-vault",
+      network:    this._network,
+      deployedAt: Math.floor(Date.now() / 1000),
+    };
+  }
+
+  async getDeployerMultiTokens(address?: string): Promise<string[]> {
+    const factory = this.multiTokenFactoryContract();
+    const addr    = address ?? await this.getSignerAddress();
+    return factory.getDeployerMultiTokens(addr);
+  }
+
+  async totalDeployedMultiTokens(): Promise<number> {
+    const factory = this.multiTokenFactoryContract();
+    const n = await factory.totalDeployedMultiTokens();
+    return Number(n);
+  }
+
+  commodityBatchToken(address: string) {
+    return new ethers.Contract(address, COMMODITY_BATCH_TOKEN_ABI, this.signer);
+  }
+
+  poolVault(address: string) {
+    return new ethers.Contract(address, POOL_VAULT_ABI, this.signer);
+  }
+
   // ─── NFT Token accessors ─────────────────────────────────────────────────
 
   farmlandNFT(address: string) {
@@ -635,5 +751,20 @@ export class EVMAdapter {
       } catch { /* skip non-matching logs */ }
     }
     throw new Error("EscrowDeployed event not found in transaction receipt");
+  }
+
+  private async _extractMultiTokenAddress(
+    receipt: ContractTransactionReceipt
+  ): Promise<string> {
+    const iface  = new ethers.Interface(MULTI_TOKEN_FACTORY_ABI);
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed?.name === "MultiTokenDeployed") {
+          return parsed.args.contractAddress;
+        }
+      } catch { /* skip non-matching logs */ }
+    }
+    throw new Error("MultiTokenDeployed event not found in transaction receipt");
   }
 }

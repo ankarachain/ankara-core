@@ -1,0 +1,94 @@
+---
+title: MCP Server
+description: Deploy and manage Ankara Chain assets from an AI assistant via the Model Context Protocol.
+---
+
+## Overview
+
+`@ankarachain/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Ankara Chain's deploy and management operations as tools an AI assistant can call directly — deploy a token, mint to an address, check status, or drive an escrow's milestone lifecycle, all from a natural-language conversation instead of the CLI's interactive prompts.
+
+It wraps the same `@ankarachain/sdk` classes (`TokenFactory`, `EVMAdapter`, `EscrowManager`) used by the CLI, so every tool call goes through the SDK rather than constructing raw contract calls.
+
+```
+packages/mcp/
+└── src/
+    └── index.ts   # tool definitions + handlers + stdio server
+```
+
+---
+
+## Running the server
+
+```bash
+npx -y @ankarachain/mcp
+```
+
+Register it with an MCP-compatible client (Claude Desktop, Claude Code, etc.) by adding it to the client's MCP server config:
+
+```json
+{
+  "mcpServers": {
+    "ankarachain": {
+      "command": "npx",
+      "args": ["-y", "@ankarachain/mcp"]
+    }
+  }
+}
+```
+
+The server communicates over stdio — there's no separate network port to configure. Every tool call takes its own `rpcUrl` and, for write operations, `privateKey` as arguments, so a single server instance can operate against any network or wallet the caller specifies per-call.
+
+<Warning>
+Tool calls that require `privateKey` send it as a plain argument in the tool call. Only run this server in a trusted local environment, and prefer a dedicated deployer key with limited funds rather than a primary wallet key.
+</Warning>
+
+---
+
+## Tools
+
+### Deploy
+
+| Tool | Description |
+|------|-------------|
+| `deploy_token` | Deploy an ERC-20 RWA token via `TokenFactory`. Currently supports the `farmland` template with placeholder metadata — use the CLI's `ankara deploy` for full metadata prompts across all 6 ERC-20 templates. |
+| `deploy_nft` | Deploy an ERC-721 NFT asset record (`farmland-nft`, `real-estate-nft`, `mining-rights-nft`, `commodity-vault-nft`) via `NFTFactory`. |
+| `deploy_batch_token` | Deploy a `CommodityBatchToken` (ERC-1155 warehouse receipt) via `MultiTokenFactory`. |
+| `deploy_pool_vault` | Deploy a `PoolVault` (multi-asset ERC-20 fund) via `MultiTokenFactory`. |
+| `deploy_escrow` | Deploy a `MilestoneEscrow` for tranche-based diaspora payments via `EscrowFactory`. Takes an ordered list of milestone amounts. |
+
+### Escrow lifecycle
+
+| Tool | Description |
+|------|-------------|
+| `fund_escrow` | Approve and deposit the full agreed amount into a `MilestoneEscrow`. Payer only. |
+| `mark_milestone_delivered` | Mark a milestone as delivered. Payee only. |
+| `approve_milestone` | Approve a delivered milestone, releasing funds to the payee. Payer only. |
+| `raise_dispute` | Raise a dispute on a delivered milestone. Payer or payee. |
+| `resolve_dispute` | Resolve a disputed milestone — release to payee or refund to payer. Arbiter only. |
+| `claim_timelock_release` | Force-release a delivered, non-disputed milestone once the timelock has elapsed. Callable by anyone. |
+| `get_escrow_status` | Read-only: payer, payee, arbiter, token, total amount, funded/cancelled flags, remaining balance, and every milestone's status. No private key required. |
+
+### Token management
+
+| Tool | Description |
+|------|-------------|
+| `mint_tokens` | Mint ERC-20 RWA tokens to a recipient address. |
+| `get_token_status` | Read name, symbol, total supply, and asset status of a token. No private key required. |
+| `list_deployments` | List all token contracts deployed by a given address via `TokenFactory`. No private key required. |
+| `set_asset_status` | Set the lifecycle status of a token (`0`=DRAFT, `1`=ACTIVE, `2`=SUSPENDED, `3`=REDEEMED, `4`=EXPIRED). |
+
+Every tool's full input schema (required fields, types) is discoverable via the standard MCP `tools/list` request — an AI client introspects this automatically rather than needing hardcoded knowledge of the parameters.
+
+---
+
+## Design notes
+
+- All 16 tools dispatch through a single exported `callTool(name, args)` function, which wraps every handler in a try/catch and returns `{ content, isError: true }` on failure instead of throwing — so a bad tool call surfaces as a readable error to the AI client rather than crashing the server.
+- The stdio server only starts when the module is run directly (`node dist/index.js` / `npx @ankarachain/mcp`), not when imported — this lets the tool definitions and dispatch logic be unit tested without spinning up a real MCP transport.
+- Read-only tools (`get_escrow_status`, `get_token_status`, `list_deployments`) don't require a `privateKey`, only an `rpcUrl`, and construct a plain `ethers.JsonRpcProvider` rather than a signer.
+
+---
+
+## Why an MCP server
+
+The rest of the SDK targets developers writing code. The MCP server targets a different integration path entirely: an AI assistant deploying and operating Ankara Chain contracts on a user's behalf, driven by conversation rather than a script. It's the same underlying contracts and SDK — just a different front door.

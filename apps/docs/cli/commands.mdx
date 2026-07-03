@@ -156,6 +156,290 @@ Reads from `ankara.config.json` and queries the chain for:
 
 ---
 
+## NFT Commands
+
+## `ankara deploy-nft`
+
+Deploy an ERC-721 NFT asset record via interactive prompts.
+
+```bash
+ankara deploy-nft
+```
+
+**Requirements:**
+- `nftFactoryAddress` must be set in `ankara.config.json`
+
+**Interactive prompts:**
+- Template picker: `farmland-nft`, `real-estate-nft`, `mining-rights-nft`, `commodity-vault-nft`
+- Collection name, symbol, asset ID, country code
+
+Metadata fields are deployed as empty/zero placeholders — update them post-deploy via the SDK or a direct contract call. The deployment result is saved to `ankara.config.json` under `deployments`.
+
+---
+
+## `ankara transfer`
+
+Transfer ERC-20 tokens or ERC-721 NFTs to a recipient. Auto-detects the token standard via ERC-165 (`supportsInterface`) — no `--type` flag needed.
+
+```bash
+ankara transfer
+```
+
+**Interactive prompts:**
+- Contract address
+- If ERC-721: recipient address, token ID
+- If ERC-20: recipient address, amount (in token units)
+
+---
+
+## Multi-Token / Pool Commands
+
+These commands operate on the ERC-1155 layer (`MultiTokenFactory`, `CommodityBatchToken`, `PoolVault`, `ManualOracle`).
+
+## `ankara deploy-batch`
+
+Deploy a `CommodityBatchToken` (ERC-1155 warehouse receipt contract) via interactive prompts.
+
+```bash
+ankara deploy-batch
+```
+
+**Requirements:**
+- `multiTokenFactoryAddress` must be set in `ankara.config.json`
+
+**Interactive prompts:**
+- Warehouse name, country code, base IPFS URI, warehouse ID, warehouse location
+
+---
+
+## `ankara deploy-pool`
+
+Deploy a `PoolVault` (multi-asset ERC-20 fund) via interactive prompts.
+
+```bash
+ankara deploy-pool
+```
+
+**Requirements:**
+- `multiTokenFactoryAddress` must be set in `ankara.config.json`
+
+**Interactive prompts:**
+- Pool name, symbol, asset ID, country code
+- Oracle address (leave blank for none)
+- Management fee in basis points (default `50` = 0.5%/yr)
+
+---
+
+## `ankara register-batch`
+
+Register a new commodity batch on an already-deployed `CommodityBatchToken` contract.
+
+```bash
+ankara register-batch
+```
+
+**Interactive prompts:**
+- Contract address, batch ID, commodity type, quantity (kg), grade classification, harvest season, origin country, valuation USD, expiry (unix timestamp)
+
+---
+
+## `ankara batch-mint`
+
+Mint ERC-1155 commodity batch tokens to a recipient.
+
+```bash
+ankara batch-mint
+```
+
+**Interactive prompts:**
+- Contract address, batch ID, recipient address, amount
+
+---
+
+## `ankara deposit`
+
+Approve and deposit an ERC-20 token into a `PoolVault`.
+
+```bash
+ankara deposit
+```
+
+**What it does:**
+1. Prompts for the vault address, token address, and amount
+2. Sends an `approve()` transaction for the vault to spend the token
+3. Calls `vault.deposit(token, amount)`
+
+---
+
+## `ankara withdraw`
+
+Withdraw from a `PoolVault` by burning pool tokens.
+
+```bash
+ankara withdraw
+```
+
+**Interactive prompts:**
+- Vault address, amount of pool tokens to burn
+
+---
+
+## `ankara pool-status`
+
+Show NAV, AUM, accepted tokens, and fee info for a `PoolVault`.
+
+```bash
+ankara pool-status [--vault <address>]
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `-v, --vault` | PoolVault contract address (skips the prompt) |
+
+Reports: name/symbol, total supply, NAV per token, total AUM, management fee (bps), oracle address, last fee accrual timestamp, and the list of accepted deposit tokens.
+
+---
+
+## `ankara oracle-set`
+
+Set a token's USD price on a `ManualOracle` contract.
+
+```bash
+ankara oracle-set
+```
+
+**Interactive prompts:**
+- Oracle address, token address, price in USD (e.g. `1.50`)
+
+---
+
+## Escrow Commands
+
+Commands for the `MilestoneEscrow` / `EscrowFactory` contracts — tranche-based, dual-approval payments with an optional arbiter and a timelock fallback. See [Escrow](/contracts/escrow) for the on-chain mechanics.
+
+## `ankara deploy-escrow`
+
+Deploy a `MilestoneEscrow` for tranche-based diaspora payments via interactive prompts.
+
+```bash
+ankara deploy-escrow
+```
+
+**Requirements:**
+- `escrowFactoryAddress` must be set in `ankara.config.json`
+
+**Interactive prompts:**
+- Payer address (funds the escrow), payee address (receives released funds)
+- Arbiter address (optional — leave blank for none)
+- Stablecoin address (must be whitelisted on the `EscrowFactory`)
+- Timelock in days (default `7`)
+- Number of milestones, then an amount + description per milestone
+
+The deployment result is saved to `ankara.config.json` under `deployments`.
+
+---
+
+## `ankara escrow-fund`
+
+Approve and deposit the full agreed amount into a `MilestoneEscrow`. Payer only.
+
+```bash
+ankara escrow-fund
+```
+
+**What it does:**
+1. Prompts for the escrow address
+2. Reads the escrow's token and total amount
+3. Sends an `approve()` transaction, then calls `fund()`
+
+---
+
+## `ankara escrow-deliver`
+
+Mark a milestone as delivered. Payee only.
+
+```bash
+ankara escrow-deliver
+```
+
+**Interactive prompts:**
+- Escrow address, milestone ID (0-indexed)
+
+---
+
+## `ankara escrow-approve`
+
+Approve a delivered milestone, releasing funds to the payee. Payer only.
+
+```bash
+ankara escrow-approve
+```
+
+**Interactive prompts:**
+- Escrow address, milestone ID (0-indexed)
+
+---
+
+## `ankara escrow-dispute`
+
+Raise a dispute on a delivered milestone. Payer or payee.
+
+```bash
+ankara escrow-dispute
+```
+
+**Interactive prompts:**
+- Escrow address, milestone ID (0-indexed)
+
+---
+
+## `ankara escrow-resolve`
+
+Resolve a disputed milestone. Arbiter only.
+
+```bash
+ankara escrow-resolve
+```
+
+**Interactive prompts:**
+- Escrow address, milestone ID (0-indexed)
+- Resolution: release funds to payee, or refund to payer
+
+---
+
+## `ankara escrow-claim-timelock`
+
+Force-release a delivered, non-disputed milestone once the timelock has elapsed. Callable by anyone.
+
+```bash
+ankara escrow-claim-timelock
+```
+
+**Interactive prompts:**
+- Escrow address, milestone ID (0-indexed)
+
+---
+
+## `ankara escrow-status`
+
+Show status, balances, and milestones for a `MilestoneEscrow`.
+
+```bash
+ankara escrow-status [--escrow <address>]
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `-e, --escrow` | Escrow contract address (skips the prompt) |
+
+Reports: payer, payee, arbiter, token, total amount, funded/cancelled flags, remaining balance, and every milestone's amount, status, and delivery timestamp.
+
+---
+
 ## Config File: `ankara.config.json`
 
 Generated by `ankara init` and updated by deploy commands:
@@ -165,6 +449,9 @@ Generated by `ankara init` and updated by deploy commands:
   "projectName": "my-rwa-project",
   "network": "polygon-amoy",
   "factoryAddress": "0xAbc...123",
+  "nftFactoryAddress": "0xNft...123",
+  "multiTokenFactoryAddress": "0x1155...123",
+  "escrowFactoryAddress": "0xEscrow...123",
   "deployments": [
     {
       "tokenAddress": "0xDef...456",
@@ -180,6 +467,8 @@ Generated by `ankara init` and updated by deploy commands:
   ]
 }
 ```
+
+`nftFactoryAddress`, `multiTokenFactoryAddress`, and `escrowFactoryAddress` are only required for the commands in their respective sections above (NFT, multi-token/pool, and escrow commands) — `ankara init` only writes `factoryAddress` by default.
 
 <Warning>
 `ankara.config.json` is gitignored by default — it contains your deployment addresses and network config. Commit it intentionally if you want to track deployments in version control.

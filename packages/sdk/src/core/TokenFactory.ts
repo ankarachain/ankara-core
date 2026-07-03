@@ -18,6 +18,9 @@ import type {
   NFTDeployResult,
   DeployEscrowOptions,
   EscrowDeployResult,
+  DeployCommodityBatchOptions,
+  DeployPoolVaultOptions,
+  MultiTokenDeployResult,
 } from "../types";
 
 /**
@@ -71,7 +74,8 @@ export class TokenFactory {
       config.signer,
       config.factoryAddress,
       config.nftFactoryAddress,
-      config.escrowFactoryAddress
+      config.escrowFactoryAddress,
+      config.multiTokenFactoryAddress
     );
   }
 
@@ -161,6 +165,30 @@ export class TokenFactory {
 
   async totalDeployedEscrows(): Promise<number> {
     return this._adapter.totalDeployedEscrows();
+  }
+
+  // ─── Multi-Token (ERC-1155) Deploy ──────────────────────────────────────
+
+  /**
+   * Deploy a new CommodityBatchToken (ERC-1155 warehouse receipt) via the on-chain MultiTokenFactory.
+   */
+  async deployCommodityBatchToken(opts: DeployCommodityBatchOptions): Promise<MultiTokenDeployResult> {
+    return this._adapter.deployCommodityBatchToken(opts);
+  }
+
+  /**
+   * Deploy a new PoolVault (multi-asset ERC-20 fund) via the on-chain MultiTokenFactory.
+   */
+  async deployPoolVault(opts: DeployPoolVaultOptions): Promise<MultiTokenDeployResult> {
+    return this._adapter.deployPoolVault(opts);
+  }
+
+  async getDeployedMultiTokens(address?: string): Promise<string[]> {
+    return this._adapter.getDeployerMultiTokens(address);
+  }
+
+  async totalDeployedMultiTokens(): Promise<number> {
+    return this._adapter.totalDeployedMultiTokens();
   }
 
   // ─── Queries ─────────────────────────────────────────────────────────────

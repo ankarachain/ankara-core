@@ -48,6 +48,12 @@ export type {
   EscrowDeployResult,
   EscrowMilestoneInput,
   Milestone,
+  // Multi-token types
+  MultiTokenTemplate,
+  WarehouseMetadata,
+  DeployCommodityBatchOptions,
+  DeployPoolVaultOptions,
+  MultiTokenDeployResult,
 } from "./types";
 
 export { AssetStatus, InvoiceStatus, MilestoneStatus } from "./types";

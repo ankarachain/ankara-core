@@ -41,7 +41,16 @@
           {
             "group": "Smart Contracts",
             "pages": [
-              "contracts/overview"
+              "contracts/overview",
+              "contracts/nft-layer",
+              "contracts/multi-token-layer",
+              "contracts/escrow"
+            ]
+          },
+          {
+            "group": "MCP Server",
+            "pages": [
+              "mcp/overview"
             ]
           }
         ]

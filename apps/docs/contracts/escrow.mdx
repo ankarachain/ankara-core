@@ -1,0 +1,138 @@
+---
+title: Escrow
+description: MilestoneEscrow and EscrowFactory — tranche-based, dual-approval payments for diaspora remittances and trade finance.
+---
+
+## Overview
+
+`MilestoneEscrow` is a tranche-based escrow for diaspora payments: someone abroad funds a deal, and payment is released to the recipient in agreed installments as milestones are completed — rather than as a single lump-sum transfer with no recourse.
+
+Each `MilestoneEscrow` contract is a single deal between one payer and one payee. No admin, arbiter, or Ankara Chain wallet ever custodies funds outside the contract — every release either requires payer approval, arbiter resolution of an active dispute, or an elapsed timelock with no dispute raised.
+
+```
+packages/contracts-evm/contracts/
+├── escrow/
+│   └── MilestoneEscrow.sol
+└── factory/
+    └── EscrowFactory.sol
+```
+
+---
+
+## The release flow
+
+1. **Deploy** — the integrating platform deploys a `MilestoneEscrow` via `EscrowFactory.deployEscrow()`, specifying the payer, payee, an optional arbiter, the stablecoin, a timelock duration, and the milestone amounts.
+2. **Fund** — the payer approves the stablecoin and calls `fund()`, depositing the full agreed total in one transaction.
+3. **Deliver** — the payee calls `markDelivered(id)` once a milestone's work/goods are complete. This starts the timelock clock for that milestone.
+4. **Approve** — the payer calls `approveMilestone(id)`, releasing that milestone's funds to the payee immediately.
+
+If step 4 doesn't happen cleanly, there are two fallbacks:
+
+- **Dispute** — either party calls `raiseDispute(id)` on a delivered milestone. The configured arbiter then calls `resolveDispute(id, releaseToPayee)` to release funds to the payee or refund the payer. Reverts with `NotArbiter` if no arbiter was configured for the deal.
+- **Timelock** — if the payer goes silent after delivery (no approval, no dispute), *anyone* can call `claimTimelockRelease(id)` once `timelockDuration` seconds have elapsed since `markDelivered()`, force-releasing funds to the payee. This protects the payee from a payer who simply stops responding.
+
+```solidity
+enum MilestoneStatus { PENDING, DELIVERED, DISPUTED, RELEASED, REFUNDED }
+
+struct Milestone {
+    uint256 amount;
+    bytes32 descriptionHash;  // IPFS/description hash agreed off-chain
+    MilestoneStatus status;
+    uint256 deliveredAt;      // 0 until marked delivered; starts the timelock clock
+}
+```
+
+### Mutual cancellation
+
+Both `payer` and `payee` can call `voteCancel()`. Once both have voted, `_executeCancel()` runs automatically: every milestone still in `PENDING` status is refunded to the payer. Milestones already `DELIVERED`, `DISPUTED`, `RELEASED`, or `REFUNDED` are untouched — they must go through their normal flow first.
+
+### Release is checks-effects-interactions
+
+`_release()` flips the milestone's status to `RELEASED` *before* the token transfer fires, consistent with the rest of the codebase's pattern of ordering state changes before external calls rather than using a reentrancy guard.
+
+---
+
+## Currency whitelisting
+
+`MilestoneEscrow` itself doesn't restrict which ERC-20 token it accepts — that's enforced one layer up, by `EscrowFactory`:
+
+```solidity
+mapping(address => bool) public acceptedStablecoins;
+
+function setStablecoinAccepted(address token, bool accepted) external onlyOwner;
+```
+
+`deployEscrow()` reverts with `StablecoinNotAccepted` if the requested token hasn't been whitelisted by the factory owner. This keeps the deal-level contract simple while giving the platform operator central control over which currencies can be used.
+
+---
+
+## Optional KYC gating
+
+Like the ERC-20/ERC-721/ERC-1155 bases, `MilestoneEscrow` supports an optional `IIdentityVerifier` (address(0) disables gating entirely). When set, `fund()` checks the payer and `_release()` checks the payee — so both sides of a KYC-gated deal must be verified before money moves.
+
+---
+
+## EscrowFactory
+
+Deploys `MilestoneEscrow` instances via `ERC1967Proxy`, following the same proxy-registration pattern as `TokenFactory`, `NFTFactory`, and `MultiTokenFactory` — except there's only one implementation slot (not a per-template enum + mapping), since there's only one escrow contract type:
+
+```solidity
+address public implementation;
+mapping(address => bool) public acceptedStablecoins;
+
+function setImplementation(address newImplementation) external onlyOwner;
+function setStablecoinAccepted(address token, bool accepted) external onlyOwner;
+
+function deployEscrow(
+    address admin_, address payer_, address payee_, address arbiter_,
+    address token_, address identityVerifier_, uint256 timelockDuration_,
+    uint256[] calldata amounts_, bytes32[] calldata descriptionHashes_
+) external payable returns (address escrowAddress);
+```
+
+**Deploy event:**
+```solidity
+event EscrowDeployed(
+    address indexed escrowAddress,
+    address indexed deployer,
+    address payer,
+    address payee,
+    address token,
+    uint256 totalAmount,
+    uint256 timestamp
+);
+```
+
+Registry views: `totalDeployedEscrows()`, `getDeployerEscrows(address)`. `MilestoneEscrow` is registered as the 4th `FactoryType` (`ESCROW`) in `AnkaraFactoryRegistry`, which unifies lookups (`getAllDeployedByAddress()`, `isAnkaraToken()`) across all four factories.
+
+---
+
+## SDK Integration
+
+`TokenFactory.deployEscrow()` deploys a new deal. The `EscrowManager` class (`packages/sdk/src/core/EscrowManager.ts`) wraps the full lifecycle of an already-deployed escrow:
+
+```typescript
+import { TokenFactory, EscrowManager } from "@ankarachain/sdk";
+
+const factory = new TokenFactory({ network: "polygon-amoy", signer, escrowFactoryAddress });
+const { escrowAddress } = await factory.deployEscrow({
+  payer, payee, token: stablecoinAddress,
+  milestones: [{ amount: parseEther("300") }, { amount: parseEther("700") }],
+});
+
+const escrow = new EscrowManager(factory.adapter, escrowAddress);
+await escrow.fund();                     // payer only
+await escrow.markDelivered(0);           // payee only
+await escrow.approveMilestone(0);        // payer only — releases funds
+```
+
+`EscrowManager` also exposes reads (`getMilestone`, `getAllMilestones`, `remainingBalance`, `isFunded`, etc.) and the dispute/timelock/cancel/admin methods described above. See the CLI's 8 `escrow-*` commands (starting with [`ankara deploy-escrow`](/cli/commands#ankara-deploy-escrow)) for a fully interactive walkthrough of the same lifecycle.
+
+---
+
+## Running the Escrow Tests Locally
+
+```bash
+cd packages/contracts-evm
+npm run test -- --grep "Escrow"
+```

@@ -44,6 +44,8 @@ export type NFTAssetTemplate =
   | "mining-rights-nft"
   | "commodity-vault-nft";
 
+export type MultiTokenTemplate = "commodity-batch" | "pool-vault";
+
 // ─── Metadata types ──────────────────────────────────────────────────────────
 
 export interface FarmlandMetadata {
@@ -316,14 +318,52 @@ export interface EscrowDeployResult {
   deployedAt: number;
 }
 
+// ─── Multi-Token (ERC-1155) Deploy ────────────────────────────────────────────
+
+export interface WarehouseMetadata {
+  warehouseId: string;
+  warehouseLocation: string;
+  operatorAddress?: string;       // defaults to admin/signer
+  warehouseLicenseHash?: string;  // bytes32 hex; defaults to zero hash
+  certificationExpiry?: bigint;   // unix seconds; defaults to far future if omitted
+}
+
+export interface DeployCommodityBatchOptions {
+  name: string;
+  countryCode: string;
+  baseURI: string;
+  admin?: string;
+  warehouse: WarehouseMetadata;
+}
+
+export interface DeployPoolVaultOptions {
+  name: string;
+  symbol: string;
+  assetId: string;
+  countryCode: string;
+  admin?: string;
+  identityVerifier?: string;
+  oracle?: string;              // defaults to address(0) — no oracle
+  managementFeeBps?: number;    // defaults to 0
+}
+
+export interface MultiTokenDeployResult {
+  contractAddress: string;
+  txHash: string;
+  template: MultiTokenTemplate;
+  network: SupportedNetwork;
+  deployedAt: number;
+}
+
 // ─── SDK config ──────────────────────────────────────────────────────────────
 
 export interface AnkaraChainConfig {
   network: SupportedNetwork;
   signer?: Signer;
   provider?: Provider;
-  factoryAddress?: string;        // Override default ERC-20 factory address
-  nftFactoryAddress?: string;     // Override default NFT factory address
-  escrowFactoryAddress?: string;  // Override default EscrowFactory address
-  rpcUrl?: string;                // Override default RPC
+  factoryAddress?: string;          // Override default ERC-20 factory address
+  nftFactoryAddress?: string;       // Override default NFT factory address
+  multiTokenFactoryAddress?: string; // Override default ERC-1155 factory address
+  escrowFactoryAddress?: string;    // Override default EscrowFactory address
+  rpcUrl?: string;                  // Override default RPC
 }

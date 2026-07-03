@@ -11,21 +11,40 @@ All Ankara Chain contracts are written in Solidity `^0.8.24` and use OpenZeppeli
 packages/contracts-evm/
 ├── contracts/
 │   ├── base/
-│   │   └── AnkaraChainBaseToken.sol      ← Abstract base for all tokens
+│   │   ├── AnkaraChainBaseToken.sol      ← ERC-20 UUPS base (this page)
+│   │   ├── AnkaraNFTBase.sol             ← ERC-721 UUPS base, see NFT Layer
+│   │   ├── AnkaraMultiToken.sol          ← ERC-1155 UUPS base, see Multi-Token Layer
+│   │   └── ManualOracle.sol              ← Reference price oracle
 │   ├── interfaces/
-│   │   ├── IAnkaraChainToken.sol
-│   │   └── IIdentityVerifier.sol
+│   │   ├── IIdentityVerifier.sol
+│   │   ├── IAnkaraNFT.sol
+│   │   ├── IAnkaraMultiToken.sol
+│   │   └── IAnkaraOracle.sol
 │   ├── templates/
-│   │   ├── FarmlandToken.sol
-│   │   ├── CommodityReceiptToken.sol
-│   │   ├── RealEstateToken.sol
-│   │   ├── InvoiceToken.sol
-│   │   ├── CarbonCreditToken.sol
-│   │   └── MiningRightsToken.sol
+│   │   ├── FarmlandToken.sol             ┐
+│   │   ├── CommodityReceiptToken.sol     │ ERC-20 (6 templates)
+│   │   ├── RealEstateToken.sol           │
+│   │   ├── InvoiceToken.sol              │
+│   │   ├── CarbonCreditToken.sol         │
+│   │   ├── MiningRightsToken.sol         ┘
+│   │   ├── FarmlandNFT.sol               ┐
+│   │   ├── RealEstateNFT.sol             │ ERC-721 (4 templates)
+│   │   ├── MiningRightsNFT.sol           │
+│   │   ├── CommodityVaultNFT.sol         ┘
+│   │   ├── CommodityBatchToken.sol       ┐ ERC-1155 (2 templates)
+│   │   └── PoolVault.sol                 ┘
+│   ├── escrow/
+│   │   └── MilestoneEscrow.sol           ← Tranche-based escrow, see Escrow
 │   └── factory/
-│       └── TokenFactory.sol
+│       ├── TokenFactory.sol              ← ERC-20 deploys
+│       ├── NFTFactory.sol                ← ERC-721 deploys
+│       ├── MultiTokenFactory.sol         ← ERC-1155 deploys
+│       ├── EscrowFactory.sol             ← Escrow deploys
+│       └── AnkaraFactoryRegistry.sol     ← Unified registry across all 4 factories
 └── typechain-types/                       ← Auto-generated, gitignored
 ```
+
+This page covers the ERC-20 base layer and the shared UUPS/factory patterns that every other layer follows. See [NFT Layer](/contracts/nft-layer), [Multi-Token Layer](/contracts/multi-token-layer), and [Escrow](/contracts/escrow) for the layer-specific details.
 
 ---
 
@@ -149,7 +168,7 @@ A simple on-chain whitelist ships with the contracts for development and testing
 
 ```typescript
 // In tests
-const verifier = await WhitelistVerifier.deploy("TestVerifier");
+const verifier = await WhitelistVerifier.deploy(admin.address);
 await verifier.verifyIdentity(userAddress);
 
 // In deploy options
@@ -166,7 +185,7 @@ cd packages/contracts-evm
 # Compile
 npm run compile
 
-# Run tests (173 tests)
+# Run tests (600 tests)
 npm run test
 
 # Deploy to local Hardhat node
