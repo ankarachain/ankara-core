@@ -21,6 +21,8 @@ import type {
   DeployCommodityBatchOptions,
   DeployPoolVaultOptions,
   MultiTokenDeployResult,
+  DeployRampSettlementOptions,
+  RampSettlementDeployResult,
 } from "../types";
 
 /**
@@ -75,7 +77,8 @@ export class TokenFactory {
       config.factoryAddress,
       config.nftFactoryAddress,
       config.escrowFactoryAddress,
-      config.multiTokenFactoryAddress
+      config.multiTokenFactoryAddress,
+      config.rampSettlementFactoryAddress
     );
   }
 
@@ -189,6 +192,25 @@ export class TokenFactory {
 
   async totalDeployedMultiTokens(): Promise<number> {
     return this._adapter.totalDeployedMultiTokens();
+  }
+
+  // ─── Ramp Settlement Deploy ──────────────────────────────────────────────
+
+  /**
+   * Deploy a new RampSettlement contract via the on-chain RampSettlementFactory.
+   * Optional on-chain half of a fiat on/off-ramp flow — see RampManager for
+   * the off-chain provider orchestration side.
+   */
+  async deployRampSettlement(opts: DeployRampSettlementOptions): Promise<RampSettlementDeployResult> {
+    return this._adapter.deployRampSettlement(opts);
+  }
+
+  async getDeployedRampSettlements(address?: string): Promise<string[]> {
+    return this._adapter.getDeployerRampSettlements(address);
+  }
+
+  async totalDeployedRampSettlements(): Promise<number> {
+    return this._adapter.totalDeployedRampSettlements();
   }
 
   // ─── Queries ─────────────────────────────────────────────────────────────

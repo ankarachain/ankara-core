@@ -76,18 +76,34 @@ describe("TOOLS", () => {
     expect(names).toContain("deploy_batch_token");
     expect(names).toContain("deploy_pool_vault");
   });
+
+  it("includes all 8 ramp tools", () => {
+    const names = TOOLS.map((t) => t.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "deploy_ramp_settlement",
+        "get_ramp_quote",
+        "initiate_onramp",
+        "record_onramp_settlement",
+        "initiate_offramp",
+        "confirm_offramp_settlement",
+        "refund_offramp",
+        "get_ramp_status",
+      ])
+    );
+  });
 });
 
 describe("callTool dispatch", () => {
   it("returns an error result for an unknown tool name", async () => {
-    const result = await callTool("not_a_real_tool", {});
+    const result: any = await callTool("not_a_real_tool", {});
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toMatch(/Unknown tool/);
   });
 
   it("wraps handler exceptions in an error result instead of throwing", async () => {
     // get_token_status will throw because the mocked Contract has no `name`/`symbol` methods
-    const result = await callTool("get_token_status", {
+    const result: any = await callTool("get_token_status", {
       contractAddress: "0xDeadBeef00000000000000000000000000000000",
       rpcUrl: "http://localhost:8545",
     });
@@ -110,7 +126,7 @@ describe("get_token_status handler", () => {
       status: vi.fn().mockResolvedValue(1n), // ACTIVE
     };
 
-    const result = await callTool("get_token_status", {
+    const result: any = await callTool("get_token_status", {
       contractAddress: address,
       rpcUrl: "http://localhost:8545",
     });
@@ -143,5 +159,73 @@ describe("list_deployments handler", () => {
     const parsed = JSON.parse(result.content[0].text);
     expect(parsed.tokens).toEqual(["0xAAA", "0xBBB"]);
     expect(parsed.count).toBe(2);
+  });
+});
+
+describe("get_ramp_quote handler", () => {
+  it("computes a quote via the real ManualRampProvider (no chain call needed)", async () => {
+    const result: any = await callTool("get_ramp_quote", {
+      direction: "on-ramp",
+      fiatCurrency: "NGN",
+      tokenSymbol: "mUSD",
+      countryCode: "NG",
+      fiatAmount: "1500",
+    });
+
+    expect(result.isError).toBeUndefined();
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.direction).toBe("on-ramp");
+    expect(parsed.fiatAmount).toBe("1500.00");
+    expect(parseFloat(parsed.tokenAmount)).toBeGreaterThan(0);
+  });
+});
+
+describe("get_ramp_status handler", () => {
+  beforeEach(() => {
+    for (const key of Object.keys(contractMocks)) delete contractMocks[key];
+  });
+
+  it("reports null off-ramp/on-ramp when nothing was recorded for the reference", async () => {
+    const settlementAddress = "0xSettlement000000000000000000000000000000";
+    contractMocks[settlementAddress] = {
+      treasury: vi.fn().mockResolvedValue("0xTreasury00000000000000000000000000000000"),
+      getOffRamp: vi.fn().mockResolvedValue({ depositor: "0x0", token: "0x0", amount: 0n, status: 0n }),
+      getOnRamp: vi.fn().mockResolvedValue({ recipient: "0x0", token: "0x0", amount: 0n, status: 0n }),
+    };
+
+    const result: any = await callTool("get_ramp_status", {
+      settlementAddress,
+      reference: "some-reference",
+      rpcUrl: "http://localhost:8545",
+    });
+
+    expect(result.isError).toBeUndefined();
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.offRamp).toBeNull();
+    expect(parsed.onRamp).toBeNull();
+  });
+
+  it("reports a SETTLED off-ramp deposit", async () => {
+    const settlementAddress = "0xSettlement000000000000000000000000000001";
+    contractMocks[settlementAddress] = {
+      treasury: vi.fn().mockResolvedValue("0xTreasury00000000000000000000000000000000"),
+      getOffRamp: vi.fn().mockResolvedValue({
+        depositor: "0xDepositor0000000000000000000000000000000",
+        token: "0xToken0000000000000000000000000000000000",
+        amount: 100_000000000000000000n,
+        status: 2n, // SETTLED
+      }),
+      getOnRamp: vi.fn().mockResolvedValue({ recipient: "0x0", token: "0x0", amount: 0n, status: 0n }),
+    };
+
+    const result: any = await callTool("get_ramp_status", {
+      settlementAddress,
+      reference: "some-reference",
+      rpcUrl: "http://localhost:8545",
+    });
+
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed.offRamp.status).toBe("SETTLED");
+    expect(parsed.offRamp.amount).toBe("100.0");
   });
 });

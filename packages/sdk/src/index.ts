@@ -8,6 +8,11 @@
 export { TokenFactory }    from "./core/TokenFactory";
 export { AssetRegistry }   from "./core/AssetRegistry";
 export { EscrowManager }   from "./core/EscrowManager";
+export { RampManager }     from "./core/RampManager";
+
+// Providers (reference implementations — swap in a real provider adapter for production)
+export { ManualRampProvider } from "./providers/ManualRampProvider";
+export type { ManualRampProviderOptions } from "./providers/ManualRampProvider";
 
 // Adapters (advanced use)
 export { EVMAdapter }      from "./adapters/evm";
@@ -54,9 +59,23 @@ export type {
   DeployCommodityBatchOptions,
   DeployPoolVaultOptions,
   MultiTokenDeployResult,
+  // Ramp types (on-chain settlement)
+  OffRampDeposit,
+  OnRampRecord,
+  DeployRampSettlementOptions,
+  RampSettlementDeployResult,
+  // Ramp types (off-chain provider)
+  RampDirection,
+  RampQuoteInput,
+  RampQuote,
+  RampPayoutAccount,
+  InitiateOnRampInput,
+  InitiateOffRampInput,
+  RampSession,
+  RampProvider,
 } from "./types";
 
-export { AssetStatus, InvoiceStatus, MilestoneStatus } from "./types";
+export { AssetStatus, InvoiceStatus, MilestoneStatus, RampSettlementStatus, RampSessionStatus } from "./types";
 export type { RetirementRecord } from "./types";
 
 // Utilities
@@ -84,4 +103,7 @@ export {
   // Escrow ABIs
   ESCROW_FACTORY_ABI,
   MILESTONE_ESCROW_ABI,
+  // Ramp settlement ABIs
+  RAMP_SETTLEMENT_FACTORY_ABI,
+  RAMP_SETTLEMENT_ABI,
 } from "./utils/abis";

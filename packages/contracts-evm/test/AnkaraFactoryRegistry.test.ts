@@ -6,6 +6,7 @@ import type {
   NFTFactory,
   MultiTokenFactory,
   EscrowFactory,
+  RampSettlementFactory,
 } from "../typechain-types";
 
 describe("AnkaraFactoryRegistry", function () {
@@ -14,9 +15,10 @@ describe("AnkaraFactoryRegistry", function () {
   let nftFactory: NFTFactory;
   let multiFactory: MultiTokenFactory;
   let escrowFactory: EscrowFactory;
+  let rampFactory: RampSettlementFactory;
   let owner: any, deployer: any, stranger: any;
 
-  const FACTORY_TYPE = { ERC20: 0, NFT: 1, MULTI_TOKEN: 2, ESCROW: 3 };
+  const FACTORY_TYPE = { ERC20: 0, NFT: 1, MULTI_TOKEN: 2, ESCROW: 3, RAMP: 4 };
 
   const SEVEN_DAYS = 7n * 24n * 60n * 60n;
   const ESCROW_AMOUNTS = [100n * 10n ** 18n, 100n * 10n ** 18n];
@@ -70,6 +72,8 @@ describe("AnkaraFactoryRegistry", function () {
       .deploy(owner.address, owner.address) as MultiTokenFactory;
     escrowFactory = await (await ethers.getContractFactory("EscrowFactory"))
       .deploy(owner.address, owner.address) as EscrowFactory;
+    rampFactory = await (await ethers.getContractFactory("RampSettlementFactory"))
+      .deploy(owner.address, owner.address) as RampSettlementFactory;
 
     // Register implementations in sub-factories
     await erc20Factory.registerTemplate(0, await (await (await ethers.getContractFactory("FarmlandToken")).deploy()).getAddress());
@@ -77,6 +81,7 @@ describe("AnkaraFactoryRegistry", function () {
     await multiFactory.registerTemplate(0, await (await (await ethers.getContractFactory("CommodityBatchToken")).deploy()).getAddress());
     await multiFactory.registerTemplate(1, await (await (await ethers.getContractFactory("PoolVault")).deploy()).getAddress());
     await escrowFactory.setImplementation(await (await (await ethers.getContractFactory("MilestoneEscrow")).deploy()).getAddress());
+    await rampFactory.setImplementation(await (await (await ethers.getContractFactory("RampSettlement")).deploy()).getAddress());
 
     const stablecoin = await deployStablecoin();
     stablecoinAddr = await stablecoin.getAddress();
@@ -90,6 +95,7 @@ describe("AnkaraFactoryRegistry", function () {
     await registry.setFactory(FACTORY_TYPE.NFT,         await nftFactory.getAddress());
     await registry.setFactory(FACTORY_TYPE.MULTI_TOKEN, await multiFactory.getAddress());
     await registry.setFactory(FACTORY_TYPE.ESCROW,      await escrowFactory.getAddress());
+    await registry.setFactory(FACTORY_TYPE.RAMP,        await rampFactory.getAddress());
   });
 
   // ─── Deployment ───────────────────────────────────────────────────────────
@@ -99,7 +105,7 @@ describe("AnkaraFactoryRegistry", function () {
       expect(await registry.owner()).to.equal(owner.address);
     });
 
-    it("all four factory addresses are registered", async function () {
+    it("all five factory addresses are registered", async function () {
       expect(await registry.getFactory(FACTORY_TYPE.ERC20))
         .to.equal(await erc20Factory.getAddress());
       expect(await registry.getFactory(FACTORY_TYPE.NFT))
@@ -108,6 +114,8 @@ describe("AnkaraFactoryRegistry", function () {
         .to.equal(await multiFactory.getAddress());
       expect(await registry.getFactory(FACTORY_TYPE.ESCROW))
         .to.equal(await escrowFactory.getAddress());
+      expect(await registry.getFactory(FACTORY_TYPE.RAMP))
+        .to.equal(await rampFactory.getAddress());
     });
   });
 
@@ -148,6 +156,7 @@ describe("AnkaraFactoryRegistry", function () {
       expect(await registry.getFactory(FACTORY_TYPE.NFT)).to.not.equal(ethers.ZeroAddress);
       expect(await registry.getFactory(FACTORY_TYPE.MULTI_TOKEN)).to.not.equal(ethers.ZeroAddress);
       expect(await registry.getFactory(FACTORY_TYPE.ESCROW)).to.not.equal(ethers.ZeroAddress);
+      expect(await registry.getFactory(FACTORY_TYPE.RAMP)).to.not.equal(ethers.ZeroAddress);
     });
   });
 
@@ -190,7 +199,13 @@ describe("AnkaraFactoryRegistry", function () {
       expect(result.length).to.equal(1);
     });
 
-    it("combines deployments across all four factory types for same deployer", async function () {
+    it("returns ramp settlement contracts deployed by address", async function () {
+      await rampFactory.connect(deployer).deployRampSettlement(deployer.address, owner.address);
+      const result = await registry.getAllDeployedByAddress(deployer.address);
+      expect(result.length).to.equal(1);
+    });
+
+    it("combines deployments across all five factory types for same deployer", async function () {
       await erc20Factory.connect(deployer).deployFarmlandToken(
         "Farm Token", "FT", ASSET_ID, "NG",
         deployer.address, ethers.ZeroAddress, farmMeta()
@@ -202,9 +217,10 @@ describe("AnkaraFactoryRegistry", function () {
         "Warehouse", "NG", "ipfs://", deployer.address, warehouseMeta()
       );
       await deployEscrowTx(deployer);
+      await rampFactory.connect(deployer).deployRampSettlement(deployer.address, owner.address);
 
       const result = await registry.getAllDeployedByAddress(deployer.address);
-      expect(result.length).to.equal(4);
+      expect(result.length).to.equal(5);
     });
 
     it("returns empty when factories are not set", async function () {
@@ -251,6 +267,12 @@ describe("AnkaraFactoryRegistry", function () {
       await deployEscrowTx(owner);
       const escrows = await escrowFactory.getDeployerEscrows(owner.address);
       expect(await registry.isAnkaraToken(escrows[0])).to.be.true;
+    });
+
+    it("returns true for a ramp settlement deployed via RampSettlementFactory", async function () {
+      await rampFactory.deployRampSettlement(owner.address, owner.address);
+      const settlements = await rampFactory.getDeployerRampSettlements(owner.address);
+      expect(await registry.isAnkaraToken(settlements[0])).to.be.true;
     });
 
     it("returns false when no factories are registered", async function () {

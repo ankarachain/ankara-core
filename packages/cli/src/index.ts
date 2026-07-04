@@ -23,6 +23,14 @@ import { escrowDisputeCommand } from "./commands/escrow-dispute.js";
 import { escrowResolveCommand } from "./commands/escrow-resolve.js";
 import { escrowClaimTimelockCommand } from "./commands/escrow-claim-timelock.js";
 import { escrowStatusCommand }  from "./commands/escrow-status.js";
+import { deployRampSettlementCommand } from "./commands/deploy-ramp-settlement.js";
+import { rampQuoteCommand }     from "./commands/ramp-quote.js";
+import { onrampInitiateCommand } from "./commands/onramp-initiate.js";
+import { onrampRecordCommand }  from "./commands/onramp-record.js";
+import { offrampInitiateCommand } from "./commands/offramp-initiate.js";
+import { offrampConfirmCommand } from "./commands/offramp-confirm.js";
+import { offrampRefundCommand }  from "./commands/offramp-refund.js";
+import { rampStatusCommand }    from "./commands/ramp-status.js";
 
 program
   .name("ankara")
@@ -172,6 +180,55 @@ program
   .description("Show status, balances, and milestones for a MilestoneEscrow")
   .option("-e, --escrow <address>", "Escrow contract address")
   .action((opts) => escrowStatusCommand(opts));
+
+// ── deploy-ramp-settlement ─────────────────────────────────────────────────────
+program
+  .command("deploy-ramp-settlement")
+  .description("Deploy a RampSettlement contract for fiat on/off-ramp flows")
+  .action(deployRampSettlementCommand);
+
+// ── ramp-quote ─────────────────────────────────────────────────────────────────
+program
+  .command("ramp-quote")
+  .description("Get a fiat<->token quote (uses ManualRampProvider — swap in a real provider for production)")
+  .action(rampQuoteCommand);
+
+// ── onramp-initiate ────────────────────────────────────────────────────────────
+program
+  .command("onramp-initiate")
+  .description("Start an on-ramp session (fiat -> tokens) with the ramp provider")
+  .action(onrampInitiateCommand);
+
+// ── onramp-record ──────────────────────────────────────────────────────────────
+program
+  .command("onramp-record")
+  .description("Record an on-chain attestation that an on-ramp mint happened (SETTLER_ROLE)")
+  .action(onrampRecordCommand);
+
+// ── offramp-initiate ───────────────────────────────────────────────────────────
+program
+  .command("offramp-initiate")
+  .description("Start an off-ramp session (tokens -> fiat): deposits tokens into RampSettlement custody")
+  .action(offrampInitiateCommand);
+
+// ── offramp-confirm ────────────────────────────────────────────────────────────
+program
+  .command("offramp-confirm")
+  .description("Confirm an off-ramp fiat payout, releasing custodied tokens to the treasury (SETTLER_ROLE)")
+  .action(offrampConfirmCommand);
+
+// ── offramp-refund ─────────────────────────────────────────────────────────────
+program
+  .command("offramp-refund")
+  .description("Refund a custodied off-ramp deposit if the fiat payout failed (MANAGER_ROLE)")
+  .action(offrampRefundCommand);
+
+// ── ramp-status ────────────────────────────────────────────────────────────────
+program
+  .command("ramp-status")
+  .description("Show the on-chain off-ramp deposit / on-ramp record for a reference")
+  .option("-s, --settlement <address>", "RampSettlement contract address")
+  .action((opts) => rampStatusCommand(opts));
 
 // Show help (exit 0) when no command is given instead of exiting with code 1
 if (process.argv.length === 2) {

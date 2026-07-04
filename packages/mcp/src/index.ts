@@ -14,9 +14,13 @@ import {
   TokenFactory,
   EVMAdapter,
   EscrowManager,
+  RampManager,
+  ManualRampProvider,
   TOKEN_FACTORY_ABI,
   NFT_FACTORY_ABI,
   MILESTONE_ESCROW_ABI,
+  RAMP_SETTLEMENT_ABI,
+  RampSettlementStatus,
   FARMLAND_TOKEN_ABI,
 } from "@ankarachain/sdk";
 
@@ -228,6 +232,128 @@ const TOOLS = [
         rpcUrl:        { type: "string" },
       },
       required: ["escrowAddress", "rpcUrl"],
+    },
+  },
+  {
+    name: "deploy_ramp_settlement",
+    description: "Deploy a RampSettlement contract (optional on-chain half of a fiat on/off-ramp flow) via the Ankara Chain RampSettlementFactory.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        treasury:                     { type: "string", description: "Address that receives settled off-ramp deposits" },
+        rpcUrl:                       { type: "string" },
+        privateKey:                   { type: "string" },
+        rampSettlementFactoryAddress: { type: "string", description: "Deployed RampSettlementFactory contract address" },
+      },
+      required: ["treasury", "rpcUrl", "privateKey", "rampSettlementFactoryAddress"],
+    },
+  },
+  {
+    name: "get_ramp_quote",
+    description: "Get a fiat<->token quote using ManualRampProvider (a reference implementation — swap in a real provider adapter for production).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        direction:    { type: "string", enum: ["on-ramp", "off-ramp"] },
+        fiatCurrency: { type: "string", description: "e.g. NGN, KES, GHS" },
+        tokenSymbol:  { type: "string" },
+        countryCode:  { type: "string", description: "ISO 3166-1 alpha-2" },
+        fiatAmount:   { type: "string", description: "Provide either fiatAmount or tokenAmount" },
+        tokenAmount:  { type: "string" },
+      },
+      required: ["direction", "fiatCurrency", "tokenSymbol", "countryCode"],
+    },
+  },
+  {
+    name: "initiate_onramp",
+    description: "Start an on-ramp session (fiat -> tokens) with the ramp provider. Does not mint tokens — mint separately once the fiat payment is confirmed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        fiatAmount:       { type: "string" },
+        fiatCurrency:     { type: "string" },
+        tokenSymbol:      { type: "string" },
+        recipientAddress: { type: "string" },
+        countryCode:      { type: "string" },
+      },
+      required: ["fiatAmount", "fiatCurrency", "tokenSymbol", "recipientAddress", "countryCode"],
+    },
+  },
+  {
+    name: "record_onramp_settlement",
+    description: "Record an on-chain attestation that an on-ramp mint happened. Does not move funds — mint the recipient's tokens separately first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        settlementAddress: { type: "string" },
+        reference:         { type: "string", description: "Reference string from initiate_onramp, or any consistent ID" },
+        recipient:         { type: "string" },
+        token:             { type: "string" },
+        amount:            { type: "string", description: "Amount minted (in ether units)" },
+        rpcUrl:            { type: "string" },
+        privateKey:        { type: "string" },
+      },
+      required: ["settlementAddress", "reference", "recipient", "token", "amount", "rpcUrl", "privateKey"],
+    },
+  },
+  {
+    name: "initiate_offramp",
+    description: "Start an off-ramp session (tokens -> fiat): deposits tokens into RampSettlement custody and starts a provider payout session.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        settlementAddress: { type: "string" },
+        token:              { type: "string" },
+        amount:             { type: "string", description: "Amount to off-ramp (in ether units)" },
+        fiatCurrency:       { type: "string" },
+        countryCode:        { type: "string" },
+        accountNumber:      { type: "string" },
+        bankCode:           { type: "string", description: "Leave blank for mobile money" },
+        rpcUrl:             { type: "string" },
+        privateKey:         { type: "string" },
+      },
+      required: ["settlementAddress", "token", "amount", "fiatCurrency", "countryCode", "accountNumber", "rpcUrl", "privateKey"],
+    },
+  },
+  {
+    name: "confirm_offramp_settlement",
+    description: "Confirm an off-ramp fiat payout, releasing custodied tokens to the treasury.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        settlementAddress: { type: "string" },
+        reference:         { type: "string" },
+        rpcUrl:            { type: "string" },
+        privateKey:        { type: "string" },
+      },
+      required: ["settlementAddress", "reference", "rpcUrl", "privateKey"],
+    },
+  },
+  {
+    name: "refund_offramp",
+    description: "Refund a custodied off-ramp deposit to the original depositor if the fiat payout failed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        settlementAddress: { type: "string" },
+        reference:         { type: "string" },
+        rpcUrl:            { type: "string" },
+        privateKey:        { type: "string" },
+      },
+      required: ["settlementAddress", "reference", "rpcUrl", "privateKey"],
+    },
+  },
+  {
+    name: "get_ramp_status",
+    description: "Read the on-chain off-ramp deposit / on-ramp record for a reference (read-only, no private key required).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        settlementAddress: { type: "string" },
+        reference:         { type: "string" },
+        rpcUrl:            { type: "string" },
+      },
+      required: ["settlementAddress", "reference", "rpcUrl"],
     },
   },
   {
@@ -521,6 +647,123 @@ async function handleGetEscrowStatus(args: Record<string, string>) {
   };
 }
 
+async function handleDeployRampSettlement(args: Record<string, string>) {
+  const w = wallet(args.rpcUrl, args.privateKey);
+  const factory = new TokenFactory({
+    network: "localhost",
+    signer: w,
+    provider: w.provider as any,
+    rampSettlementFactoryAddress: args.rampSettlementFactoryAddress,
+  });
+
+  const result = await factory.deployRampSettlement({ treasury: args.treasury });
+  return { settlementAddress: result.settlementAddress, txHash: result.txHash };
+}
+
+async function handleGetRampQuote(args: Record<string, unknown>) {
+  const provider = new ManualRampProvider();
+  return provider.getQuote({
+    direction: args.direction as "on-ramp" | "off-ramp",
+    fiatCurrency: args.fiatCurrency as string,
+    tokenSymbol: args.tokenSymbol as string,
+    countryCode: args.countryCode as string,
+    fiatAmount: args.fiatAmount as string | undefined,
+    tokenAmount: args.tokenAmount as string | undefined,
+  });
+}
+
+async function handleInitiateOnramp(args: Record<string, string>) {
+  const provider = new ManualRampProvider();
+  return provider.initiateOnRamp({
+    fiatAmount: args.fiatAmount,
+    fiatCurrency: args.fiatCurrency,
+    tokenSymbol: args.tokenSymbol,
+    recipientAddress: args.recipientAddress,
+    countryCode: args.countryCode,
+  });
+}
+
+function rampManager(rpcUrl: string, privateKey: string, settlementAddress: string) {
+  const w = wallet(rpcUrl, privateKey);
+  const adapter = new EVMAdapter("localhost", w.provider!, w);
+  return new RampManager(new ManualRampProvider(), adapter, { settlementAddress });
+}
+
+async function handleRecordOnrampSettlement(args: Record<string, string>) {
+  const ramp = rampManager(args.rpcUrl, args.privateKey, args.settlementAddress);
+  const txHash = await ramp.recordOnRampSettlement(
+    args.reference, args.recipient, args.token, ethers.parseEther(args.amount)
+  );
+  return { txHash };
+}
+
+async function handleInitiateOfframp(args: Record<string, string>) {
+  const w = wallet(args.rpcUrl, args.privateKey);
+
+  const rampProvider = new ManualRampProvider();
+  const session = await rampProvider.initiateOffRamp({
+    tokenAmount:  args.amount,
+    tokenSymbol:  args.token,
+    fiatCurrency: args.fiatCurrency,
+    countryCode:  args.countryCode,
+    payoutAccount: args.bankCode
+      ? { type: "bank", accountNumber: args.accountNumber, bankCode: args.bankCode }
+      : { type: "mobile-money", accountNumber: args.accountNumber },
+  });
+
+  const amountWei = ethers.parseEther(args.amount);
+  const token = new ethers.Contract(args.token, ERC20_APPROVE_ABI, w);
+  await (await token.approve(args.settlementAddress, amountWei)).wait();
+
+  const adapter = new EVMAdapter("localhost", w.provider!, w);
+  const ramp    = new RampManager(rampProvider, adapter, { settlementAddress: args.settlementAddress });
+  const txHash  = await ramp.depositOffRamp(session.sessionId, args.token, amountWei);
+
+  return { reference: session.sessionId, txHash };
+}
+
+async function handleConfirmOfframpSettlement(args: Record<string, string>) {
+  const ramp = rampManager(args.rpcUrl, args.privateKey, args.settlementAddress);
+  const txHash = await ramp.confirmOffRampSettlement(args.reference);
+  return { txHash };
+}
+
+async function handleRefundOfframp(args: Record<string, string>) {
+  const ramp = rampManager(args.rpcUrl, args.privateKey, args.settlementAddress);
+  const txHash = await ramp.refundOffRamp(args.reference);
+  return { txHash };
+}
+
+async function handleGetRampStatus(args: Record<string, string>) {
+  const provider = new ethers.JsonRpcProvider(args.rpcUrl);
+  const contract = new ethers.Contract(args.settlementAddress, RAMP_SETTLEMENT_ABI, provider);
+  const referenceId = ethers.keccak256(ethers.toUtf8Bytes(args.reference));
+
+  const [treasury, offRamp, onRamp] = await Promise.all([
+    contract.treasury(),
+    contract.getOffRamp(referenceId),
+    contract.getOnRamp(referenceId),
+  ]);
+
+  const STATUS_LABEL = ["NONE", "PENDING", "SETTLED", "REFUNDED", "RECORDED"];
+
+  return {
+    treasury,
+    offRamp: Number(offRamp.status) === RampSettlementStatus.NONE ? null : {
+      depositor: offRamp.depositor,
+      token:     offRamp.token,
+      amount:    ethers.formatEther(offRamp.amount),
+      status:    STATUS_LABEL[Number(offRamp.status)],
+    },
+    onRamp: Number(onRamp.status) === RampSettlementStatus.NONE ? null : {
+      recipient: onRamp.recipient,
+      token:     onRamp.token,
+      amount:    ethers.formatEther(onRamp.amount),
+      status:    STATUS_LABEL[Number(onRamp.status)],
+    },
+  };
+}
+
 async function handleMintTokens(args: Record<string, string>) {
   const w = wallet(args.rpcUrl, args.privateKey);
   const contract = new ethers.Contract(args.contractAddress, FARMLAND_TOKEN_ABI, w);
@@ -580,6 +823,14 @@ export async function callTool(name: string, args: Record<string, unknown> = {})
       case "resolve_dispute":           return ok(await handleResolveDispute(args as any));
       case "claim_timelock_release":    return ok(await handleClaimTimelockRelease(args as any));
       case "get_escrow_status":         return ok(await handleGetEscrowStatus(args as any));
+      case "deploy_ramp_settlement":    return ok(await handleDeployRampSettlement(args as any));
+      case "get_ramp_quote":            return ok(await handleGetRampQuote(args as any));
+      case "initiate_onramp":           return ok(await handleInitiateOnramp(args as any));
+      case "record_onramp_settlement":  return ok(await handleRecordOnrampSettlement(args as any));
+      case "initiate_offramp":          return ok(await handleInitiateOfframp(args as any));
+      case "confirm_offramp_settlement":return ok(await handleConfirmOfframpSettlement(args as any));
+      case "refund_offramp":            return ok(await handleRefundOfframp(args as any));
+      case "get_ramp_status":           return ok(await handleGetRampStatus(args as any));
       case "mint_tokens":               return ok(await handleMintTokens(args as any));
       case "get_token_status":          return ok(await handleGetTokenStatus(args as any));
       case "list_deployments":          return ok(await handleListDeployments(args as any));

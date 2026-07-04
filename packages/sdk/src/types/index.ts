@@ -355,15 +355,136 @@ export interface MultiTokenDeployResult {
   deployedAt: number;
 }
 
+// ─── On/Off-Ramp: settlement contract (optional on-chain half) ──────────────
+
+/** Mirrors the on-chain RampSettlement.SettlementStatus enum */
+export enum RampSettlementStatus {
+  NONE     = 0,
+  PENDING  = 1,
+  SETTLED  = 2,
+  REFUNDED = 3,
+  RECORDED = 4,
+}
+
+export interface OffRampDeposit {
+  depositor: string;
+  token: string;
+  amount: bigint;
+  status: RampSettlementStatus;
+  initiatedAt: bigint;
+}
+
+export interface OnRampRecord {
+  recipient: string;
+  token: string;
+  amount: bigint;
+  status: RampSettlementStatus;
+  recordedAt: bigint;
+}
+
+export interface DeployRampSettlementOptions {
+  treasury: string;
+  admin?: string;
+}
+
+export interface RampSettlementDeployResult {
+  settlementAddress: string;
+  txHash: string;
+  treasury: string;
+  network: SupportedNetwork;
+  deployedAt: number;
+}
+
+// ─── On/Off-Ramp: provider abstraction (off-chain half) ──────────────────────
+
+export type RampDirection = "on-ramp" | "off-ramp";
+
+export enum RampSessionStatus {
+  PENDING    = "pending",
+  PROCESSING = "processing",
+  SETTLED    = "settled",
+  FAILED     = "failed",
+  REFUNDED   = "refunded",
+}
+
+export interface RampQuoteInput {
+  direction: RampDirection;
+  fiatCurrency: string;    // e.g. "NGN", "KES", "GHS"
+  tokenSymbol: string;     // e.g. "USDC", "USDT"
+  countryCode: string;     // ISO 3166-1 alpha-2
+  fiatAmount?: string;     // provide one of fiatAmount/tokenAmount
+  tokenAmount?: string;
+}
+
+export interface RampQuote {
+  direction: RampDirection;
+  fiatCurrency: string;
+  fiatAmount: string;
+  tokenAmount: string;
+  tokenSymbol: string;
+  exchangeRate: string;
+  feeFiat: string;
+  expiresAt: number; // unix seconds
+}
+
+export interface RampPayoutAccount {
+  type: "bank" | "mobile-money";
+  accountNumber: string;
+  accountName?: string;
+  bankCode?: string;  // for type: "bank"
+  provider?: string;  // for type: "mobile-money", e.g. "MTN", "Airtel"
+}
+
+export interface InitiateOnRampInput {
+  fiatAmount: string;
+  fiatCurrency: string;
+  tokenSymbol: string;
+  recipientAddress: string;
+  countryCode: string;
+  customerReference?: string;
+}
+
+export interface InitiateOffRampInput {
+  tokenAmount: string;
+  tokenSymbol: string;
+  fiatCurrency: string;
+  payoutAccount: RampPayoutAccount;
+  countryCode: string;
+  customerReference?: string;
+}
+
+export interface RampSession {
+  sessionId: string;
+  direction: RampDirection;
+  status: RampSessionStatus;
+  providerRef: string;
+  paymentUrl?: string; // on-ramp only — where the payer completes the fiat payment
+  createdAt: number;
+}
+
+/**
+ * Pluggable interface for a fiat on-ramp/off-ramp provider (e.g. Yellow Card,
+ * Flutterwave, Transak). Implement this against a real provider's API — the
+ * SDK ships only ManualRampProvider, a reference implementation for dev/testing.
+ */
+export interface RampProvider {
+  readonly name: string;
+  getQuote(input: RampQuoteInput): Promise<RampQuote>;
+  initiateOnRamp(input: InitiateOnRampInput): Promise<RampSession>;
+  initiateOffRamp(input: InitiateOffRampInput): Promise<RampSession>;
+  getStatus(sessionId: string): Promise<RampSessionStatus>;
+}
+
 // ─── SDK config ──────────────────────────────────────────────────────────────
 
 export interface AnkaraChainConfig {
   network: SupportedNetwork;
   signer?: Signer;
   provider?: Provider;
-  factoryAddress?: string;          // Override default ERC-20 factory address
-  nftFactoryAddress?: string;       // Override default NFT factory address
-  multiTokenFactoryAddress?: string; // Override default ERC-1155 factory address
-  escrowFactoryAddress?: string;    // Override default EscrowFactory address
-  rpcUrl?: string;                  // Override default RPC
+  factoryAddress?: string;              // Override default ERC-20 factory address
+  nftFactoryAddress?: string;           // Override default NFT factory address
+  multiTokenFactoryAddress?: string;    // Override default ERC-1155 factory address
+  escrowFactoryAddress?: string;        // Override default EscrowFactory address
+  rampSettlementFactoryAddress?: string; // Override default RampSettlementFactory address
+  rpcUrl?: string;                      // Override default RPC
 }

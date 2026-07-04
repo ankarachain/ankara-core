@@ -10,6 +10,8 @@ import {
   MULTI_TOKEN_FACTORY_ABI,
   ESCROW_FACTORY_ABI,
   MILESTONE_ESCROW_ABI,
+  RAMP_SETTLEMENT_FACTORY_ABI,
+  RAMP_SETTLEMENT_ABI,
   FARMLAND_TOKEN_ABI,
   COMMODITY_TOKEN_ABI,
   REAL_ESTATE_TOKEN_ABI,
@@ -50,6 +52,8 @@ import type {
   DeployCommodityBatchOptions,
   DeployPoolVaultOptions,
   MultiTokenDeployResult,
+  DeployRampSettlementOptions,
+  RampSettlementDeployResult,
 } from "../types";
 
 /**
@@ -67,6 +71,7 @@ export class EVMAdapter {
   private _nftFactoryAddress: string | null = null;
   private _multiTokenFactoryAddress: string | null = null;
   private _escrowFactoryAddress: string | null = null;
+  private _rampSettlementFactoryAddress: string | null = null;
 
   constructor(
     network: SupportedNetwork,
@@ -75,15 +80,17 @@ export class EVMAdapter {
     factoryAddress?: string,
     nftFactoryAddress?: string,
     escrowFactoryAddress?: string,
-    multiTokenFactoryAddress?: string
+    multiTokenFactoryAddress?: string,
+    rampSettlementFactoryAddress?: string
   ) {
-    this._network                   = network;
-    this._provider                  = provider;
-    this._signer                    = signer ?? null;
-    this._factoryAddress            = factoryAddress ?? null;
-    this._nftFactoryAddress         = nftFactoryAddress ?? null;
-    this._escrowFactoryAddress      = escrowFactoryAddress ?? null;
-    this._multiTokenFactoryAddress  = multiTokenFactoryAddress ?? null;
+    this._network                       = network;
+    this._provider                      = provider;
+    this._signer                        = signer ?? null;
+    this._factoryAddress                = factoryAddress ?? null;
+    this._nftFactoryAddress             = nftFactoryAddress ?? null;
+    this._escrowFactoryAddress          = escrowFactoryAddress ?? null;
+    this._multiTokenFactoryAddress      = multiTokenFactoryAddress ?? null;
+    this._rampSettlementFactoryAddress  = rampSettlementFactoryAddress ?? null;
   }
 
   // ─── Connection helpers ───────────────────────────────────────────────────
@@ -130,6 +137,15 @@ export class EVMAdapter {
 
   setMultiTokenFactoryAddress(address: string) {
     this._multiTokenFactoryAddress = address;
+  }
+
+  get rampSettlementFactoryAddress(): string {
+    if (!this._rampSettlementFactoryAddress) throw new Error("No ramp settlement factory address configured.");
+    return this._rampSettlementFactoryAddress;
+  }
+
+  setRampSettlementFactoryAddress(address: string) {
+    this._rampSettlementFactoryAddress = address;
   }
 
   async getSignerAddress(): Promise<string> {
@@ -454,6 +470,54 @@ export class EVMAdapter {
     return new ethers.Contract(address, MILESTONE_ESCROW_ABI, this.signer);
   }
 
+  // ─── Ramp Settlement Factory interactions ─────────────────────────────────
+
+  private rampSettlementFactoryContract() {
+    return new ethers.Contract(
+      this.rampSettlementFactoryAddress,
+      RAMP_SETTLEMENT_FACTORY_ABI,
+      this.signer
+    );
+  }
+
+  async deployRampSettlement(opts: DeployRampSettlementOptions): Promise<RampSettlementDeployResult> {
+    const factory   = this.rampSettlementFactoryContract();
+    const adminAddr = opts.admin ?? await this.getSignerAddress();
+
+    const tx = await factory.deployRampSettlement(
+      adminAddr,
+      opts.treasury,
+      { value: await factory.deploymentFee() }
+    );
+
+    const receipt: ContractTransactionReceipt = await tx.wait();
+    const settlementAddress = await this._extractRampSettlementAddress(receipt);
+
+    return {
+      settlementAddress,
+      txHash:     receipt.hash,
+      treasury:   opts.treasury,
+      network:    this._network,
+      deployedAt: Math.floor(Date.now() / 1000),
+    };
+  }
+
+  async getDeployerRampSettlements(address?: string): Promise<string[]> {
+    const factory = this.rampSettlementFactoryContract();
+    const addr    = address ?? await this.getSignerAddress();
+    return factory.getDeployerRampSettlements(addr);
+  }
+
+  async totalDeployedRampSettlements(): Promise<number> {
+    const factory = this.rampSettlementFactoryContract();
+    const n = await factory.totalDeployedRampSettlements();
+    return Number(n);
+  }
+
+  rampSettlement(address: string) {
+    return new ethers.Contract(address, RAMP_SETTLEMENT_ABI, this.signer);
+  }
+
   // ─── Multi-Token Factory interactions ─────────────────────────────────────
 
   private multiTokenFactoryContract() {
@@ -766,5 +830,20 @@ export class EVMAdapter {
       } catch { /* skip non-matching logs */ }
     }
     throw new Error("MultiTokenDeployed event not found in transaction receipt");
+  }
+
+  private async _extractRampSettlementAddress(
+    receipt: ContractTransactionReceipt
+  ): Promise<string> {
+    const iface  = new ethers.Interface(RAMP_SETTLEMENT_FACTORY_ABI);
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed?.name === "RampSettlementDeployed") {
+          return parsed.args.settlementAddress;
+        }
+      } catch { /* skip non-matching logs */ }
+    }
+    throw new Error("RampSettlementDeployed event not found in transaction receipt");
   }
 }

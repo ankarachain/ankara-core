@@ -410,6 +410,35 @@ export const MILESTONE_ESCROW_ABI = [
   "event EscrowCancelled(uint256 refundedAmount)",
 ] as const;
 
+// ─── Ramp Settlement Factory + RampSettlement ────────────────────────────────
+
+export const RAMP_SETTLEMENT_FACTORY_ABI = [
+  "function deployRampSettlement(address admin_, address treasury_) payable returns (address)",
+  "function setImplementation(address newImplementation) external",
+  "function implementation() view returns (address)",
+  "function totalDeployedRampSettlements() view returns (uint256)",
+  "function getDeployerRampSettlements(address deployer) view returns (address[])",
+  "function deploymentFee() view returns (uint256)",
+  "event RampSettlementDeployed(address indexed settlementAddress, address indexed deployer, address admin, address treasury, uint256 timestamp)",
+] as const;
+
+export const RAMP_SETTLEMENT_ABI = [
+  "function treasury() view returns (address)",
+  "function initiateOffRamp(bytes32 referenceId, address token, uint256 amount, string providerRef) external",
+  "function confirmOffRampSettlement(bytes32 referenceId) external",
+  "function refundOffRamp(bytes32 referenceId) external",
+  "function recordOnRampSettlement(bytes32 referenceId, address recipient, address token, uint256 amount, string providerRef) external",
+  "function getOffRamp(bytes32 referenceId) view returns (tuple(address depositor, address token, uint256 amount, uint8 status, uint256 initiatedAt))",
+  "function getOnRamp(bytes32 referenceId) view returns (tuple(address recipient, address token, uint256 amount, uint8 status, uint256 recordedAt))",
+  "function setTreasury(address newTreasury) external",
+  "function pause() external",
+  "function unpause() external",
+  "event OffRampInitiated(bytes32 indexed referenceId, address indexed depositor, address token, uint256 amount, string providerRef)",
+  "event OffRampSettled(bytes32 indexed referenceId, address treasury, uint256 amount)",
+  "event OffRampRefunded(bytes32 indexed referenceId, address depositor, uint256 amount)",
+  "event OnRampRecorded(bytes32 indexed referenceId, address indexed recipient, address token, uint256 amount, string providerRef)",
+] as const;
+
 export const MANUAL_ORACLE_ABI = [
   "function getPrice(address tokenAddress) view returns (uint256 priceUSD, uint256 timestamp)",
   "function isStale(address tokenAddress) view returns (bool)",

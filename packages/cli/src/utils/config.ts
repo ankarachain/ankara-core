@@ -9,6 +9,7 @@ export interface AnkaraChainProjectConfig {
   nftFactoryAddress?:       string;
   multiTokenFactoryAddress?: string;
   escrowFactoryAddress?:    string;
+  rampSettlementFactoryAddress?: string;
   rpcUrl?:           string;
   deployments:       DeploymentRecord[];
 }

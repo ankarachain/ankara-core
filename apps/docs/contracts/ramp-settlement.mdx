@@ -1,0 +1,177 @@
+---
+title: On-Ramp / Off-Ramp
+description: RampSettlement and RampSettlementFactory — the optional on-chain half of a fiat on/off-ramp flow, plus the SDK's provider abstraction.
+---
+
+## Overview
+
+Ankara Chain's on-ramp/off-ramp support has two independent halves:
+
+1. **A pluggable provider abstraction in the SDK** (`RampProvider` interface + `RampManager` class) that orchestrates the off-chain side of a fiat<->token flow — quotes, KYC, and the actual payment/payout — against whichever provider you implement it for (Yellow Card, Flutterwave, Transak, etc.). The SDK ships only `ManualRampProvider`, a reference implementation for local development and testing.
+2. **An optional on-chain settlement contract** (`RampSettlement`) that gives the crypto side of a settlement a verifiable, auditable record. It's entirely optional — `RampManager` works with just a provider if you don't need on-chain proof of settlement.
+
+This page covers both. See [`packages/sdk/src/core/RampManager.ts`](https://github.com/cranebolt/ankarachain) and [`packages/sdk/src/providers/ManualRampProvider.ts`](https://github.com/cranebolt/ankarachain) for the SDK source.
+
+```
+packages/contracts-evm/contracts/
+├── ramp/
+│   └── RampSettlement.sol
+└── factory/
+    └── RampSettlementFactory.sol
+
+packages/sdk/src/
+├── core/
+│   └── RampManager.ts
+└── providers/
+    └── ManualRampProvider.ts
+```
+
+---
+
+## Why the on-chain half is optional
+
+An on-ramp ends with the user holding tokens; an off-ramp starts with them holding tokens they want to cash out. Neither step strictly requires a smart contract — a backend can orchestrate the whole thing by calling the provider's API and then minting/transferring tokens directly.
+
+What the on-chain half adds is a **verifiable paper trail** that a specific fiat settlement corresponds to a specific on-chain event, provable to a third party (an auditor, a dispute, a compliance review) without them having to trust your backend's word for it. If you don't need that, skip it — `RampManager` works fine with just a `RampProvider`.
+
+---
+
+## RampSettlement
+
+Deployed once per platform (or per market/currency, depending on your setup) via `RampSettlementFactory`. Handles the two directions very differently:
+
+### Off-ramp — real custody
+
+A user converting tokens to fiat deposits them into the contract. Once the platform's backend confirms (via the provider's webhook) that the fiat payout succeeded, `SETTLER_ROLE` releases the custodied tokens to a configured treasury address. If the payout fails instead, `MANAGER_ROLE` can refund the original depositor.
+
+```solidity
+function initiateOffRamp(bytes32 referenceId, address token, uint256 amount, string calldata providerRef) external;
+function confirmOffRampSettlement(bytes32 referenceId) external; // SETTLER_ROLE
+function refundOffRamp(bytes32 referenceId) external;             // MANAGER_ROLE
+```
+
+### On-ramp — attestation only, no custody
+
+A user paying fiat to receive tokens does not deposit anything here. The actual mint is performed by the platform's existing token contracts (`MINTER_ROLE`), which `RampSettlement` deliberately does not hold for arbitrary tokens — minting authority stays scoped to each token's own factory-deployed contract, not a shared settlement contract. `recordOnRampSettlement()` just writes a verifiable, idempotent on-chain record tying a provider settlement reference to the recipient/token/amount that was minted, for audit purposes:
+
+```solidity
+function recordOnRampSettlement(
+    bytes32 referenceId, address recipient, address token, uint256 amount, string calldata providerRef
+) external; // SETTLER_ROLE
+```
+
+### Status tracking
+
+```solidity
+enum SettlementStatus { NONE, PENDING, SETTLED, REFUNDED, RECORDED }
+
+struct OffRampDeposit { address depositor; address token; uint256 amount; SettlementStatus status; uint256 initiatedAt; }
+struct OnRampRecord   { address recipient; address token; uint256 amount; SettlementStatus status; uint256 recordedAt; }
+
+function getOffRamp(bytes32 referenceId) external view returns (OffRampDeposit memory);
+function getOnRamp(bytes32 referenceId) external view returns (OnRampRecord memory);
+```
+
+Every `referenceId` can only be used once per direction (`ReferenceAlreadyUsed` reverts on reuse) — it's typically `keccak256` of whatever session/reference ID your provider integration uses.
+
+---
+
+## RampSettlementFactory
+
+Deploys `RampSettlement` instances via `ERC1967Proxy`, following the same registration pattern as `EscrowFactory` — a single implementation slot, since there's only one settlement contract type:
+
+```solidity
+address public implementation;
+
+function setImplementation(address newImplementation) external onlyOwner;
+function deployRampSettlement(address admin_, address treasury_) external payable returns (address);
+```
+
+**Deploy event:**
+```solidity
+event RampSettlementDeployed(
+    address indexed settlementAddress,
+    address indexed deployer,
+    address admin,
+    address treasury,
+    uint256 timestamp
+);
+```
+
+Registry views: `totalDeployedRampSettlements()`, `getDeployerRampSettlements(address)`. `RampSettlement` is registered as the 5th `FactoryType` (`RAMP`) in `AnkaraFactoryRegistry`, alongside ERC20, NFT, MULTI_TOKEN, and ESCROW.
+
+---
+
+## SDK Integration
+
+### RampProvider — the off-chain half
+
+```typescript
+interface RampProvider {
+  readonly name: string;
+  getQuote(input: RampQuoteInput): Promise<RampQuote>;
+  initiateOnRamp(input: InitiateOnRampInput): Promise<RampSession>;
+  initiateOffRamp(input: InitiateOffRampInput): Promise<RampSession>;
+  getStatus(sessionId: string): Promise<RampSessionStatus>;
+}
+```
+
+Implement this interface against a real provider's API for production. The SDK ships `ManualRampProvider` — a fully in-memory reference implementation for local development: quotes are computed from exchange rates you configure, and sessions only change status when you call `markSettled()`/`markFailed()` yourself, mirroring `ManualOracle`'s manually-driven design for the on-chain price-feed layer.
+
+<Warning>
+`ManualRampProvider` does no real payment processing and keeps session state only in memory for the lifetime of the process that created it — it's for development and testing, not production traffic.
+</Warning>
+
+### RampManager — the orchestrator
+
+```typescript
+import { RampManager, ManualRampProvider, EVMAdapter } from "@ankarachain/sdk";
+
+// Off-chain only (no settlement contract configured):
+const ramp = new RampManager(new ManualRampProvider());
+
+const quote   = await ramp.getQuote({
+  direction: "off-ramp", fiatCurrency: "NGN", tokenSymbol: "mUSD", countryCode: "NG", tokenAmount: "100",
+});
+const session = await ramp.initiateOffRamp({
+  tokenAmount: "100", tokenSymbol: "mUSD", fiatCurrency: "NGN", countryCode: "NG",
+  payoutAccount: { type: "bank", accountNumber: "0123456789", bankCode: "058" },
+});
+```
+
+Pass an `EVMAdapter` and a deployed `RampSettlement` address to also enable the on-chain methods:
+
+```typescript
+const ramp = new RampManager(new ManualRampProvider(), adapter, {
+  settlementAddress: "0xYourRampSettlement",
+});
+
+// caller approves the settlement contract to spend `tokenAmount` first, then:
+await ramp.depositOffRamp(session.sessionId, tokenAddress, ethers.parseEther("100"));
+
+// once the provider confirms the fiat payout succeeded:
+await ramp.confirmOffRampSettlement(session.sessionId);
+
+// or, if it failed:
+await ramp.refundOffRamp(session.sessionId);
+```
+
+For an on-ramp, mint the recipient's tokens through your existing `TokenFactory`/adapter calls once the provider confirms payment, then optionally record the attestation:
+
+```typescript
+await ramp.recordOnRampSettlement(session.sessionId, recipientAddress, tokenAddress, mintedAmount);
+```
+
+`TokenFactory.deployRampSettlement()` deploys a new settlement contract. See the CLI's 8 ramp commands (starting with [`ankara deploy-ramp-settlement`](/cli/commands#ankara-deploy-ramp-settlement)) for a fully interactive walkthrough, and the MCP server's ramp tools for the same flow driven by an AI assistant.
+
+---
+
+## Running the Ramp Tests Locally
+
+```bash
+cd packages/contracts-evm
+npm run test -- --grep "Ramp"
+
+cd packages/sdk
+npm run test -- RampManager ManualRampProvider
+```

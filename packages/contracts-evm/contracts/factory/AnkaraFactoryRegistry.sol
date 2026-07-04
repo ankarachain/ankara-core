@@ -6,11 +6,12 @@ import "./TokenFactory.sol";
 import "./NFTFactory.sol";
 import "./MultiTokenFactory.sol";
 import "./EscrowFactory.sol";
+import "./RampSettlementFactory.sol";
 
 /**
  * @title AnkaraFactoryRegistry
  * @author Cranebolt Technologies — Ankara Chain SDK
- * @notice Unified top-level registry pointing to all four Ankara Chain sub-factories.
+ * @notice Unified top-level registry pointing to all five Ankara Chain sub-factories.
  *
  * Acts as the single entry point for:
  * - Discovering which factories are deployed
@@ -22,11 +23,12 @@ import "./EscrowFactory.sol";
  * - NFT         → NFTFactory (4 ERC-721 asset record templates)
  * - MULTI_TOKEN → MultiTokenFactory (ERC-1155 + PoolVault)
  * - ESCROW      → EscrowFactory (MilestoneEscrow)
+ * - RAMP        → RampSettlementFactory (RampSettlement)
  */
 contract AnkaraFactoryRegistry is Ownable {
 
     // ─── Factory type enum ──────────────────────────────────────────────────
-    enum FactoryType { ERC20, NFT, MULTI_TOKEN, ESCROW }
+    enum FactoryType { ERC20, NFT, MULTI_TOKEN, ESCROW, RAMP }
 
     // ─── State ──────────────────────────────────────────────────────────────
     mapping(FactoryType => address) private _factories;
@@ -63,8 +65,8 @@ contract AnkaraFactoryRegistry is Ownable {
     }
 
     /**
-     * @notice Returns all contracts deployed by `deployer` across all four factories.
-     * @dev Concatenates results from ERC20 + NFT + MultiToken + Escrow factories.
+     * @notice Returns all contracts deployed by `deployer` across all five factories.
+     * @dev Concatenates results from ERC20 + NFT + MultiToken + Escrow + Ramp factories.
      *      Returns an empty array for any factory that is not yet registered.
      */
     function getAllDeployedByAddress(address deployer)
@@ -76,6 +78,7 @@ contract AnkaraFactoryRegistry is Ownable {
         address nftFactory        = _factories[FactoryType.NFT];
         address multiTokenFactory = _factories[FactoryType.MULTI_TOKEN];
         address escrowFactory     = _factories[FactoryType.ESCROW];
+        address rampFactory       = _factories[FactoryType.RAMP];
 
         address[] memory erc20Tokens = erc20Factory != address(0)
             ? TokenFactory(erc20Factory).getDeployerTokens(deployer)
@@ -93,7 +96,11 @@ contract AnkaraFactoryRegistry is Ownable {
             ? EscrowFactory(escrowFactory).getDeployerEscrows(deployer)
             : new address[](0);
 
-        uint256 total = erc20Tokens.length + nftTokens.length + multiTokens.length + escrows.length;
+        address[] memory ramps = rampFactory != address(0)
+            ? RampSettlementFactory(rampFactory).getDeployerRampSettlements(deployer)
+            : new address[](0);
+
+        uint256 total = erc20Tokens.length + nftTokens.length + multiTokens.length + escrows.length + ramps.length;
         result = new address[](total);
 
         uint256 idx;
@@ -101,6 +108,7 @@ contract AnkaraFactoryRegistry is Ownable {
         for (uint256 i = 0; i < nftTokens.length; i++)    result[idx++] = nftTokens[i];
         for (uint256 i = 0; i < multiTokens.length; i++)  result[idx++] = multiTokens[i];
         for (uint256 i = 0; i < escrows.length; i++)      result[idx++] = escrows[i];
+        for (uint256 i = 0; i < ramps.length; i++)        result[idx++] = ramps[i];
     }
 
     /**
@@ -145,6 +153,16 @@ contract AnkaraFactoryRegistry is Ownable {
             uint256 count = ef.totalDeployedEscrows();
             for (uint256 i = 0; i < count; i++) {
                 if (ef.allDeployedEscrows(i) == tokenAddress) return true;
+            }
+        }
+
+        // Check Ramp factory
+        address rampFactory = _factories[FactoryType.RAMP];
+        if (rampFactory != address(0)) {
+            RampSettlementFactory rf = RampSettlementFactory(rampFactory);
+            uint256 count = rf.totalDeployedRampSettlements();
+            for (uint256 i = 0; i < count; i++) {
+                if (rf.allDeployedRampSettlements(i) == tokenAddress) return true;
             }
         }
 

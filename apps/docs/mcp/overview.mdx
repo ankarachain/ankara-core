@@ -7,7 +7,7 @@ description: Deploy and manage Ankara Chain assets from an AI assistant via the 
 
 `@ankarachain/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Ankara Chain's deploy and management operations as tools an AI assistant can call directly — deploy a token, mint to an address, check status, or drive an escrow's milestone lifecycle, all from a natural-language conversation instead of the CLI's interactive prompts.
 
-It wraps the same `@ankarachain/sdk` classes (`TokenFactory`, `EVMAdapter`, `EscrowManager`) used by the CLI, so every tool call goes through the SDK rather than constructing raw contract calls.
+It wraps the same `@ankarachain/sdk` classes (`TokenFactory`, `EVMAdapter`, `EscrowManager`, `RampManager`) used by the CLI, so every tool call goes through the SDK rather than constructing raw contract calls.
 
 ```
 packages/mcp/
@@ -55,6 +55,7 @@ Tool calls that require `privateKey` send it as a plain argument in the tool cal
 | `deploy_batch_token` | Deploy a `CommodityBatchToken` (ERC-1155 warehouse receipt) via `MultiTokenFactory`. |
 | `deploy_pool_vault` | Deploy a `PoolVault` (multi-asset ERC-20 fund) via `MultiTokenFactory`. |
 | `deploy_escrow` | Deploy a `MilestoneEscrow` for tranche-based diaspora payments via `EscrowFactory`. Takes an ordered list of milestone amounts. |
+| `deploy_ramp_settlement` | Deploy a `RampSettlement` contract (optional on-chain half of a fiat on/off-ramp flow) via `RampSettlementFactory`. |
 
 ### Escrow lifecycle
 
@@ -67,6 +68,20 @@ Tool calls that require `privateKey` send it as a plain argument in the tool cal
 | `resolve_dispute` | Resolve a disputed milestone — release to payee or refund to payer. Arbiter only. |
 | `claim_timelock_release` | Force-release a delivered, non-disputed milestone once the timelock has elapsed. Callable by anyone. |
 | `get_escrow_status` | Read-only: payer, payee, arbiter, token, total amount, funded/cancelled flags, remaining balance, and every milestone's status. No private key required. |
+
+### On-ramp / off-ramp
+
+The off-chain half of every ramp tool uses `ManualRampProvider` — a reference implementation for dev/testing. Swap in a real provider adapter (Yellow Card, Flutterwave, Transak, etc.) for production. See [On-Ramp / Off-Ramp](/contracts/ramp-settlement) for the full design.
+
+| Tool | Description |
+|------|-------------|
+| `get_ramp_quote` | Get a fiat<->token quote. Provide either `fiatAmount` or `tokenAmount`. |
+| `initiate_onramp` | Start an on-ramp session (fiat → tokens) with the ramp provider. Does not mint tokens — mint separately once the fiat payment is confirmed. |
+| `record_onramp_settlement` | Record an on-chain attestation that an on-ramp mint happened. Does not move funds. |
+| `initiate_offramp` | Start an off-ramp session (tokens → fiat): approves and deposits tokens into `RampSettlement` custody, then starts a provider payout session. |
+| `confirm_offramp_settlement` | Confirm an off-ramp fiat payout, releasing custodied tokens to the treasury. |
+| `refund_offramp` | Refund a custodied off-ramp deposit to the original depositor if the fiat payout failed. |
+| `get_ramp_status` | Read-only: the on-chain off-ramp deposit / on-ramp record for a reference. No private key required. |
 
 ### Token management
 
@@ -83,9 +98,9 @@ Every tool's full input schema (required fields, types) is discoverable via the 
 
 ## Design notes
 
-- All 16 tools dispatch through a single exported `callTool(name, args)` function, which wraps every handler in a try/catch and returns `{ content, isError: true }` on failure instead of throwing — so a bad tool call surfaces as a readable error to the AI client rather than crashing the server.
+- All 24 tools dispatch through a single exported `callTool(name, args)` function, which wraps every handler in a try/catch and returns `{ content, isError: true }` on failure instead of throwing — so a bad tool call surfaces as a readable error to the AI client rather than crashing the server.
 - The stdio server only starts when the module is run directly (`node dist/index.js` / `npx @ankarachain/mcp`), not when imported — this lets the tool definitions and dispatch logic be unit tested without spinning up a real MCP transport.
-- Read-only tools (`get_escrow_status`, `get_token_status`, `list_deployments`) don't require a `privateKey`, only an `rpcUrl`, and construct a plain `ethers.JsonRpcProvider` rather than a signer.
+- Read-only tools (`get_escrow_status`, `get_token_status`, `list_deployments`, `get_ramp_status`) don't require a `privateKey`, only an `rpcUrl`, and construct a plain `ethers.JsonRpcProvider` rather than a signer. `get_ramp_quote` needs neither, since `ManualRampProvider` computes quotes locally.
 
 ---
 
