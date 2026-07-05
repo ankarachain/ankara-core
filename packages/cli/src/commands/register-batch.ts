@@ -1,9 +1,9 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { COMMODITY_BATCH_TOKEN_ABI } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 export async function registerBatchCommand() {
   logger.blank();
@@ -27,16 +27,7 @@ export async function registerBatchCommand() {
 
   const spinner = ora("Registering batch…").start();
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
-    const contract = new ethers.Contract(
-      details.contract,
-      COMMODITY_BATCH_TOKEN_ABI,
-      wallet
-    );
+    const adapter = buildAdapter(config);
 
     const meta = {
       commodityType:       details.commodityType,
@@ -50,11 +41,10 @@ export async function registerBatchCommand() {
       originCountry:       details.originCountry,
     };
 
-    const tx = await contract.registerBatch(BigInt(details.batchId), meta);
-    const receipt = await tx.wait();
+    const txHash = await adapter.batchRegister(details.contract, BigInt(details.batchId), meta);
 
     spinner.succeed(`Batch ${details.batchId} registered`);
-    logger.info(`Tx hash: ${receipt.hash}`);
+    logger.info(`Tx hash: ${txHash}`);
   } catch (err: any) {
     spinner.fail("Registration failed");
     logger.error(err.message ?? String(err));

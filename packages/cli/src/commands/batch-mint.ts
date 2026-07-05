@@ -1,9 +1,8 @@
 import ora from "ora";
 import inquirer from "inquirer";
-import { ethers } from "ethers";
-import { COMMODITY_BATCH_TOKEN_ABI } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 export async function batchMintCommand() {
   logger.blank();
@@ -22,27 +21,16 @@ export async function batchMintCommand() {
 
   const spinner = ora(`Minting ${details.amount} tokens for batch ${details.batchId}…`).start();
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
-    const contract = new ethers.Contract(
+    const adapter = buildAdapter(config);
+    const txHash  = await adapter.batchMint(
       details.contract,
-      COMMODITY_BATCH_TOKEN_ABI,
-      wallet
-    );
-
-    const tx = await contract.mint(
-      details.to,
       BigInt(details.batchId),
-      BigInt(details.amount),
-      "0x"
+      details.to,
+      BigInt(details.amount)
     );
-    const receipt = await tx.wait();
 
     spinner.succeed(`Minted ${details.amount} tokens (batch ${details.batchId}) to ${details.to}`);
-    logger.info(`Tx hash: ${receipt.hash}`);
+    logger.info(`Tx hash: ${txHash}`);
   } catch (err: any) {
     spinner.fail("Mint failed");
     logger.error(err.message ?? String(err));

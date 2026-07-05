@@ -1,14 +1,10 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { TokenFactory, NETWORKS } from "@ankarachain/sdk";
+import { TokenFactory } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import {
-  readConfig,
-  addDeployment,
-  getPrivateKey,
-  getRpcUrl,
-} from "../utils/config.js";
+import { readConfig, addDeployment } from "../utils/config.js";
+import { buildAnkaraChainConfig } from "../utils/adapter.js";
 
 type Template =
   | "farmland"
@@ -242,21 +238,7 @@ export async function deployCommand(opts: { template?: string }) {
   const spinner = ora("Deploying...").start();
 
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const network    = NETWORKS[config.network];
-    const provider   = new ethers.JsonRpcProvider(
-      rpcUrl || network.rpcUrl,
-      network.chainId
-    );
-    const signer = new ethers.Wallet(privateKey, provider);
-
-    const factory = new TokenFactory({
-      network:        config.network,
-      signer,
-      factoryAddress: config.factoryAddress,
-      rpcUrl:         rpcUrl || undefined,
-    });
+    const factory = new TokenFactory(buildAnkaraChainConfig(config));
 
     const deployOpts = {
       name:        details.name,

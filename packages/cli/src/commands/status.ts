@@ -1,8 +1,8 @@
 import { ethers } from "ethers";
-import { AssetRegistry, AssetStatus, NETWORKS } from "@ankarachain/sdk";
-import { EVMAdapter } from "@ankarachain/sdk";
+import { AssetRegistry } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
 import { readConfig } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 const STATUS_LABELS: Record<number, string> = {
   0: "DRAFT",
@@ -44,10 +44,8 @@ export async function statusCommand(tokenAddress?: string) {
     return;
   }
 
-  // Fetch live status from chain
-  const network  = NETWORKS[config.network];
-  const rpcUrl   = process.env.RPC_URL || config.rpcUrl || network.rpcUrl;
-  const provider = new ethers.JsonRpcProvider(rpcUrl, network.chainId);
+  // Fetch live status from chain (read-only — no signing key required)
+  const adapter = buildAdapter(config, { readOnly: true });
 
   // Try to figure out template from saved deployments
   const saved = config.deployments.find(
@@ -55,7 +53,6 @@ export async function statusCommand(tokenAddress?: string) {
   );
   const template = (saved?.template as "farmland" | "commodity") ?? "farmland";
 
-  const adapter  = new EVMAdapter(config.network, provider);
   const registry = new AssetRegistry(adapter, tokenAddress, template);
 
   try {

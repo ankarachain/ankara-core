@@ -65,6 +65,25 @@ export function getPrivateKey(): string {
   return key.startsWith("0x") ? key : `0x${key}`;
 }
 
+/**
+ * Stellar secret seeds (`S...`) are a different key format from EVM private
+ * keys — kept as a separate env var/function rather than overloading
+ * `getPrivateKey()`.
+ */
+export function getStellarSecretKey(): string {
+  const key = process.env.STELLAR_SECRET_KEY;
+  if (!key) {
+    throw new Error(
+      "STELLAR_SECRET_KEY not set. Add it to your .env file:\n  STELLAR_SECRET_KEY=your_secret_seed_here"
+    );
+  }
+  return key;
+}
+
+export function isStellarNetwork(network: SupportedNetwork): boolean {
+  return network === "stellar" || network === "stellar-testnet";
+}
+
 export function getRpcUrl(config: AnkaraChainProjectConfig): string {
   return (
     process.env.RPC_URL ??

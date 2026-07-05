@@ -12,6 +12,8 @@ const FACTORY_ADDRESSES: Partial<Record<SupportedNetwork, string>> = {
   "localhost": "",      // filled after local deploy
   "polygon-amoy": "",  // filled after you deploy to Amoy
   "polygon": "",       // mainnet — future
+  "stellar-testnet": "", // filled after you deploy to Stellar testnet
+  "stellar": "",         // mainnet — future
 };
 
 export async function initCommand(projectName?: string) {
@@ -54,6 +56,8 @@ export async function initCommand(projectName?: string) {
         { name: "Celo Mainnet",                                          value: "celo"         },
         { name: "BNB Smart Chain",                                       value: "bnb"          },
         { name: "Ethereum Mainnet",                                      value: "ethereum"     },
+        { name: "Stellar Testnet (Soroban)",                             value: "stellar-testnet" },
+        { name: "Stellar Mainnet (Soroban)",                             value: "stellar"      },
       ],
       default: "polygon-amoy",
     },
@@ -81,16 +85,24 @@ export async function initCommand(projectName?: string) {
   });
 
   // ── Write .env.example if missing ─────────────────────────────────────────
+  const isStellar = answers.network === "stellar" || answers.network === "stellar-testnet";
   const envPath = join(process.cwd(), ".env");
   if (!existsSync(envPath)) {
-    const envContent = [
-      "# Ankara Chain environment variables",
-      "# NEVER commit this file to git\n",
-      "PRIVATE_KEY=your_wallet_private_key_here",
-      "RPC_URL=                  # optional override",
-    ].join("\n");
+    const envContent = isStellar
+      ? [
+          "# Ankara Chain environment variables",
+          "# NEVER commit this file to git\n",
+          "STELLAR_SECRET_KEY=your_stellar_secret_seed_here",
+          "RPC_URL=                  # optional override",
+        ].join("\n")
+      : [
+          "# Ankara Chain environment variables",
+          "# NEVER commit this file to git\n",
+          "PRIVATE_KEY=your_wallet_private_key_here",
+          "RPC_URL=                  # optional override",
+        ].join("\n");
     await promisify(writeFile)(envPath, envContent);
-    logger.info("Created .env — add your PRIVATE_KEY");
+    logger.info(`Created .env — add your ${isStellar ? "STELLAR_SECRET_KEY" : "PRIVATE_KEY"}`);
   }
 
   logger.blank();
@@ -101,7 +113,7 @@ export async function initCommand(projectName?: string) {
   logger.divider();
   logger.blank();
   console.log("  Next steps:");
-  console.log("    1. Add your PRIVATE_KEY to .env");
+  console.log(`    1. Add your ${isStellar ? "STELLAR_SECRET_KEY" : "PRIVATE_KEY"} to .env`);
   if (!answers.factoryAddress) {
     console.log("    2. Deploy the factory:  npx ankara deploy-factory");
   }

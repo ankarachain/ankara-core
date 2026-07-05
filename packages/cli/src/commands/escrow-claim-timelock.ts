@@ -1,9 +1,9 @@
 import ora from "ora";
 import inquirer from "inquirer";
-import { ethers } from "ethers";
-import { EVMAdapter, EscrowManager } from "@ankarachain/sdk";
+import { EscrowManager } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 export async function escrowClaimTimelockCommand() {
   logger.blank();
@@ -23,12 +23,7 @@ export async function escrowClaimTimelockCommand() {
   const spinner = ora("Claiming timelock release…").start();
 
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
-    const adapter = new EVMAdapter(config.network, provider, wallet);
+    const adapter = buildAdapter(config);
     const manager = new EscrowManager(adapter, escrow);
     const txHash  = await manager.claimTimelockRelease(milestoneId);
 

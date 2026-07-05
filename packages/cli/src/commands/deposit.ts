@@ -1,9 +1,9 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { POOL_VAULT_ABI } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig, getPrivateKey, getRpcUrl, isStellarNetwork } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 const ERC20_APPROVE_ABI = [
   "function approve(address spender, uint256 amount) returns (bool)",
@@ -28,23 +28,27 @@ export async function depositCommand() {
 
   const spinner = ora("Approving token spend…").start();
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
+    // EVM needs an explicit ERC-20 approval before the vault can pull the
+    // funds; Stellar's `deposit()` authorizes the nested SEP-41 transfer
+    // within the same call, so there's nothing to pre-approve there.
+    if (!isStellarNetwork(config.network)) {
+      const privateKey = getPrivateKey();
+      const rpcUrl      = getRpcUrl(config);
+      const provider    = new ethers.JsonRpcProvider(rpcUrl);
+      const wallet      = new ethers.Wallet(privateKey, provider);
 
-    const token = new ethers.Contract(details.token, ERC20_APPROVE_ABI, wallet);
-    const approveTx = await token.approve(details.vault, amountWei);
-    await approveTx.wait();
+      const token = new ethers.Contract(details.token, ERC20_APPROVE_ABI, wallet);
+      const approveTx = await token.approve(details.vault, amountWei);
+      await approveTx.wait();
+    }
 
     spinner.text = "Depositing into vault…";
 
-    const vault = new ethers.Contract(details.vault, POOL_VAULT_ABI, wallet);
-    const tx    = await vault.deposit(details.token, amountWei);
-    const receipt = await tx.wait();
+    const adapter = buildAdapter(config);
+    const txHash  = await adapter.poolDeposit(details.vault, details.token, amountWei);
 
     spinner.succeed(`Deposited ${details.amount} tokens into vault`);
-    logger.info(`Tx hash: ${receipt.hash}`);
+    logger.info(`Tx hash: ${txHash}`);
   } catch (err: any) {
     spinner.fail("Deposit failed");
     logger.error(err.message ?? String(err));

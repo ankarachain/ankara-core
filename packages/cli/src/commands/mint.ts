@@ -1,10 +1,10 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { AssetRegistry, NETWORKS } from "@ankarachain/sdk";
-import { EVMAdapter } from "@ankarachain/sdk";
+import { AssetRegistry } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig, isStellarNetwork } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 export async function mintCommand(opts: {
   contract?: string;
@@ -50,7 +50,10 @@ export async function mintCommand(opts: {
       name:    "to",
       message: "Recipient address:",
       default: opts.to,
-      validate: (v: string) => ethers.isAddress(v) || "Invalid Ethereum address",
+      validate: (v: string) =>
+        isStellarNetwork(config.network)
+          ? v.length > 0 || "Address is required"
+          : ethers.isAddress(v) || "Invalid Ethereum address",
     },
     {
       type:    "input",
@@ -79,19 +82,12 @@ export async function mintCommand(opts: {
   const spinner = ora("Minting...").start();
 
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const network    = NETWORKS[config.network];
-    const provider   = new ethers.JsonRpcProvider(
-      rpcUrl || network.rpcUrl, network.chainId
-    );
-    const signer = new ethers.Wallet(privateKey, provider);
+    const adapter = buildAdapter(config);
 
     const saved    = config.deployments.find(
       d => d.tokenAddress.toLowerCase() === contractAddress!.toLowerCase()
     );
     const template = (saved?.template as "farmland" | "commodity") ?? "farmland";
-    const adapter  = new EVMAdapter(config.network, provider, signer);
     const registry = new AssetRegistry(adapter, contractAddress!, template);
 
     const txHash = await registry.mint(answers.to, amountWei);

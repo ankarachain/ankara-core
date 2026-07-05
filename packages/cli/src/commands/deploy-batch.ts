@@ -3,12 +3,8 @@ import inquirer from "inquirer";
 import { ethers } from "ethers";
 import { TokenFactory } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import {
-  readConfig,
-  addDeployment,
-  getPrivateKey,
-  getRpcUrl,
-} from "../utils/config.js";
+import { readConfig, addDeployment } from "../utils/config.js";
+import { buildAnkaraChainConfig } from "../utils/adapter.js";
 
 export async function deployBatchCommand() {
   logger.blank();
@@ -57,16 +53,7 @@ export async function deployBatchCommand() {
 
   const spinner = ora("Deploying CommodityBatchToken…").start();
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
-    const factory = new TokenFactory({
-      network: config.network,
-      signer: wallet,
-      multiTokenFactoryAddress: config.multiTokenFactoryAddress,
-    });
+    const factory = new TokenFactory(buildAnkaraChainConfig(config));
 
     const result = await factory.deployCommodityBatchToken({
       name:        details.name,

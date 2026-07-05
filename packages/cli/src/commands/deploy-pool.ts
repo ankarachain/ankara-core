@@ -3,12 +3,8 @@ import inquirer from "inquirer";
 import { ethers } from "ethers";
 import { TokenFactory } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import {
-  readConfig,
-  addDeployment,
-  getPrivateKey,
-  getRpcUrl,
-} from "../utils/config.js";
+import { readConfig, addDeployment } from "../utils/config.js";
+import { buildAnkaraChainConfig } from "../utils/adapter.js";
 
 export async function deployPoolCommand() {
   logger.blank();
@@ -33,7 +29,10 @@ export async function deployPoolCommand() {
     { type: "input", name: "managementFeeBps",  message: "Management fee bps (default 50 = 0.5%/yr):", default: "50" },
   ]);
 
-  const oracleAddress = details.oracle.trim() || ethers.ZeroAddress;
+  // `undefined` (not a chain-specific zero-address) so "no oracle" round-trips
+  // correctly to both EVMAdapter (falls back to ethers.ZeroAddress itself)
+  // and StellarAdapter (maps to Soroban's `Option<Address>::None`).
+  const oracleAddress: string | undefined = details.oracle.trim() || undefined;
   const feeBps        = parseInt(details.managementFeeBps, 10) || 50;
   const assetIdBytes  = ethers.keccak256(ethers.toUtf8Bytes(details.assetId));
 
@@ -63,16 +62,7 @@ export async function deployPoolCommand() {
 
   const spinner = ora("Deploying PoolVault…").start();
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
-    const factory = new TokenFactory({
-      network: config.network,
-      signer: wallet,
-      multiTokenFactoryAddress: config.multiTokenFactoryAddress,
-    });
+    const factory = new TokenFactory(buildAnkaraChainConfig(config));
 
     const result = await factory.deployPoolVault({
       name:        details.name,

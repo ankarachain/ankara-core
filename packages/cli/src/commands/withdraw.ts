@@ -1,9 +1,9 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { POOL_VAULT_ABI } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 export async function withdrawCommand() {
   logger.blank();
@@ -22,17 +22,11 @@ export async function withdrawCommand() {
 
   const spinner = ora(`Withdrawing ${details.amount} pool tokens…`).start();
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
-    const vault   = new ethers.Contract(details.vault, POOL_VAULT_ABI, wallet);
-    const tx      = await vault.withdraw(amountWei);
-    const receipt = await tx.wait();
+    const adapter = buildAdapter(config);
+    const txHash  = await adapter.poolWithdraw(details.vault, amountWei);
 
     spinner.succeed(`Withdrew ${details.amount} pool tokens`);
-    logger.info(`Tx hash: ${receipt.hash}`);
+    logger.info(`Tx hash: ${txHash}`);
   } catch (err: any) {
     spinner.fail("Withdrawal failed");
     logger.error(err.message ?? String(err));

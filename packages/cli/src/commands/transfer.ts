@@ -2,13 +2,13 @@ import inquirer from "inquirer";
 import ora from "ora";
 import { ethers } from "ethers";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig, getRpcUrl, isStellarNetwork } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
-// Minimal ABI to detect ERC-721 and handle both token types
+// Minimal ABI to detect ERC-721 — Soroban has no equivalent interface-
+// detection mechanism (no ERC-165), so on Stellar we ask the user directly.
 const DETECT_ABI = [
   "function supportsInterface(bytes4 interfaceId) view returns (bool)",
-  "function transfer(address to, uint256 amount) returns (bool)",
-  "function transferFrom(address from, address to, uint256 tokenId)",
 ] as const;
 
 const ERC721_INTERFACE_ID = "0x80ac58cd";
@@ -21,41 +21,47 @@ export async function transferCommand() {
 
   const config = readConfig();
 
+  const addressValidate = (v: string) =>
+    isStellarNetwork(config.network) ? v.length > 0 || "Address is required" : ethers.isAddress(v) || "Invalid address";
+
   const { contractAddress } = await inquirer.prompt([{
     type: "input",
     name: "contractAddress",
     message: "Token / NFT contract address:",
-    validate: (v: string) => ethers.isAddress(v) ? true : "Invalid address",
+    validate: addressValidate,
   }]);
 
-  // ── Connect ───────────────────────────────────────────────────────────────
-  const privateKey = getPrivateKey();
-  const rpcUrl     = getRpcUrl(config);
-
-  const provider = rpcUrl
-    ? new ethers.JsonRpcProvider(rpcUrl)
-    : new ethers.JsonRpcProvider();
-
-  const signer  = new ethers.Wallet(privateKey, provider);
-  const contract = new ethers.Contract(contractAddress, DETECT_ABI, signer);
+  const adapter = buildAdapter(config);
 
   // ── Detect standard ───────────────────────────────────────────────────────
   let isNFT = false;
-  try {
-    isNFT = await contract.supportsInterface(ERC721_INTERFACE_ID);
-  } catch {
-    // Contract doesn't support ERC-165 — assume ERC-20
+  if (isStellarNetwork(config.network)) {
+    // No ERC-165 equivalent on Soroban — ask the user directly.
+    const { assetKind } = await inquirer.prompt([{
+      type: "list",
+      name: "assetKind",
+      message: "What kind of asset is this?",
+      choices: [
+        { name: "Fungible token (SEP-41)", value: "fungible" },
+        { name: "NFT", value: "nft" },
+      ],
+    }]);
+    isNFT = assetKind === "nft";
+  } else {
+    // Read-only ERC-165 probe — no signer needed for a view call.
+    const rpcUrl = getRpcUrl(config);
+    const provider = rpcUrl ? new ethers.JsonRpcProvider(rpcUrl) : new ethers.JsonRpcProvider();
+    const detector = new ethers.Contract(contractAddress, DETECT_ABI, provider);
+    try {
+      isNFT = await detector.supportsInterface(ERC721_INTERFACE_ID);
+    } catch {
+      // Contract doesn't support ERC-165 — assume fungible.
+    }
   }
 
   if (isNFT) {
-    // ── ERC-721 transfer ────────────────────────────────────────────────────
     const { recipient, tokenId } = await inquirer.prompt([
-      {
-        type: "input",
-        name: "recipient",
-        message: "Recipient address:",
-        validate: (v: string) => ethers.isAddress(v) ? true : "Invalid address",
-      },
+      { type: "input", name: "recipient", message: "Recipient address:", validate: addressValidate },
       {
         type: "input",
         name: "tokenId",
@@ -65,27 +71,22 @@ export async function transferCommand() {
     ]);
 
     logger.blank();
-    logger.info(`Standard    : ERC-721 NFT`);
+    logger.info(`Standard    : NFT`);
     logger.info(`Contract    : ${contractAddress}`);
     logger.info(`Token ID    : ${tokenId}`);
     logger.info(`To          : ${recipient}`);
     logger.divider();
 
     const { confirmed } = await inquirer.prompt([{
-      type: "confirm",
-      name: "confirmed",
-      message: "Confirm transfer?",
-      default: true,
+      type: "confirm", name: "confirmed", message: "Confirm transfer?", default: true,
     }]);
     if (!confirmed) { logger.info("Cancelled."); return; }
 
     const spinner = ora("Sending NFT transfer...").start();
     try {
-      const signerAddress = await signer.getAddress();
-      const tx = await contract.transferFrom(signerAddress, recipient, BigInt(tokenId));
-      const receipt = await tx.wait();
+      const txHash = await adapter.genericTransferNFT(contractAddress, recipient, BigInt(tokenId));
       spinner.succeed("NFT transferred!");
-      logger.success(`Tx Hash : ${receipt.hash}`);
+      logger.success(`Tx Hash : ${txHash}`);
     } catch (err: any) {
       spinner.fail("Transfer failed");
       logger.error(err.message ?? String(err));
@@ -93,14 +94,8 @@ export async function transferCommand() {
     }
 
   } else {
-    // ── ERC-20 transfer ─────────────────────────────────────────────────────
     const { recipient, amount } = await inquirer.prompt([
-      {
-        type: "input",
-        name: "recipient",
-        message: "Recipient address:",
-        validate: (v: string) => ethers.isAddress(v) ? true : "Invalid address",
-      },
+      { type: "input", name: "recipient", message: "Recipient address:", validate: addressValidate },
       {
         type: "input",
         name: "amount",
@@ -112,26 +107,22 @@ export async function transferCommand() {
     const amountWei = ethers.parseEther(amount);
 
     logger.blank();
-    logger.info(`Standard    : ERC-20`);
+    logger.info(`Standard    : Fungible token`);
     logger.info(`Contract    : ${contractAddress}`);
     logger.info(`Amount      : ${amount} tokens`);
     logger.info(`To          : ${recipient}`);
     logger.divider();
 
     const { confirmed } = await inquirer.prompt([{
-      type: "confirm",
-      name: "confirmed",
-      message: "Confirm transfer?",
-      default: true,
+      type: "confirm", name: "confirmed", message: "Confirm transfer?", default: true,
     }]);
     if (!confirmed) { logger.info("Cancelled."); return; }
 
     const spinner = ora("Sending token transfer...").start();
     try {
-      const tx = await contract.transfer(recipient, amountWei);
-      const receipt = await tx.wait();
+      const txHash = await adapter.genericTransferToken(contractAddress, recipient, amountWei);
       spinner.succeed("Tokens transferred!");
-      logger.success(`Tx Hash : ${receipt.hash}`);
+      logger.success(`Tx Hash : ${txHash}`);
     } catch (err: any) {
       spinner.fail("Transfer failed");
       logger.error(err.message ?? String(err));

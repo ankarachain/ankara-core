@@ -3,12 +3,8 @@ import inquirer from "inquirer";
 import { ethers } from "ethers";
 import { TokenFactory } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import {
-  readConfig,
-  addDeployment,
-  getPrivateKey,
-  getRpcUrl,
-} from "../utils/config.js";
+import { readConfig, addDeployment } from "../utils/config.js";
+import { buildAnkaraChainConfig } from "../utils/adapter.js";
 
 type NFTTemplate =
   | "farmland-nft"
@@ -78,20 +74,7 @@ export async function deployNFTCommand() {
   }
 
   // ── Deploy ────────────────────────────────────────────────────────────────
-  const privateKey = getPrivateKey();
-  const rpcUrl     = getRpcUrl(config);
-
-  const provider = rpcUrl
-    ? new ethers.JsonRpcProvider(rpcUrl)
-    : new ethers.JsonRpcProvider();
-
-  const signer = new ethers.Wallet(privateKey, provider);
-
-  const factory = new TokenFactory({
-    network:           config.network,
-    signer,
-    nftFactoryAddress: config.nftFactoryAddress,
-  });
+  const factory = new TokenFactory(buildAnkaraChainConfig(config));
 
   const spinner = ora("Deploying NFT contract...").start();
 

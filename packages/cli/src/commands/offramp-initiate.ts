@@ -1,9 +1,10 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { EVMAdapter, RampManager, ManualRampProvider } from "@ankarachain/sdk";
+import { RampManager, ManualRampProvider } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig, getPrivateKey, getRpcUrl, isStellarNetwork } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 const ERC20_APPROVE_ABI = [
   "function approve(address spender, uint256 amount) returns (bool)",
@@ -31,11 +32,6 @@ export async function offrampInitiateCommand() {
   const spinner = ora("Starting off-ramp session…").start();
 
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
     const rampProvider = new ManualRampProvider();
     const session = await rampProvider.initiateOffRamp({
       tokenAmount:  details.amount,
@@ -47,13 +43,25 @@ export async function offrampInitiateCommand() {
         : { type: "mobile-money", accountNumber: details.accountNumber },
     });
 
-    spinner.text = "Approving and depositing tokens into settlement contract…";
-
     const amountWei = ethers.parseEther(details.amount);
-    const token = new ethers.Contract(details.token, ERC20_APPROVE_ABI, wallet);
-    await (await token.approve(details.settlement, amountWei)).wait();
 
-    const adapter = new EVMAdapter(config.network, provider, wallet);
+    // EVM needs an explicit ERC-20 approval before the settlement contract
+    // can pull the funds; Stellar's deposit authorizes the nested SEP-41
+    // transfer within the same call, so there's nothing to pre-approve there.
+    if (!isStellarNetwork(config.network)) {
+      spinner.text = "Approving tokens for settlement contract…";
+      const privateKey = getPrivateKey();
+      const rpcUrl      = getRpcUrl(config);
+      const provider    = new ethers.JsonRpcProvider(rpcUrl);
+      const wallet      = new ethers.Wallet(privateKey, provider);
+
+      const token = new ethers.Contract(details.token, ERC20_APPROVE_ABI, wallet);
+      await (await token.approve(details.settlement, amountWei)).wait();
+    }
+
+    spinner.text = "Depositing tokens into settlement contract…";
+
+    const adapter = buildAdapter(config);
     const ramp    = new RampManager(rampProvider, adapter, { settlementAddress: details.settlement });
     const txHash  = await ramp.depositOffRamp(session.sessionId, details.token, amountWei);
 

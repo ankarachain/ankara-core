@@ -1,14 +1,9 @@
 import ora from "ora";
 import inquirer from "inquirer";
-import { ethers } from "ethers";
 import { TokenFactory } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import {
-  readConfig,
-  addDeployment,
-  getPrivateKey,
-  getRpcUrl,
-} from "../utils/config.js";
+import { readConfig, addDeployment } from "../utils/config.js";
+import { buildAnkaraChainConfig } from "../utils/adapter.js";
 
 export async function deployRampSettlementCommand() {
   logger.blank();
@@ -52,16 +47,7 @@ export async function deployRampSettlementCommand() {
   const spinner = ora("Deploying RampSettlement…").start();
 
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const signer     = new ethers.Wallet(privateKey, provider);
-
-    const factory = new TokenFactory({
-      network: config.network,
-      signer,
-      rampSettlementFactoryAddress: config.rampSettlementFactoryAddress,
-    });
+    const factory = new TokenFactory(buildAnkaraChainConfig(config));
 
     const result = await factory.deployRampSettlement({ treasury });
 

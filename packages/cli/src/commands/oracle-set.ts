@@ -1,9 +1,9 @@
 import ora from "ora";
 import inquirer from "inquirer";
 import { ethers } from "ethers";
-import { MANUAL_ORACLE_ABI } from "@ankarachain/sdk";
 import { logger } from "../utils/logger.js";
-import { readConfig, getPrivateKey, getRpcUrl } from "../utils/config.js";
+import { readConfig } from "../utils/config.js";
+import { buildAdapter } from "../utils/adapter.js";
 
 export async function oracleSetCommand() {
   logger.blank();
@@ -23,17 +23,11 @@ export async function oracleSetCommand() {
 
   const spinner = ora(`Setting price $${details.price} for ${details.token}…`).start();
   try {
-    const privateKey = getPrivateKey();
-    const rpcUrl     = getRpcUrl(config);
-    const provider   = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet     = new ethers.Wallet(privateKey, provider);
-
-    const oracle  = new ethers.Contract(details.oracle, MANUAL_ORACLE_ABI, wallet);
-    const tx      = await oracle.setPrice(details.token, priceWei);
-    const receipt = await tx.wait();
+    const adapter = buildAdapter(config);
+    const txHash  = await adapter.oracleSetPrice(details.oracle, details.token, priceWei);
 
     spinner.succeed(`Price set: $${details.price} for ${details.token}`);
-    logger.info(`Tx hash: ${receipt.hash}`);
+    logger.info(`Tx hash: ${txHash}`);
   } catch (err: any) {
     spinner.fail("Failed to set price");
     logger.error(err.message ?? String(err));
