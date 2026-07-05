@@ -3,6 +3,7 @@ import {
   type Signer,
   type Provider,
   type ContractTransactionReceipt,
+  type ContractTransactionResponse,
 } from "ethers";
 import {
   TOKEN_FACTORY_ABI,
@@ -25,10 +26,13 @@ import {
   COMMODITY_BATCH_TOKEN_ABI,
   POOL_VAULT_ABI,
   WHITELIST_VERIFIER_ABI,
+  MANUAL_ORACLE_ABI,
+  ERC20_METADATA_ABI,
 } from "../utils/abis";
 import { getNetwork } from "../utils/networks";
+import type { IAdapter, AnyAssetMetadata } from "./IAdapter";
 import type {
-  SupportedNetwork,
+  EVMSupportedNetwork,
   DeployFarmlandOptions,
   DeployCommodityOptions,
   DeployRealEstateOptions,
@@ -54,7 +58,22 @@ import type {
   MultiTokenDeployResult,
   DeployRampSettlementOptions,
   RampSettlementDeployResult,
+  Milestone,
+  MilestoneStatus,
+  EscrowActivityEvent,
+  EscrowActivityType,
+  TokenMetadata,
+  OffRampDeposit,
+  OnRampRecord,
+  AssetTemplate,
+  NFTAssetTemplate,
+  AssetStatus,
+  InvoiceStatus,
+  RetirementRecord,
+  BatchMetadata,
+  PoolVaultStatus,
 } from "../types";
+import { RampSettlementStatus } from "../types";
 
 /**
  * EVMAdapter
@@ -63,10 +82,10 @@ import type {
  * The higher-level TokenFactory and AssetRegistry classes use this internally.
  * Developers generally shouldn't need to use this directly.
  */
-export class EVMAdapter {
+export class EVMAdapter implements IAdapter {
   private _signer: Signer | null = null;
   private _provider: Provider;
-  private _network: SupportedNetwork;
+  private _network: EVMSupportedNetwork;
   private _factoryAddress: string | null = null;
   private _nftFactoryAddress: string | null = null;
   private _multiTokenFactoryAddress: string | null = null;
@@ -74,7 +93,7 @@ export class EVMAdapter {
   private _rampSettlementFactoryAddress: string | null = null;
 
   constructor(
-    network: SupportedNetwork,
+    network: EVMSupportedNetwork,
     provider: Provider,
     signer?: Signer,
     factoryAddress?: string,
@@ -95,12 +114,28 @@ export class EVMAdapter {
 
   // ─── Connection helpers ───────────────────────────────────────────────────
 
-  get network(): SupportedNetwork { return this._network; }
+  get network(): EVMSupportedNetwork { return this._network; }
   get provider(): Provider { return this._provider; }
 
   get signer(): Signer {
     if (!this._signer) throw new Error("No signer configured. Pass a signer to Ankara Chain.");
     return this._signer;
+  }
+
+  /**
+   * Contract "runner" for read/write calls — a configured signer when one
+   * exists, falling back to the plain provider otherwise. Every contract
+   * accessor (`farmlandToken()`, `milestoneEscrow()`, etc.) constructs its
+   * `ethers.Contract` against this rather than the throwing `signer` getter,
+   * so read-only usage (no signer configured — `status`/`useAsset`/
+   * `useTokenBalance` style call sites) actually works instead of throwing
+   * "No signer configured" before a single view call is even attempted.
+   * Attempting a state-changing call through a providerless runner still
+   * fails, just with ethers' own "does not support sending transactions"
+   * error instead of this class's custom message.
+   */
+  private get _runner(): Signer | Provider {
+    return this._signer ?? this._provider;
   }
 
   get factoryAddress(): string {
@@ -158,13 +193,20 @@ export class EVMAdapter {
     return ethers.formatEther(bal);
   }
 
+  private async _sendAndWait(txPromise: Promise<ContractTransactionResponse>): Promise<string> {
+    const tx = await txPromise;
+    const receipt = await tx.wait();
+    if (!receipt) throw new Error("Transaction receipt unavailable");
+    return receipt.hash;
+  }
+
   // ─── Factory interactions ─────────────────────────────────────────────────
 
   private factoryContract() {
     return new ethers.Contract(
       this.factoryAddress,
       TOKEN_FACTORY_ABI,
-      this.signer
+      this._runner
     );
   }
 
@@ -320,7 +362,7 @@ export class EVMAdapter {
     return new ethers.Contract(
       this.nftFactoryAddress,
       NFT_FACTORY_ABI,
-      this.signer
+      this._runner
     );
   }
 
@@ -410,7 +452,7 @@ export class EVMAdapter {
     return new ethers.Contract(
       this.escrowFactoryAddress,
       ESCROW_FACTORY_ABI,
-      this.signer
+      this._runner
     );
   }
 
@@ -467,7 +509,149 @@ export class EVMAdapter {
   }
 
   milestoneEscrow(address: string) {
-    return new ethers.Contract(address, MILESTONE_ESCROW_ABI, this.signer);
+    return new ethers.Contract(address, MILESTONE_ESCROW_ABI, this._runner);
+  }
+
+  // ─── Milestone escrow lifecycle (IAdapter) ─────────────────────────────────
+
+  async escrowFund(escrowAddress: string, milestoneId: number): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).fund(milestoneId));
+  }
+
+  async escrowMarkDelivered(escrowAddress: string, milestoneId: number): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).markDelivered(milestoneId));
+  }
+
+  async escrowApproveMilestone(escrowAddress: string, milestoneId: number): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).approveMilestone(milestoneId));
+  }
+
+  async escrowRaiseDispute(escrowAddress: string, milestoneId: number): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).raiseDispute(milestoneId));
+  }
+
+  async escrowResolveDispute(escrowAddress: string, milestoneId: number, releaseToPayee: boolean): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).resolveDispute(milestoneId, releaseToPayee));
+  }
+
+  async escrowClaimTimelockRelease(escrowAddress: string, milestoneId: number): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).claimTimelockRelease(milestoneId));
+  }
+
+  async escrowVoteCancel(escrowAddress: string): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).voteCancel());
+  }
+
+  async escrowSetArbiter(escrowAddress: string, newArbiter: string): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).setArbiter(newArbiter));
+  }
+
+  async escrowSetIdentityVerifier(escrowAddress: string, verifierAddress: string): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).setIdentityVerifier(verifierAddress));
+  }
+
+  async escrowPause(escrowAddress: string): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).pause());
+  }
+
+  async escrowUnpause(escrowAddress: string): Promise<string> {
+    return this._sendAndWait(this.milestoneEscrow(escrowAddress).unpause());
+  }
+
+  /**
+   * Full on-chain event history for a deployed escrow, oldest first. Scans
+   * from block 0 — fine for the localhost/testnet use this dashboard targets,
+   * but would need pagination/an indexer on a long-lived mainnet deployment.
+   */
+  async escrowGetActivity(escrowAddress: string): Promise<EscrowActivityEvent[]> {
+    const contract = this.milestoneEscrow(escrowAddress);
+    const eventNames = [
+      "MilestoneFunded",
+      "MilestoneDelivered",
+      "MilestoneReleased",
+      "MilestoneDisputed",
+      "DisputeResolved",
+      "MilestoneRefunded",
+      "EscrowCancelled",
+    ] as const;
+
+    const logsByName = await Promise.all(eventNames.map(name => contract.queryFilter(name, 0, "latest")));
+    const allLogs = logsByName.flat() as ethers.EventLog[];
+
+    const events = await Promise.all(allLogs.map(async (log): Promise<EscrowActivityEvent> => {
+      const block = await log.getBlock();
+      const base = { txHash: log.transactionHash, timestamp: block.timestamp };
+      const args = log.args;
+      switch (log.fragment.name) {
+        case "MilestoneFunded":
+          return { ...base, type: "funded", milestoneId: Number(args.id), data: { amount: args.amount } };
+        case "MilestoneDelivered":
+          return { ...base, type: "delivered", milestoneId: Number(args.id) };
+        case "MilestoneReleased":
+          return { ...base, type: "released", milestoneId: Number(args.id), data: { amount: args.amount, viaTimelock: args.viaTimelock } };
+        case "MilestoneDisputed":
+          return { ...base, type: "disputed", milestoneId: Number(args.id), data: { raisedBy: args.raisedBy } };
+        case "DisputeResolved":
+          return { ...base, type: "resolved", milestoneId: Number(args.id), data: { releasedToPayee: args.releasedToPayee } };
+        case "MilestoneRefunded":
+          return { ...base, type: "refunded", milestoneId: Number(args.id), data: { amount: args.amount } };
+        case "EscrowCancelled":
+          return { ...base, type: "cancelled", data: { refundedAmount: args.refundedAmount } };
+        default:
+          throw new Error(`Unhandled escrow event: ${log.fragment.name}`);
+      }
+    }));
+
+    events.sort((a, b) => a.timestamp - b.timestamp);
+    return events;
+  }
+
+  async escrowGetPayer(escrowAddress: string): Promise<string> {
+    return this.milestoneEscrow(escrowAddress).payer();
+  }
+
+  async escrowGetPayee(escrowAddress: string): Promise<string> {
+    return this.milestoneEscrow(escrowAddress).payee();
+  }
+
+  async escrowGetArbiter(escrowAddress: string): Promise<string> {
+    return this.milestoneEscrow(escrowAddress).arbiter();
+  }
+
+  async escrowGetToken(escrowAddress: string): Promise<string> {
+    return this.milestoneEscrow(escrowAddress).token();
+  }
+
+  async escrowGetTotalAmount(escrowAddress: string): Promise<bigint> {
+    return this.milestoneEscrow(escrowAddress).totalAmount();
+  }
+
+  async escrowIsFunded(escrowAddress: string): Promise<boolean> {
+    return this.milestoneEscrow(escrowAddress).funded();
+  }
+
+  async escrowIsCancelled(escrowAddress: string): Promise<boolean> {
+    return this.milestoneEscrow(escrowAddress).cancelled();
+  }
+
+  async escrowMilestoneCount(escrowAddress: string): Promise<number> {
+    const n = await this.milestoneEscrow(escrowAddress).milestoneCount();
+    return Number(n);
+  }
+
+  async escrowGetMilestone(escrowAddress: string, milestoneId: number): Promise<Milestone> {
+    const m = await this.milestoneEscrow(escrowAddress).getMilestone(milestoneId);
+    return {
+      amount:          m.amount,
+      descriptionHash: m.descriptionHash,
+      status:          Number(m.status) as MilestoneStatus,
+      deliveredAt:     m.deliveredAt,
+      funded:          m.funded,
+    };
+  }
+
+  async escrowRemainingBalance(escrowAddress: string): Promise<bigint> {
+    return this.milestoneEscrow(escrowAddress).remainingBalance();
   }
 
   // ─── Ramp Settlement Factory interactions ─────────────────────────────────
@@ -476,7 +660,7 @@ export class EVMAdapter {
     return new ethers.Contract(
       this.rampSettlementFactoryAddress,
       RAMP_SETTLEMENT_FACTORY_ABI,
-      this.signer
+      this._runner
     );
   }
 
@@ -515,7 +699,74 @@ export class EVMAdapter {
   }
 
   rampSettlement(address: string) {
-    return new ethers.Contract(address, RAMP_SETTLEMENT_ABI, this.signer);
+    return new ethers.Contract(address, RAMP_SETTLEMENT_ABI, this._runner);
+  }
+
+  // ─── Ramp settlement lifecycle (IAdapter) ──────────────────────────────────
+
+  private _refId(referenceId: string): string {
+    return ethers.keccak256(ethers.toUtf8Bytes(referenceId));
+  }
+
+  async rampDepositOffRamp(
+    settlementAddress: string,
+    referenceId: string,
+    tokenAddress: string,
+    amount: bigint
+  ): Promise<string> {
+    return this._sendAndWait(
+      this.rampSettlement(settlementAddress).initiateOffRamp(
+        this._refId(referenceId), tokenAddress, amount, referenceId
+      )
+    );
+  }
+
+  async rampConfirmOffRampSettlement(settlementAddress: string, referenceId: string): Promise<string> {
+    return this._sendAndWait(
+      this.rampSettlement(settlementAddress).confirmOffRampSettlement(this._refId(referenceId))
+    );
+  }
+
+  async rampRefundOffRamp(settlementAddress: string, referenceId: string): Promise<string> {
+    return this._sendAndWait(
+      this.rampSettlement(settlementAddress).refundOffRamp(this._refId(referenceId))
+    );
+  }
+
+  async rampRecordOnRampSettlement(
+    settlementAddress: string,
+    referenceId: string,
+    recipient: string,
+    tokenAddress: string,
+    amount: bigint
+  ): Promise<string> {
+    return this._sendAndWait(
+      this.rampSettlement(settlementAddress).recordOnRampSettlement(
+        this._refId(referenceId), recipient, tokenAddress, amount, referenceId
+      )
+    );
+  }
+
+  async rampGetOffRampDeposit(settlementAddress: string, referenceId: string): Promise<OffRampDeposit> {
+    const d = await this.rampSettlement(settlementAddress).getOffRamp(this._refId(referenceId));
+    return {
+      depositor:   d.depositor,
+      token:       d.token,
+      amount:      d.amount,
+      status:      Number(d.status) as RampSettlementStatus,
+      initiatedAt: d.initiatedAt,
+    };
+  }
+
+  async rampGetOnRampRecord(settlementAddress: string, referenceId: string): Promise<OnRampRecord> {
+    const r = await this.rampSettlement(settlementAddress).getOnRamp(this._refId(referenceId));
+    return {
+      recipient:  r.recipient,
+      token:      r.token,
+      amount:     r.amount,
+      status:     Number(r.status) as RampSettlementStatus,
+      recordedAt: r.recordedAt,
+    };
   }
 
   // ─── Multi-Token Factory interactions ─────────────────────────────────────
@@ -524,7 +775,7 @@ export class EVMAdapter {
     return new ethers.Contract(
       this.multiTokenFactoryAddress,
       MULTI_TOKEN_FACTORY_ABI,
-      this.signer
+      this._runner
     );
   }
 
@@ -609,59 +860,63 @@ export class EVMAdapter {
   }
 
   commodityBatchToken(address: string) {
-    return new ethers.Contract(address, COMMODITY_BATCH_TOKEN_ABI, this.signer);
+    return new ethers.Contract(address, COMMODITY_BATCH_TOKEN_ABI, this._runner);
   }
 
   poolVault(address: string) {
-    return new ethers.Contract(address, POOL_VAULT_ABI, this.signer);
+    return new ethers.Contract(address, POOL_VAULT_ABI, this._runner);
   }
 
   // ─── NFT Token accessors ─────────────────────────────────────────────────
 
   farmlandNFT(address: string) {
-    return new ethers.Contract(address, FARMLAND_NFT_ABI, this.signer);
+    return new ethers.Contract(address, FARMLAND_NFT_ABI, this._runner);
   }
 
   realEstateNFT(address: string) {
-    return new ethers.Contract(address, REAL_ESTATE_NFT_ABI, this.signer);
+    return new ethers.Contract(address, REAL_ESTATE_NFT_ABI, this._runner);
   }
 
   miningRightsNFT(address: string) {
-    return new ethers.Contract(address, MINING_RIGHTS_NFT_ABI, this.signer);
+    return new ethers.Contract(address, MINING_RIGHTS_NFT_ABI, this._runner);
   }
 
   commodityVaultNFT(address: string) {
-    return new ethers.Contract(address, COMMODITY_VAULT_NFT_ABI, this.signer);
+    return new ethers.Contract(address, COMMODITY_VAULT_NFT_ABI, this._runner);
   }
 
   // ─── Token interactions ───────────────────────────────────────────────────
 
   farmlandToken(address: string) {
-    return new ethers.Contract(address, FARMLAND_TOKEN_ABI, this.signer);
+    return new ethers.Contract(address, FARMLAND_TOKEN_ABI, this._runner);
   }
 
   commodityToken(address: string) {
-    return new ethers.Contract(address, COMMODITY_TOKEN_ABI, this.signer);
+    return new ethers.Contract(address, COMMODITY_TOKEN_ABI, this._runner);
   }
 
   realEstateToken(address: string) {
-    return new ethers.Contract(address, REAL_ESTATE_TOKEN_ABI, this.signer);
+    return new ethers.Contract(address, REAL_ESTATE_TOKEN_ABI, this._runner);
   }
 
   invoiceToken(address: string) {
-    return new ethers.Contract(address, INVOICE_TOKEN_ABI, this.signer);
+    return new ethers.Contract(address, INVOICE_TOKEN_ABI, this._runner);
   }
 
   carbonCreditToken(address: string) {
-    return new ethers.Contract(address, CARBON_CREDIT_TOKEN_ABI, this.signer);
+    return new ethers.Contract(address, CARBON_CREDIT_TOKEN_ABI, this._runner);
   }
 
   miningRightsToken(address: string) {
-    return new ethers.Contract(address, MINING_RIGHTS_TOKEN_ABI, this.signer);
+    return new ethers.Contract(address, MINING_RIGHTS_TOKEN_ABI, this._runner);
   }
 
   whitelistVerifier(address: string) {
-    return new ethers.Contract(address, WHITELIST_VERIFIER_ABI, this.signer);
+    return new ethers.Contract(address, WHITELIST_VERIFIER_ABI, this._runner);
+  }
+
+  manualOracle(address: string) {
+    return new ethers.Contract(address, MANUAL_ORACLE_ABI, this._runner);
   }
 
   async mintTokens(
@@ -678,6 +933,277 @@ export class EVMAdapter {
   async getBalance2(tokenAddress: string, walletAddress: string): Promise<bigint> {
     const token = this.farmlandToken(tokenAddress);
     return token.balanceOf(walletAddress);
+  }
+
+  async genericGetTokenMetadata(tokenAddress: string): Promise<TokenMetadata> {
+    const token = new ethers.Contract(tokenAddress, ERC20_METADATA_ABI, this._runner);
+    const [name, symbol, decimals] = await Promise.all([token.name(), token.symbol(), token.decimals()]);
+    return { name, symbol, decimals: Number(decimals) };
+  }
+
+  // ─── AssetRegistry (IAdapter) ──────────────────────────────────────────────
+
+  private assetToken(address: string, template: AssetTemplate) {
+    switch (template) {
+      case "farmland": return this.farmlandToken(address);
+      case "commodity": return this.commodityToken(address);
+      case "real-estate": return this.realEstateToken(address);
+      case "invoice": return this.invoiceToken(address);
+      case "carbon-credit": return this.carbonCreditToken(address);
+      case "mining-rights": return this.miningRightsToken(address);
+    }
+  }
+
+  private assetNFT(address: string, template: NFTAssetTemplate) {
+    switch (template) {
+      case "farmland-nft": return this.farmlandNFT(address);
+      case "real-estate-nft": return this.realEstateNFT(address);
+      case "mining-rights-nft": return this.miningRightsNFT(address);
+      case "commodity-vault-nft": return this.commodityVaultNFT(address);
+    }
+  }
+
+  async assetGetName(tokenAddress: string, template: AssetTemplate): Promise<string> {
+    return this.assetToken(tokenAddress, template).name();
+  }
+
+  async assetGetSymbol(tokenAddress: string, template: AssetTemplate): Promise<string> {
+    return this.assetToken(tokenAddress, template).symbol();
+  }
+
+  async assetGetTotalSupply(tokenAddress: string, template: AssetTemplate): Promise<bigint> {
+    return this.assetToken(tokenAddress, template).totalSupply();
+  }
+
+  async assetGetBalanceOf(tokenAddress: string, template: AssetTemplate, holderAddress: string): Promise<bigint> {
+    return this.assetToken(tokenAddress, template).balanceOf(holderAddress);
+  }
+
+  async assetGetStatus(tokenAddress: string, template: AssetTemplate): Promise<AssetStatus> {
+    const s = await this.assetToken(tokenAddress, template).status();
+    return Number(s) as AssetStatus;
+  }
+
+  async assetGetCountryCode(tokenAddress: string, template: AssetTemplate): Promise<string> {
+    return this.assetToken(tokenAddress, template).countryCode();
+  }
+
+  async assetGetIdentityVerifier(tokenAddress: string, template: AssetTemplate): Promise<string> {
+    return this.assetToken(tokenAddress, template).identityVerifier();
+  }
+
+  async assetGetVersion(tokenAddress: string, template: AssetTemplate): Promise<number> {
+    const v = await this.assetToken(tokenAddress, template).metadataVersion();
+    return Number(v);
+  }
+
+  async assetGetMetadata(tokenAddress: string, template: AssetTemplate): Promise<AnyAssetMetadata> {
+    return this.assetToken(tokenAddress, template).getMetadata();
+  }
+
+  async assetSetStatus(tokenAddress: string, template: AssetTemplate, newStatus: AssetStatus): Promise<string> {
+    return this._sendAndWait(this.assetToken(tokenAddress, template).setStatus(newStatus));
+  }
+
+  async assetSetIdentityVerifier(tokenAddress: string, template: AssetTemplate, verifierAddress: string): Promise<string> {
+    return this._sendAndWait(this.assetToken(tokenAddress, template).setIdentityVerifier(verifierAddress));
+  }
+
+  async assetMint(tokenAddress: string, template: AssetTemplate, to: string, amount: bigint): Promise<string> {
+    return this._sendAndWait(this.assetToken(tokenAddress, template).mint(to, amount));
+  }
+
+  async assetPause(tokenAddress: string, template: AssetTemplate): Promise<string> {
+    return this._sendAndWait(this.assetToken(tokenAddress, template).pause());
+  }
+
+  async assetUnpause(tokenAddress: string, template: AssetTemplate): Promise<string> {
+    return this._sendAndWait(this.assetToken(tokenAddress, template).unpause());
+  }
+
+  async assetGetValuationUSD(tokenAddress: string, template: AssetTemplate): Promise<bigint> {
+    return this.assetToken(tokenAddress, template).valuationUSD();
+  }
+
+  async assetUpdateValuation(tokenAddress: string, template: AssetTemplate, newValuationUSD: bigint): Promise<string> {
+    return this._sendAndWait(this.assetToken(tokenAddress, template).updateValuation(newValuationUSD));
+  }
+
+  async assetUpdateOccupancyStatus(tokenAddress: string, newStatus: string): Promise<string> {
+    return this._sendAndWait(this.realEstateToken(tokenAddress).updateOccupancyStatus(newStatus));
+  }
+
+  async assetDeclareRentalDistribution(tokenAddress: string, amountUSD: bigint): Promise<string> {
+    return this._sendAndWait(this.realEstateToken(tokenAddress).declareRentalDistribution(amountUSD));
+  }
+
+  async assetIsExpired(tokenAddress: string): Promise<boolean> {
+    return this.commodityToken(tokenAddress).isExpired();
+  }
+
+  async assetMarkExpired(tokenAddress: string): Promise<string> {
+    return this._sendAndWait(this.commodityToken(tokenAddress).markExpired());
+  }
+
+  async assetGetInvoiceStatus(tokenAddress: string): Promise<InvoiceStatus> {
+    const s = await this.invoiceToken(tokenAddress).invoiceStatus();
+    return Number(s) as InvoiceStatus;
+  }
+
+  async assetIsOverdue(tokenAddress: string): Promise<boolean> {
+    return this.invoiceToken(tokenAddress).isOverdue();
+  }
+
+  async assetMarkFunded(tokenAddress: string): Promise<string> {
+    return this._sendAndWait(this.invoiceToken(tokenAddress).markFunded());
+  }
+
+  async assetMarkRepaid(tokenAddress: string): Promise<string> {
+    return this._sendAndWait(this.invoiceToken(tokenAddress).markRepaid());
+  }
+
+  async assetMarkDefaulted(tokenAddress: string, reason: string): Promise<string> {
+    return this._sendAndWait(this.invoiceToken(tokenAddress).markDefaulted(reason));
+  }
+
+  async assetRetire(tokenAddress: string, amount: bigint, beneficiary: string, note: string): Promise<string> {
+    return this._sendAndWait(this.carbonCreditToken(tokenAddress).retire(amount, beneficiary, note));
+  }
+
+  async assetGetTotalRetired(tokenAddress: string): Promise<bigint> {
+    return this.carbonCreditToken(tokenAddress).totalRetired();
+  }
+
+  async assetGetTotalRetirements(tokenAddress: string): Promise<number> {
+    const n = await this.carbonCreditToken(tokenAddress).totalRetirements();
+    return Number(n);
+  }
+
+  async assetGetRetirement(tokenAddress: string, index: number): Promise<RetirementRecord> {
+    const r = await this.carbonCreditToken(tokenAddress).getRetirement(index);
+    return {
+      retiredBy: r[0],
+      amount: r[1],
+      timestamp: r[2],
+      beneficiary: r[3],
+      retirementNote: r[4],
+    };
+  }
+
+  async assetIsLicenseExpired(tokenAddress: string): Promise<boolean> {
+    return this.miningRightsToken(tokenAddress).isLicenseExpired();
+  }
+
+  async assetRenewLicense(tokenAddress: string, newExpiry: bigint): Promise<string> {
+    return this._sendAndWait(this.miningRightsToken(tokenAddress).renewLicense(newExpiry));
+  }
+
+  async assetMarkLicenseExpired(tokenAddress: string): Promise<string> {
+    return this._sendAndWait(this.miningRightsToken(tokenAddress).markLicenseExpired());
+  }
+
+  async assetDeclareRoyalty(tokenAddress: string, extractionValueUSD: bigint): Promise<string> {
+    return this._sendAndWait(this.miningRightsToken(tokenAddress).declareRoyalty(extractionValueUSD));
+  }
+
+  async assetGetTokenMetadata(nftAddress: string, nftTemplate: NFTAssetTemplate, tokenId: number): Promise<unknown> {
+    return this.assetNFT(nftAddress, nftTemplate).getMetadata(tokenId);
+  }
+
+  async assetGetTokenVersion(nftAddress: string, nftTemplate: NFTAssetTemplate, tokenId: number): Promise<number> {
+    const v = await this.assetNFT(nftAddress, nftTemplate).metadataVersion(tokenId);
+    return Number(v);
+  }
+
+  async assetOwnerOf(nftAddress: string, nftTemplate: NFTAssetTemplate, tokenId: number): Promise<string> {
+    return this.assetNFT(nftAddress, nftTemplate).ownerOf(tokenId);
+  }
+
+  async assetLinkToERC20(nftAddress: string, nftTemplate: NFTAssetTemplate, erc20Address: string): Promise<string> {
+    return this._sendAndWait(this.assetNFT(nftAddress, nftTemplate).linkToERC20(erc20Address));
+  }
+
+  // ─── CommodityBatchToken (IAdapter) ────────────────────────────────────────
+
+  async batchRegister(contractAddress: string, batchId: bigint, metadata: BatchMetadata): Promise<string> {
+    const meta = {
+      commodityType: metadata.commodityType,
+      quantityKg: metadata.quantityKg,
+      gradeClassification: metadata.gradeClassification,
+      depositDate: metadata.depositDate,
+      expiryDate: metadata.expiryDate,
+      inspectionReportHash: metadata.inspectionReportHash.startsWith("0x")
+        ? metadata.inspectionReportHash
+        : ethers.ZeroHash,
+      valuationUSD: metadata.valuationUSD,
+      harvestSeason: metadata.harvestSeason,
+      originCountry: metadata.originCountry,
+    };
+    return this._sendAndWait(this.commodityBatchToken(contractAddress).registerBatch(batchId, meta));
+  }
+
+  async batchMint(contractAddress: string, batchId: bigint, to: string, amount: bigint): Promise<string> {
+    return this._sendAndWait(this.commodityBatchToken(contractAddress).mint(to, batchId, amount, "0x"));
+  }
+
+  // ─── PoolVault (IAdapter) ───────────────────────────────────────────────────
+
+  async poolDeposit(vaultAddress: string, tokenAddress: string, amount: bigint): Promise<string> {
+    return this._sendAndWait(this.poolVault(vaultAddress).deposit(tokenAddress, amount));
+  }
+
+  async poolWithdraw(vaultAddress: string, poolTokenAmount: bigint): Promise<string> {
+    return this._sendAndWait(this.poolVault(vaultAddress).withdraw(poolTokenAmount));
+  }
+
+  async poolGetStatus(vaultAddress: string): Promise<PoolVaultStatus> {
+    const vault = this.poolVault(vaultAddress);
+    const [name, symbol, totalSupply, navPerToken, totalAUM, managementFeeBps, acceptedTokens, lastFeeAccrual, oracle] =
+      await Promise.all([
+        vault.name(),
+        vault.symbol(),
+        vault.totalSupply(),
+        vault.NAVPerToken(),
+        vault.totalAUM(),
+        vault.managementFeeBps(),
+        vault.acceptedTokens(),
+        vault.lastFeeAccrual(),
+        vault.oracle(),
+      ]);
+    return {
+      name, symbol, totalSupply, navPerToken, totalAUM,
+      managementFeeBps: Number(managementFeeBps),
+      acceptedTokens,
+      lastFeeAccrual,
+      oracle: oracle === ethers.ZeroAddress ? "" : oracle,
+    };
+  }
+
+  // ─── ManualOracle (IAdapter) ────────────────────────────────────────────────
+
+  async oracleSetPrice(oracleAddress: string, tokenAddress: string, priceUSD: bigint): Promise<string> {
+    return this._sendAndWait(this.manualOracle(oracleAddress).setPrice(tokenAddress, priceUSD));
+  }
+
+  // ─── Generic transfer (IAdapter) ────────────────────────────────────────────
+
+  async genericTransferToken(tokenAddress: string, to: string, amount: bigint): Promise<string> {
+    const contract = new ethers.Contract(
+      tokenAddress,
+      ["function transfer(address to, uint256 amount) returns (bool)"],
+      this._runner
+    );
+    return this._sendAndWait(contract.transfer(to, amount));
+  }
+
+  async genericTransferNFT(nftAddress: string, to: string, tokenId: bigint): Promise<string> {
+    const from = await this.getSignerAddress();
+    const contract = new ethers.Contract(
+      nftAddress,
+      ["function transferFrom(address from, address to, uint256 tokenId)"],
+      this._runner
+    );
+    return this._sendAndWait(contract.transferFrom(from, to, tokenId));
   }
 
   // ─── Metadata helpers ─────────────────────────────────────────────────────

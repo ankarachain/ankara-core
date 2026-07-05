@@ -304,6 +304,13 @@ export const COMMODITY_VAULT_NFT_ABI = [
   "event ERC20Linked(address indexed erc20Address)",
 ] as const;
 
+/** Minimal ERC-20 metadata surface — for reading details on an arbitrary token contract, not necessarily an Ankara asset (none of the template ABIs above declare `decimals()`). */
+export const ERC20_METADATA_ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function decimals() view returns (uint8)",
+] as const;
+
 export const WHITELIST_VERIFIER_ABI = [
   "function isVerified(address account) view returns (bool)",
   "function verifyIdentity(address account) external",
@@ -387,7 +394,7 @@ export const MILESTONE_ESCROW_ABI = [
   "function totalAmount() view returns (uint256)",
   "function funded() view returns (bool)",
   "function cancelled() view returns (bool)",
-  "function fund() external",
+  "function fund(uint256 milestoneId) external",
   "function markDelivered(uint256 milestoneId) external",
   "function approveMilestone(uint256 milestoneId) external",
   "function raiseDispute(uint256 milestoneId) external",
@@ -399,9 +406,9 @@ export const MILESTONE_ESCROW_ABI = [
   "function pause() external",
   "function unpause() external",
   "function milestoneCount() view returns (uint256)",
-  "function getMilestone(uint256 milestoneId) view returns (tuple(uint256 amount, bytes32 descriptionHash, uint8 status, uint256 deliveredAt))",
+  "function getMilestone(uint256 milestoneId) view returns (tuple(uint256 amount, bytes32 descriptionHash, uint8 status, uint256 deliveredAt, bool funded))",
   "function remainingBalance() view returns (uint256)",
-  "event EscrowFunded(uint256 totalAmount)",
+  "event MilestoneFunded(uint256 indexed id, uint256 amount)",
   "event MilestoneDelivered(uint256 indexed id, uint256 timestamp)",
   "event MilestoneReleased(uint256 indexed id, uint256 amount, bool viaTimelock)",
   "event MilestoneDisputed(uint256 indexed id, address indexed raisedBy)",

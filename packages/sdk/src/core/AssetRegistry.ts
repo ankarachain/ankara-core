@@ -1,60 +1,23 @@
-import { ethers } from "ethers";
-import { EVMAdapter } from "../adapters/evm";
-import {
-  FARMLAND_TOKEN_ABI,
-  COMMODITY_TOKEN_ABI,
-  REAL_ESTATE_TOKEN_ABI,
-  INVOICE_TOKEN_ABI,
-  CARBON_CREDIT_TOKEN_ABI,
-  MINING_RIGHTS_TOKEN_ABI,
-  FARMLAND_NFT_ABI,
-  REAL_ESTATE_NFT_ABI,
-  MINING_RIGHTS_NFT_ABI,
-  COMMODITY_VAULT_NFT_ABI,
-} from "../utils/abis";
+import type { IAdapter, AnyAssetMetadata } from "../adapters/IAdapter";
 import type {
   AssetTemplate,
   NFTAssetTemplate,
   AssetStatus,
-  FarmlandMetadata,
-  CommodityMetadata,
-  RealEstateMetadata,
-  InvoiceMetadata,
-  CarbonCreditMetadata,
-  MiningRightsMetadata,
   RetirementRecord,
 } from "../types";
 import { InvoiceStatus } from "../types";
 
-type AnyMetadata =
-  | FarmlandMetadata
-  | CommodityMetadata
-  | RealEstateMetadata
-  | InvoiceMetadata
-  | CarbonCreditMetadata
-  | MiningRightsMetadata;
-
 type AnyTemplate = AssetTemplate | NFTAssetTemplate;
 
-const TEMPLATE_ABIS: Record<AnyTemplate, readonly string[]> = {
-  "farmland":            FARMLAND_TOKEN_ABI,
-  "commodity":           COMMODITY_TOKEN_ABI,
-  "real-estate":         REAL_ESTATE_TOKEN_ABI,
-  "invoice":             INVOICE_TOKEN_ABI,
-  "carbon-credit":       CARBON_CREDIT_TOKEN_ABI,
-  "mining-rights":       MINING_RIGHTS_TOKEN_ABI,
-  // NFT templates
-  "farmland-nft":        FARMLAND_NFT_ABI,
-  "real-estate-nft":     REAL_ESTATE_NFT_ABI,
-  "mining-rights-nft":   MINING_RIGHTS_NFT_ABI,
-  "commodity-vault-nft": COMMODITY_VAULT_NFT_ABI,
-};
+const NFT_TEMPLATES: AnyTemplate[] = ["farmland-nft", "real-estate-nft", "mining-rights-nft", "commodity-vault-nft"];
 
 /**
  * AssetRegistry
  *
  * Read and write asset metadata on deployed Ankara Chain tokens.
- * Supports all 6 African asset class templates.
+ * Supports all 6 African asset class templates. Works against a deployed
+ * token/NFT on either chain: pass an `EVMAdapter` or a `StellarAdapter`,
+ * both implement `IAdapter`.
  *
  * @example
  * ```typescript
@@ -67,12 +30,12 @@ const TEMPLATE_ABIS: Record<AnyTemplate, readonly string[]> = {
  * ```
  */
 export class AssetRegistry {
-  private _adapter: EVMAdapter;
+  private _adapter: IAdapter;
   private _address: string;
   private _template: AnyTemplate;
 
   constructor(
-    adapter: EVMAdapter,
+    adapter: IAdapter,
     tokenAddress: string,
     template: AnyTemplate
   ) {
@@ -84,77 +47,65 @@ export class AssetRegistry {
   // ─── Generic reads (all templates) ───────────────────────────────────────
 
   async getName(): Promise<string> {
-    return this._token().name();
+    return this._adapter.assetGetName(this._address, this._fungibleTemplate());
   }
 
   async getSymbol(): Promise<string> {
-    return this._token().symbol();
+    return this._adapter.assetGetSymbol(this._address, this._fungibleTemplate());
   }
 
   async getTotalSupply(): Promise<bigint> {
-    return this._token().totalSupply();
+    return this._adapter.assetGetTotalSupply(this._address, this._fungibleTemplate());
   }
 
   async getBalanceOf(address: string): Promise<bigint> {
-    return this._token().balanceOf(address);
+    return this._adapter.assetGetBalanceOf(this._address, this._fungibleTemplate(), address);
   }
 
   async getStatus(): Promise<AssetStatus> {
-    const s = await this._token().status();
-    return Number(s) as AssetStatus;
+    return this._adapter.assetGetStatus(this._address, this._fungibleTemplate());
   }
 
   async getCountryCode(): Promise<string> {
-    return this._token().countryCode();
+    return this._adapter.assetGetCountryCode(this._address, this._fungibleTemplate());
   }
 
   async getIdentityVerifier(): Promise<string> {
-    return this._token().identityVerifier();
+    return this._adapter.assetGetIdentityVerifier(this._address, this._fungibleTemplate());
   }
 
   async getVersion(): Promise<number> {
-    const v = await this._token().metadataVersion();
-    return Number(v);
+    return this._adapter.assetGetVersion(this._address, this._fungibleTemplate());
   }
 
-  async getMetadata(): Promise<AnyMetadata> {
-    return this._token().getMetadata();
+  async getMetadata(): Promise<AnyAssetMetadata> {
+    return this._adapter.assetGetMetadata(this._address, this._fungibleTemplate());
   }
 
   // ─── Generic writes (all templates) ──────────────────────────────────────
 
   async setStatus(newStatus: AssetStatus): Promise<string> {
-    const tx      = await this._token().setStatus(newStatus);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetSetStatus(this._address, this._fungibleTemplate(), newStatus);
   }
 
   async setIdentityVerifier(verifierAddress: string): Promise<string> {
-    const tx      = await this._token().setIdentityVerifier(verifierAddress);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetSetIdentityVerifier(this._address, this._fungibleTemplate(), verifierAddress);
   }
 
   async mint(to: string, amount: bigint): Promise<string> {
-    const tx      = await this._token().mint(to, amount);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetMint(this._address, this._fungibleTemplate(), to, amount);
   }
 
   async pause(): Promise<string> {
-    const tx      = await this._token().pause();
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetPause(this._address, this._fungibleTemplate());
   }
 
   async unpause(): Promise<string> {
-    const tx      = await this._token().unpause();
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetUnpause(this._address, this._fungibleTemplate());
   }
 
   async getValuationUSD(): Promise<bigint> {
-    return this._token().valuationUSD();
+    return this._adapter.assetGetValuationUSD(this._address, this._fungibleTemplate());
   }
 
   // ─── Farmland + Real Estate: valuation ───────────────────────────────────
@@ -165,144 +116,134 @@ export class AssetRegistry {
    */
   async updateValuation(newValuationUSD: bigint): Promise<string> {
     this._requireOneOf(["farmland", "real-estate"], "updateValuation");
-    const tx      = await this._token().updateValuation(newValuationUSD);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetUpdateValuation(this._address, this._fungibleTemplate(), newValuationUSD);
   }
 
   // ─── Real Estate ─────────────────────────────────────────────────────────
 
   async updateOccupancyStatus(newStatus: string): Promise<string> {
     this._requireTemplate("real-estate", "updateOccupancyStatus");
-    const tx      = await this._token().updateOccupancyStatus(newStatus);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetUpdateOccupancyStatus(this._address, newStatus);
   }
 
   async declareRentalDistribution(amountUSD: bigint): Promise<string> {
     this._requireTemplate("real-estate", "declareRentalDistribution");
-    const tx      = await this._token().declareRentalDistribution(amountUSD);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetDeclareRentalDistribution(this._address, amountUSD);
   }
 
   // ─── Commodity ────────────────────────────────────────────────────────────
 
   async isExpired(): Promise<boolean> {
     this._requireTemplate("commodity", "isExpired");
-    return this._token().isExpired();
+    return this._adapter.assetIsExpired(this._address);
   }
 
   async markExpired(): Promise<string> {
     this._requireTemplate("commodity", "markExpired");
-    const tx      = await this._token().markExpired();
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetMarkExpired(this._address);
   }
 
   // ─── Invoice ─────────────────────────────────────────────────────────────
 
   async getInvoiceStatus(): Promise<InvoiceStatus> {
     this._requireTemplate("invoice", "getInvoiceStatus");
-    const s = await this._token().invoiceStatus();
-    return Number(s) as InvoiceStatus;
+    return this._adapter.assetGetInvoiceStatus(this._address);
   }
 
   async isOverdue(): Promise<boolean> {
     this._requireTemplate("invoice", "isOverdue");
-    return this._token().isOverdue();
+    return this._adapter.assetIsOverdue(this._address);
   }
 
   async markFunded(): Promise<string> {
     this._requireTemplate("invoice", "markFunded");
-    const tx      = await this._token().markFunded();
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetMarkFunded(this._address);
   }
 
   async markRepaid(): Promise<string> {
     this._requireTemplate("invoice", "markRepaid");
-    const tx      = await this._token().markRepaid();
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetMarkRepaid(this._address);
   }
 
   async markDefaulted(reason: string): Promise<string> {
     this._requireTemplate("invoice", "markDefaulted");
-    const tx      = await this._token().markDefaulted(reason);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetMarkDefaulted(this._address, reason);
   }
 
   // ─── Carbon Credit ────────────────────────────────────────────────────────
 
   async retire(amount: bigint, beneficiary: string, note: string): Promise<string> {
     this._requireTemplate("carbon-credit", "retire");
-    const tx      = await this._token().retire(amount, beneficiary, note);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetRetire(this._address, amount, beneficiary, note);
   }
 
   async getTotalRetired(): Promise<bigint> {
     this._requireTemplate("carbon-credit", "getTotalRetired");
-    return this._token().totalRetired();
+    return this._adapter.assetGetTotalRetired(this._address);
   }
 
   async getTotalRetirements(): Promise<number> {
     this._requireTemplate("carbon-credit", "getTotalRetirements");
-    const n = await this._token().totalRetirements();
-    return Number(n);
+    return this._adapter.assetGetTotalRetirements(this._address);
   }
 
   async getRetirement(index: number): Promise<RetirementRecord> {
     this._requireTemplate("carbon-credit", "getRetirement");
-    const r = await this._token().getRetirement(index);
-    return {
-      retiredBy:      r[0],
-      amount:         r[1],
-      timestamp:      r[2],
-      beneficiary:    r[3],
-      retirementNote: r[4],
-    };
+    return this._adapter.assetGetRetirement(this._address, index);
   }
 
   // ─── Mining Rights ────────────────────────────────────────────────────────
 
   async isLicenseExpired(): Promise<boolean> {
     this._requireTemplate("mining-rights", "isLicenseExpired");
-    return this._token().isLicenseExpired();
+    return this._adapter.assetIsLicenseExpired(this._address);
   }
 
   async renewLicense(newExpiry: bigint): Promise<string> {
     this._requireTemplate("mining-rights", "renewLicense");
-    const tx      = await this._token().renewLicense(newExpiry);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetRenewLicense(this._address, newExpiry);
   }
 
   async markLicenseExpired(): Promise<string> {
     this._requireTemplate("mining-rights", "markLicenseExpired");
-    const tx      = await this._token().markLicenseExpired();
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetMarkLicenseExpired(this._address);
   }
 
   async declareRoyalty(extractionValueUSD: bigint): Promise<string> {
     this._requireTemplate("mining-rights", "declareRoyalty");
-    const tx      = await this._token().declareRoyalty(extractionValueUSD);
-    const receipt = await tx.wait();
-    return receipt.hash;
+    return this._adapter.assetDeclareRoyalty(this._address, extractionValueUSD);
+  }
+
+  // ─── NFT-specific methods ─────────────────────────────────────────────────
+
+  async getTokenMetadata(tokenId: number): Promise<unknown> {
+    this._requireNFT("getTokenMetadata");
+    return this._adapter.assetGetTokenMetadata(this._address, this._nftTemplate(), tokenId);
+  }
+
+  async getTokenVersion(tokenId: number): Promise<number> {
+    this._requireNFT("getTokenVersion");
+    return this._adapter.assetGetTokenVersion(this._address, this._nftTemplate(), tokenId);
+  }
+
+  async ownerOf(tokenId: number): Promise<string> {
+    this._requireNFT("ownerOf");
+    return this._adapter.assetOwnerOf(this._address, this._nftTemplate(), tokenId);
+  }
+
+  async linkToERC20(erc20Address: string): Promise<string> {
+    this._requireNFT("linkToERC20");
+    return this._adapter.assetLinkToERC20(this._address, this._nftTemplate(), erc20Address);
   }
 
   // ─── Internal ────────────────────────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _token(): any {
-    return new ethers.Contract(
-      this._address,
-      TEMPLATE_ABIS[this._template],
-      this._adapter.signer
-    );
+  private _fungibleTemplate(): AssetTemplate {
+    return this._template as AssetTemplate;
+  }
+
+  private _nftTemplate(): NFTAssetTemplate {
+    return this._template as NFTAssetTemplate;
   }
 
   private _requireTemplate(template: AnyTemplate, method: string): void {
@@ -318,35 +259,9 @@ export class AssetRegistry {
   }
 
   private _requireNFT(method: string): void {
-    const nftTemplates: AnyTemplate[] = ["farmland-nft", "real-estate-nft", "mining-rights-nft", "commodity-vault-nft"];
-    if (!nftTemplates.includes(this._template)) {
+    if (!NFT_TEMPLATES.includes(this._template)) {
       throw new Error(`${method} is only available on NFT templates`);
     }
-  }
-
-  // ─── NFT-specific methods ─────────────────────────────────────────────────
-
-  async getTokenMetadata(tokenId: number): Promise<unknown> {
-    this._requireNFT("getTokenMetadata");
-    return this._token().getMetadata(tokenId);
-  }
-
-  async getTokenVersion(tokenId: number): Promise<number> {
-    this._requireNFT("getTokenVersion");
-    const v = await this._token().metadataVersion(tokenId);
-    return Number(v);
-  }
-
-  async ownerOf(tokenId: number): Promise<string> {
-    this._requireNFT("ownerOf");
-    return this._token().ownerOf(tokenId);
-  }
-
-  async linkToERC20(erc20Address: string): Promise<string> {
-    this._requireNFT("linkToERC20");
-    const tx      = await this._token().linkToERC20(erc20Address);
-    const receipt = await tx.wait();
-    return receipt.hash;
   }
 
   get address(): string      { return this._address; }

@@ -16,11 +16,20 @@ export type { ManualRampProviderOptions } from "./providers/ManualRampProvider";
 
 // Adapters (advanced use)
 export { EVMAdapter }      from "./adapters/evm";
+export { StellarAdapter }  from "./adapters/stellar";
+export type { IAdapter }   from "./adapters/IAdapter";
 
 // Types
 export type {
   AnkaraChainConfig,
+  EVMAnkaraChainConfig,
+  StellarAnkaraChainConfig,
+  StellarExternalSigner,
   SupportedNetwork,
+  EVMSupportedNetwork,
+  StellarSupportedNetwork,
+  EVMNetworkConfig,
+  StellarNetworkConfig,
   AssetTemplate,
   NFTAssetTemplate,
   DeployFarmlandOptions,
@@ -53,12 +62,18 @@ export type {
   EscrowDeployResult,
   EscrowMilestoneInput,
   Milestone,
+  EscrowActivityType,
+  EscrowActivityEvent,
+  // Generic token metadata
+  TokenMetadata,
   // Multi-token types
   MultiTokenTemplate,
   WarehouseMetadata,
   DeployCommodityBatchOptions,
   DeployPoolVaultOptions,
   MultiTokenDeployResult,
+  BatchMetadata,
+  PoolVaultStatus,
   // Ramp types (on-chain settlement)
   OffRampDeposit,
   OnRampRecord,
@@ -88,6 +103,7 @@ export {
   INVOICE_TOKEN_ABI,
   CARBON_CREDIT_TOKEN_ABI,
   MINING_RIGHTS_TOKEN_ABI,
+  ERC20_METADATA_ABI,
   WHITELIST_VERIFIER_ABI,
   // NFT ABIs
   NFT_FACTORY_ABI,

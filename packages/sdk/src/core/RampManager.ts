@@ -1,5 +1,4 @@
-import { ethers, type ContractTransactionResponse } from "ethers";
-import { EVMAdapter } from "../adapters/evm";
+import type { IAdapter } from "../adapters/IAdapter";
 import type {
   RampProvider,
   RampQuoteInput,
@@ -10,7 +9,7 @@ import type {
   OffRampDeposit,
   OnRampRecord,
 } from "../types";
-import { RampSessionStatus, RampSettlementStatus } from "../types";
+import { RampSessionStatus } from "../types";
 
 export interface RampManagerOptions {
   /** Address of a deployed RampSettlement contract — enables the on-chain methods below. */
@@ -28,6 +27,8 @@ export interface RampManagerOptions {
  * is performed by the platform's own token contracts, not this one.
  *
  * Pass no `settlementAddress` to use only the off-chain provider methods.
+ * The settlement contract can be deployed on either chain — pass an
+ * `EVMAdapter` or a `StellarAdapter`, both implement `IAdapter`.
  *
  * @example
  * ```typescript
@@ -49,10 +50,10 @@ export interface RampManagerOptions {
  */
 export class RampManager {
   private _provider: RampProvider;
-  private _adapter?: EVMAdapter;
+  private _adapter?: IAdapter;
   private _settlementAddress?: string;
 
-  constructor(provider: RampProvider, adapter?: EVMAdapter, opts: RampManagerOptions = {}) {
+  constructor(provider: RampProvider, adapter?: IAdapter, opts: RampManagerOptions = {}) {
     this._provider = provider;
     this._adapter = adapter;
     this._settlementAddress = opts.settlementAddress;
@@ -86,26 +87,27 @@ export class RampManager {
 
   /**
    * Deposit tokens into the settlement contract for an off-ramp session.
-   * Caller must have approved the settlement contract to spend `amount` of
-   * `tokenAddress` beforehand. Requires a settlementAddress to be configured.
+   * On EVM the caller must have approved the settlement contract to spend
+   * `amount` of `tokenAddress` beforehand; on Stellar the nested transfer is
+   * authorized within the same call. Requires a settlementAddress to be
+   * configured.
    */
   async depositOffRamp(sessionId: string, tokenAddress: string, amount: bigint): Promise<string> {
-    const contract = this._settlementContract();
-    return this._sendAndWait(
-      contract.initiateOffRamp(this._refId(sessionId), tokenAddress, amount, sessionId)
+    return this._adapterOrThrow().rampDepositOffRamp(
+      this._settlementAddressOrThrow(), sessionId, tokenAddress, amount
     );
   }
 
   /** Release custodied off-ramp tokens to the treasury once the provider confirms the fiat payout. */
   async confirmOffRampSettlement(sessionId: string): Promise<string> {
-    const contract = this._settlementContract();
-    return this._sendAndWait(contract.confirmOffRampSettlement(this._refId(sessionId)));
+    return this._adapterOrThrow().rampConfirmOffRampSettlement(
+      this._settlementAddressOrThrow(), sessionId
+    );
   }
 
   /** Return custodied off-ramp tokens to the depositor if the fiat payout failed. */
   async refundOffRamp(sessionId: string): Promise<string> {
-    const contract = this._settlementContract();
-    return this._sendAndWait(contract.refundOffRamp(this._refId(sessionId)));
+    return this._adapterOrThrow().rampRefundOffRamp(this._settlementAddressOrThrow(), sessionId);
   }
 
   /**
@@ -119,56 +121,36 @@ export class RampManager {
     tokenAddress: string,
     amount: bigint
   ): Promise<string> {
-    const contract = this._settlementContract();
-    return this._sendAndWait(
-      contract.recordOnRampSettlement(this._refId(sessionId), recipient, tokenAddress, amount, sessionId)
+    return this._adapterOrThrow().rampRecordOnRampSettlement(
+      this._settlementAddressOrThrow(), sessionId, recipient, tokenAddress, amount
     );
   }
 
   async getOffRampDeposit(sessionId: string): Promise<OffRampDeposit> {
-    const contract = this._settlementContract();
-    const d = await contract.getOffRamp(this._refId(sessionId));
-    return {
-      depositor:   d.depositor,
-      token:       d.token,
-      amount:      d.amount,
-      status:      Number(d.status) as RampSettlementStatus,
-      initiatedAt: d.initiatedAt,
-    };
+    return this._adapterOrThrow().rampGetOffRampDeposit(this._settlementAddressOrThrow(), sessionId);
   }
 
   async getOnRampRecord(sessionId: string): Promise<OnRampRecord> {
-    const contract = this._settlementContract();
-    const r = await contract.getOnRamp(this._refId(sessionId));
-    return {
-      recipient:  r.recipient,
-      token:      r.token,
-      amount:     r.amount,
-      status:     Number(r.status) as RampSettlementStatus,
-      recordedAt: r.recordedAt,
-    };
+    return this._adapterOrThrow().rampGetOnRampRecord(this._settlementAddressOrThrow(), sessionId);
   }
 
   // ─── Internal ─────────────────────────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _settlementContract(): any {
+  private _adapterOrThrow(): IAdapter {
     if (!this._adapter || !this._settlementAddress) {
       throw new Error(
-        "RampManager has no settlement contract configured. Pass an EVMAdapter and settlementAddress to enable on-chain settlement."
+        "RampManager has no settlement contract configured. Pass an adapter and settlementAddress to enable on-chain settlement."
       );
     }
-    return this._adapter.rampSettlement(this._settlementAddress);
+    return this._adapter;
   }
 
-  private _refId(sessionId: string): string {
-    return ethers.keccak256(ethers.toUtf8Bytes(sessionId));
-  }
-
-  private async _sendAndWait(txPromise: Promise<ContractTransactionResponse>): Promise<string> {
-    const tx = await txPromise;
-    const receipt = await tx.wait();
-    if (!receipt) throw new Error("Transaction receipt unavailable");
-    return receipt.hash;
+  private _settlementAddressOrThrow(): string {
+    if (!this._settlementAddress) {
+      throw new Error(
+        "RampManager has no settlement contract configured. Pass an adapter and settlementAddress to enable on-chain settlement."
+      );
+    }
+    return this._settlementAddress;
   }
 }

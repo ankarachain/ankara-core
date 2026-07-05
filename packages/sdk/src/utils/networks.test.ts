@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { getNetwork, NETWORKS } from "./networks";
-import type { SupportedNetwork } from "../types";
+import type { EVMSupportedNetwork, SupportedNetwork } from "../types";
 
-const ALL_NETWORKS: SupportedNetwork[] = [
+const EVM_NETWORKS: EVMSupportedNetwork[] = [
   "polygon-amoy",
   "polygon",
   "ethereum",
@@ -11,9 +11,13 @@ const ALL_NETWORKS: SupportedNetwork[] = [
   "localhost",
 ];
 
+const STELLAR_NETWORKS: SupportedNetwork[] = ["stellar", "stellar-testnet"];
+
+const ALL_NETWORKS: SupportedNetwork[] = [...EVM_NETWORKS, ...STELLAR_NETWORKS];
+
 describe("NETWORKS", () => {
-  it("contains exactly 6 supported networks", () => {
-    expect(Object.keys(NETWORKS)).toHaveLength(6);
+  it("contains exactly 8 supported networks", () => {
+    expect(Object.keys(NETWORKS)).toHaveLength(8);
   });
 
   it("contains all expected network keys", () => {
@@ -22,46 +26,77 @@ describe("NETWORKS", () => {
     }
   });
 
-  it("each entry has the required fields", () => {
-    for (const [name, cfg] of Object.entries(NETWORKS)) {
-      expect(typeof cfg.chainId,  `${name}.chainId`).toBe("number");
-      expect(cfg.chainId,         `${name}.chainId > 0`).toBeGreaterThan(0);
-      expect(cfg.name,            `${name}.name`).toBeTruthy();
-      expect(cfg.rpcUrl,          `${name}.rpcUrl`).toBeTruthy();
-      expect(cfg.nativeCurrency,  `${name}.nativeCurrency`).toBeDefined();
-      expect(cfg.nativeCurrency.symbol, `${name}.nativeCurrency.symbol`).toBeTruthy();
-      expect(cfg.nativeCurrency.decimals, `${name}.nativeCurrency.decimals`).toBe(18);
+  it("each EVM entry has the required fields", () => {
+    for (const n of EVM_NETWORKS) {
+      const cfg = NETWORKS[n];
+      expect(cfg.chainFamily, `${n}.chainFamily`).toBe("evm");
+      if (cfg.chainFamily !== "evm") continue;
+      expect(typeof cfg.chainId, `${n}.chainId`).toBe("number");
+      expect(cfg.chainId, `${n}.chainId > 0`).toBeGreaterThan(0);
+      expect(cfg.name, `${n}.name`).toBeTruthy();
+      expect(cfg.rpcUrl, `${n}.rpcUrl`).toBeTruthy();
+      expect(cfg.nativeCurrency, `${n}.nativeCurrency`).toBeDefined();
+      expect(cfg.nativeCurrency.symbol, `${n}.nativeCurrency.symbol`).toBeTruthy();
+      expect(cfg.nativeCurrency.decimals, `${n}.nativeCurrency.decimals`).toBe(18);
     }
   });
 
-  it("has distinct chain IDs", () => {
-    const ids = Object.values(NETWORKS).map((c) => c.chainId);
+  it("each Stellar entry has the required fields", () => {
+    for (const n of STELLAR_NETWORKS) {
+      const cfg = NETWORKS[n];
+      expect(cfg.chainFamily, `${n}.chainFamily`).toBe("stellar");
+      if (cfg.chainFamily !== "stellar") continue;
+      expect(cfg.networkPassphrase, `${n}.networkPassphrase`).toBeTruthy();
+      expect(cfg.name, `${n}.name`).toBeTruthy();
+      expect(cfg.nativeCurrency.symbol, `${n}.nativeCurrency.symbol`).toBe("XLM");
+      expect(cfg.nativeCurrency.decimals, `${n}.nativeCurrency.decimals`).toBe(7);
+    }
+  });
+
+  it("has distinct EVM chain IDs", () => {
+    const ids = EVM_NETWORKS.map((n) => {
+      const cfg = NETWORKS[n];
+      return cfg.chainFamily === "evm" ? cfg.chainId : null;
+    });
     const unique = new Set(ids);
     expect(unique.size).toBe(ids.length);
   });
 
   it("polygon-amoy is chainId 80002", () => {
-    expect(NETWORKS["polygon-amoy"].chainId).toBe(80002);
+    const cfg = NETWORKS["polygon-amoy"];
+    expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(80002);
   });
 
   it("polygon mainnet is chainId 137", () => {
-    expect(NETWORKS["polygon"].chainId).toBe(137);
+    const cfg = NETWORKS["polygon"];
+    expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(137);
   });
 
   it("ethereum is chainId 1", () => {
-    expect(NETWORKS["ethereum"].chainId).toBe(1);
+    const cfg = NETWORKS["ethereum"];
+    expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(1);
   });
 
   it("bnb is chainId 56", () => {
-    expect(NETWORKS["bnb"].chainId).toBe(56);
+    const cfg = NETWORKS["bnb"];
+    expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(56);
   });
 
   it("celo is chainId 42220", () => {
-    expect(NETWORKS["celo"].chainId).toBe(42220);
+    const cfg = NETWORKS["celo"];
+    expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(42220);
   });
 
   it("localhost is chainId 31337", () => {
-    expect(NETWORKS["localhost"].chainId).toBe(31337);
+    const cfg = NETWORKS["localhost"];
+    expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(31337);
+  });
+
+  it("stellar-testnet uses the SDF testnet passphrase", () => {
+    const cfg = NETWORKS["stellar-testnet"];
+    expect(cfg.chainFamily === "stellar" && cfg.networkPassphrase).toBe(
+      "Test SDF Network ; September 2015"
+    );
   });
 });
 
@@ -70,7 +105,6 @@ describe("getNetwork", () => {
     for (const n of ALL_NETWORKS) {
       const cfg = getNetwork(n);
       expect(cfg).toBeDefined();
-      expect(cfg.chainId).toBeGreaterThan(0);
     }
   });
 

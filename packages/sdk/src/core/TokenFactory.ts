@@ -1,8 +1,11 @@
-import { ethers, type Signer, type Provider } from "ethers";
+import { ethers, type Provider } from "ethers";
 import { EVMAdapter } from "../adapters/evm";
+import { StellarAdapter } from "../adapters/stellar";
+import type { IAdapter } from "../adapters/IAdapter";
 import { getNetwork } from "../utils/networks";
 import type {
   AnkaraChainConfig,
+  EVMAnkaraChainConfig,
   DeployFarmlandOptions,
   DeployCommodityOptions,
   DeployRealEstateOptions,
@@ -57,28 +60,37 @@ import type {
  * ```
  */
 export class TokenFactory {
-  private _adapter: EVMAdapter;
+  private _adapter: IAdapter;
 
   constructor(config: AnkaraChainConfig) {
-    const networkConfig = getNetwork(config.network);
+    if (config.network === "stellar" || config.network === "stellar-testnet") {
+      this._adapter = new StellarAdapter(config.network, config);
+      return;
+    }
+
+    // Every `SupportedNetwork` other than the two Stellar variants handled
+    // above is an EVM network by construction, so this cast is backed by
+    // that exhaustive check rather than an unchecked assumption.
+    const evmConfig = config as EVMAnkaraChainConfig;
+    const networkConfig = getNetwork(evmConfig.network);
 
     // Build provider
     const provider: Provider =
-      config.provider ??
+      evmConfig.provider ??
       new ethers.JsonRpcProvider(
-        config.rpcUrl ?? networkConfig.rpcUrl,
+        evmConfig.rpcUrl ?? networkConfig.rpcUrl,
         networkConfig.chainId
       );
 
     this._adapter = new EVMAdapter(
-      config.network,
+      evmConfig.network,
       provider,
-      config.signer,
-      config.factoryAddress,
-      config.nftFactoryAddress,
-      config.escrowFactoryAddress,
-      config.multiTokenFactoryAddress,
-      config.rampSettlementFactoryAddress
+      evmConfig.signer,
+      evmConfig.factoryAddress,
+      evmConfig.nftFactoryAddress,
+      evmConfig.escrowFactoryAddress,
+      evmConfig.multiTokenFactoryAddress,
+      evmConfig.rampSettlementFactoryAddress
     );
   }
 
@@ -238,6 +250,6 @@ export class TokenFactory {
 
   // ─── Adapter access (escape hatch for advanced use) ──────────────────────
 
-  get adapter(): EVMAdapter { return this._adapter; }
+  get adapter(): IAdapter { return this._adapter; }
   get network(): SupportedNetwork { return this._adapter.network; }
 }

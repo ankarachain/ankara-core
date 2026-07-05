@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { AssetRegistry } from "../core/AssetRegistry";
-import { EVMAdapter } from "../adapters/evm";
-import { ethers } from "ethers";
-import { getNetwork } from "../utils/networks";
-import type { SupportedNetwork, AssetStatus } from "../types";
+import type { AnyAssetMetadata } from "../adapters/IAdapter";
+import { buildReadOnlyAdapter } from "./buildReadOnlyAdapter";
+import type { AssetTemplate, AssetStatus, SupportedNetwork } from "../types";
 
 interface AssetState {
   name: string | null;
@@ -14,7 +13,7 @@ interface AssetState {
   countryCode: string | null;
   valuationUSD: bigint | null;
   version: number | null;
-  metadata: any | null;
+  metadata: AnyAssetMetadata | null;
 }
 
 interface UseAssetReturn extends AssetState {
@@ -24,10 +23,17 @@ interface UseAssetReturn extends AssetState {
   refresh: () => void;
 }
 
+const ZERO_ADDRESSES = new Set(["", "0x0000000000000000000000000000000000000000"]);
+
+/** Only these 3 templates expose a valuation — invoice/carbon-credit/mining-rights don't. */
+const TEMPLATES_WITH_VALUATION = new Set<AssetTemplate>(["farmland", "commodity", "real-estate"]);
+
 /**
  * useAsset
  *
- * Hook for reading Ankara Chain token data in React.
+ * Hook for reading Ankara Chain token data in React — works against any of
+ * the 6 fungible templates on either chain (EVM or Stellar), read-only, no
+ * signer/secret key required.
  *
  * @example
  * ```tsx
@@ -41,7 +47,7 @@ interface UseAssetReturn extends AssetState {
  */
 export function useAsset(opts: {
   tokenAddress: string;
-  template: "farmland" | "commodity";
+  template: AssetTemplate;
   network: SupportedNetwork;
   rpcUrl?: string;
 }): UseAssetReturn {
@@ -57,7 +63,7 @@ export function useAsset(opts: {
   const refresh = () => setTick(t => t + 1);
 
   useEffect(() => {
-    if (!opts.tokenAddress || opts.tokenAddress === ethers.ZeroAddress) return;
+    if (!opts.tokenAddress || ZERO_ADDRESSES.has(opts.tokenAddress)) return;
 
     let cancelled = false;
 
@@ -66,14 +72,8 @@ export function useAsset(opts: {
         setIsLoading(true);
         setError(null);
 
-        const networkConfig = getNetwork(opts.network);
-        const provider = new ethers.JsonRpcProvider(
-          opts.rpcUrl ?? networkConfig.rpcUrl,
-          networkConfig.chainId
-        );
-
-        const adapter  = new EVMAdapter(opts.network, provider);
-        const reg      = new AssetRegistry(adapter, opts.tokenAddress, opts.template);
+        const adapter = buildReadOnlyAdapter(opts.network, opts.rpcUrl);
+        const reg     = new AssetRegistry(adapter, opts.tokenAddress, opts.template);
 
         const [name, symbol, status, countryCode, valuationUSD, version, metadata] =
           await Promise.all([
@@ -81,7 +81,7 @@ export function useAsset(opts: {
             reg.getSymbol(),
             reg.getStatus(),
             reg.getCountryCode(),
-            reg.getValuationUSD(),
+            TEMPLATES_WITH_VALUATION.has(opts.template) ? reg.getValuationUSD() : Promise.resolve(null),
             reg.getVersion(),
             reg.getMetadata(),
           ]);
@@ -99,7 +99,7 @@ export function useAsset(opts: {
 
     load();
     return () => { cancelled = true; };
-  }, [opts.tokenAddress, opts.network, tick]);
+  }, [opts.tokenAddress, opts.network, opts.template, tick]);
 
   return { ...state, registry, isLoading, error, refresh };
 }

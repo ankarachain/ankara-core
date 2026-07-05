@@ -35,6 +35,48 @@ function makeEscrowManager(): EscrowManager {
   return new EscrowManager(makeAdapter(), MOCK_ADDR);
 }
 
+describe("EVMAdapter — read-only usage (no signer configured)", () => {
+  // Regression test: every contract accessor used to build its
+  // `ethers.Contract` against the `signer` getter, which throws "No signer
+  // configured" synchronously — meaning read-only call sites like
+  // `status.ts`, `useAsset`, and `useTokenBalance` (all of which construct an
+  // EVMAdapter with no signer) never actually worked, even for pure view
+  // calls. Fixed by routing contract construction through a `_runner`
+  // getter that falls back to the provider. These assertions only cover the
+  // synchronous "does constructing the handle throw" step (no live network
+  // call happens in this test suite) — that's exactly the point where the
+  // bug lived.
+  it("every template/factory/escrow/ramp/oracle accessor builds without a signer", () => {
+    const adapter = makeAdapter();
+    const accessors: Array<() => unknown> = [
+      () => (adapter as any).farmlandToken(MOCK_ADDR),
+      () => (adapter as any).commodityToken(MOCK_ADDR),
+      () => (adapter as any).realEstateToken(MOCK_ADDR),
+      () => (adapter as any).invoiceToken(MOCK_ADDR),
+      () => (adapter as any).carbonCreditToken(MOCK_ADDR),
+      () => (adapter as any).miningRightsToken(MOCK_ADDR),
+      () => (adapter as any).farmlandNFT(MOCK_ADDR),
+      () => (adapter as any).realEstateNFT(MOCK_ADDR),
+      () => (adapter as any).miningRightsNFT(MOCK_ADDR),
+      () => (adapter as any).commodityVaultNFT(MOCK_ADDR),
+      () => (adapter as any).milestoneEscrow(MOCK_ADDR),
+      () => (adapter as any).rampSettlement(MOCK_ADDR),
+      () => (adapter as any).commodityBatchToken(MOCK_ADDR),
+      () => (adapter as any).poolVault(MOCK_ADDR),
+      () => (adapter as any).whitelistVerifier(MOCK_ADDR),
+      () => (adapter as any).manualOracle(MOCK_ADDR),
+    ];
+    for (const build of accessors) {
+      expect(build).not.toThrow();
+    }
+  });
+
+  it("getSignerAddress still throws clearly when no signer is configured (unlike reads)", async () => {
+    const adapter = makeAdapter();
+    await expect(adapter.getSignerAddress()).rejects.toThrow(/No signer configured/);
+  });
+});
+
 // ─── Enum exports ─────────────────────────────────────────────────────────────
 
 describe("AssetStatus enum", () => {

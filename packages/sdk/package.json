@@ -7,13 +7,13 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types":   "./dist/index.d.ts",
-      "import":  "./dist/index.mjs",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.js"
     },
     "./react": {
-      "types":   "./dist/react/index.d.ts",
-      "import":  "./dist/react/index.mjs",
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.mjs",
       "require": "./dist/react/index.js"
     }
   },
@@ -25,13 +25,16 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@stellar/stellar-sdk": "^16.0.1",
     "ethers": "^6.11.0"
   },
   "peerDependencies": {
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true }
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -40,7 +43,9 @@
     "typescript": "^5.4.0",
     "vitest": "^1.4.0"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "license": "MIT",
   "author": "Cranebolt Technologies <hello@cranebolt.com>"
 }

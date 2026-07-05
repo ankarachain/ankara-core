@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ethers } from "ethers";
-import { getNetwork } from "../utils/networks";
-import { FARMLAND_TOKEN_ABI } from "../utils/abis";
+import { buildReadOnlyAdapter } from "./buildReadOnlyAdapter";
 import type { SupportedNetwork } from "../types";
 
 interface UseTokenBalanceReturn {
@@ -17,7 +16,9 @@ interface UseTokenBalanceReturn {
 /**
  * useTokenBalance
  *
- * Hook for reading an ERC-20 token balance in React.
+ * Hook for reading a fungible token balance in React — works against any
+ * deployed template on either chain (EVM ERC-20 or Stellar SEP-41), read-only,
+ * no signer/secret key required.
  *
  * @example
  * ```tsx
@@ -50,19 +51,8 @@ export function useTokenBalance(opts: {
     async function load() {
       try {
         setIsLoading(true);
-        const networkConfig = getNetwork(opts.network);
-        const provider = new ethers.JsonRpcProvider(
-          opts.rpcUrl ?? networkConfig.rpcUrl,
-          networkConfig.chainId
-        );
-
-        const token = new ethers.Contract(
-          opts.tokenAddress,
-          FARMLAND_TOKEN_ABI,
-          provider
-        );
-
-        const bal: bigint = await token.balanceOf(opts.walletAddress);
+        const adapter = buildReadOnlyAdapter(opts.network, opts.rpcUrl);
+        const bal     = await adapter.getBalance2(opts.tokenAddress, opts.walletAddress);
 
         if (!cancelled) {
           setBalance(bal);

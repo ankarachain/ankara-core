@@ -1,8 +1,9 @@
 import type { Signer, Provider } from "ethers";
+import type { SignTransaction, SignAuthEntry } from "@stellar/stellar-sdk/contract";
 
 // ─── Chain config ────────────────────────────────────────────────────────────
 
-export type SupportedNetwork =
+export type EVMSupportedNetwork =
   | "polygon"
   | "polygon-amoy"
   | "ethereum"
@@ -10,13 +11,31 @@ export type SupportedNetwork =
   | "celo"
   | "localhost";
 
-export interface NetworkConfig {
+export type StellarSupportedNetwork = "stellar" | "stellar-testnet";
+
+export type SupportedNetwork = EVMSupportedNetwork | StellarSupportedNetwork;
+
+export interface EVMNetworkConfig {
+  chainFamily: "evm";
   chainId: number;
   name: string;
   rpcUrl: string;
   explorerUrl: string;
   nativeCurrency: { name: string; symbol: string; decimals: number };
 }
+
+export interface StellarNetworkConfig {
+  chainFamily: "stellar";
+  /** Stellar network passphrase — identifies which network a signed transaction targets. */
+  networkPassphrase: string;
+  name: string;
+  /** Soroban RPC endpoint (not a Horizon URL). */
+  rpcUrl: string;
+  explorerUrl: string;
+  nativeCurrency: { name: string; symbol: string; decimals: number };
+}
+
+export type NetworkConfig = EVMNetworkConfig | StellarNetworkConfig;
 
 // ─── Asset status ────────────────────────────────────────────────────────────
 
@@ -289,11 +308,42 @@ export interface Milestone {
   descriptionHash: string;
   status: MilestoneStatus;
   deliveredAt: bigint;
+  /** Funded independently per milestone — the payer can pay in installments rather than the whole deal at once. */
+  funded: boolean;
 }
 
 export interface EscrowMilestoneInput {
   amount: bigint;
   descriptionHash?: string;  // bytes32 hex; defaults to zero hash if omitted
+}
+
+/** Basic on-chain metadata for an arbitrary fungible token — not an Ankara asset, just any ERC-20/SEP-41. */
+export interface TokenMetadata {
+  name: string;
+  symbol: string;
+  decimals: number;
+}
+
+/** One lifecycle event from a deployed escrow's on-chain history, normalized across both chains. */
+export type EscrowActivityType =
+  | "funded"
+  | "delivered"
+  | "released"
+  | "disputed"
+  | "resolved"
+  | "refunded"
+  | "cancel-vote"
+  | "cancelled"
+  | "arbiter-changed";
+
+export interface EscrowActivityEvent {
+  type: EscrowActivityType;
+  /** Present for milestone-scoped events (delivered/released/disputed/resolved/refunded); absent for deal-level events. */
+  milestoneId?: number;
+  txHash: string;
+  /** Unix seconds; 0 if the underlying event didn't carry a resolvable timestamp. */
+  timestamp: number;
+  data?: Record<string, unknown>;
 }
 
 export interface DeployEscrowOptions {
@@ -353,6 +403,34 @@ export interface MultiTokenDeployResult {
   template: MultiTokenTemplate;
   network: SupportedNetwork;
   deployedAt: number;
+}
+
+// ─── CommodityBatchToken (ERC-1155 equivalent) — lifecycle ──────────────────
+
+export interface BatchMetadata {
+  commodityType: string;
+  quantityKg: bigint;
+  gradeClassification: string;
+  depositDate: bigint;
+  expiryDate: bigint;
+  inspectionReportHash: string;   // bytes32 hex
+  valuationUSD: bigint;
+  harvestSeason: string;
+  originCountry: string;
+}
+
+// ─── PoolVault — lifecycle ───────────────────────────────────────────────────
+
+export interface PoolVaultStatus {
+  name: string;
+  symbol: string;
+  totalSupply: bigint;
+  navPerToken: bigint;
+  totalAUM: bigint;
+  managementFeeBps: number;
+  acceptedTokens: string[];
+  lastFeeAccrual: bigint;
+  oracle: string;   // empty string if unset
 }
 
 // ─── On/Off-Ramp: settlement contract (optional on-chain half) ──────────────
@@ -477,8 +555,8 @@ export interface RampProvider {
 
 // ─── SDK config ──────────────────────────────────────────────────────────────
 
-export interface AnkaraChainConfig {
-  network: SupportedNetwork;
+export interface EVMAnkaraChainConfig {
+  network: EVMSupportedNetwork;
   signer?: Signer;
   provider?: Provider;
   factoryAddress?: string;              // Override default ERC-20 factory address
@@ -488,3 +566,38 @@ export interface AnkaraChainConfig {
   rampSettlementFactoryAddress?: string; // Override default RampSettlementFactory address
   rpcUrl?: string;                      // Override default RPC
 }
+
+/**
+ * An external Stellar wallet signer — publicKey plus a `signTransaction` (and
+ * optional `signAuthEntry`) matching Freighter's API shape exactly, so a
+ * Freighter (or any SEP-43-compatible wallet) object can be passed straight
+ * through. Prefer this over `stellarSecretKey` in any browser context — the
+ * raw secret seed never has to touch application code.
+ */
+export interface StellarExternalSigner {
+  publicKey: string;
+  signTransaction: SignTransaction;
+  signAuthEntry?: SignAuthEntry;
+}
+
+export interface StellarAnkaraChainConfig {
+  network: StellarSupportedNetwork;
+  /** Stellar secret seed (starts with "S..."). Not an EVM private key. Server-side/CLI use only — never collect this in a browser UI; use `stellarSigner` there instead. */
+  stellarSecretKey?: string;
+  /** External wallet signer (e.g. Freighter). Mutually exclusive with `stellarSecretKey` — if both are set, `stellarSecretKey` wins. */
+  stellarSigner?: StellarExternalSigner;
+  factoryAddress?: string;              // Soroban contract ID (starts with "C...")
+  nftFactoryAddress?: string;
+  multiTokenFactoryAddress?: string;
+  escrowFactoryAddress?: string;
+  rampSettlementFactoryAddress?: string;
+  rpcUrl?: string;                      // Override default Soroban RPC endpoint
+}
+
+/**
+ * Discriminated on `network`: an `EVMSupportedNetwork` value narrows this to
+ * `EVMAnkaraChainConfig`, a `StellarSupportedNetwork` value narrows it to
+ * `StellarAnkaraChainConfig`. `TokenFactory` switches on `network` to decide
+ * whether to construct an `EVMAdapter` or a `StellarAdapter`.
+ */
+export type AnkaraChainConfig = EVMAnkaraChainConfig | StellarAnkaraChainConfig;
