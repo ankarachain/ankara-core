@@ -1,0 +1,6 @@
+[toolchain]
+channel = "stable"
+# soroban-sdk 26.x rejects `wasm32-unknown-unknown` on Rust 1.82+ (that
+# target gained reference-types/multi-value features the Soroban runtime
+# doesn't support yet) and requires `wasm32v1-none` instead.
+targets = ["wasm32v1-none"]

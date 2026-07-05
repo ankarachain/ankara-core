@@ -1,0 +1,21 @@
+[package]
+name = "ankara-factory-registry"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+# Kept dev-only for the same reason every other factory keeps template/
+# sub-factory crates dev-only: several of the 5 sub-factories share
+# identically-named entry points (total_deployed, owner, initialize, ...),
+# so depending on more than one at [dependencies] level would collide at
+# link time. The registry calls them dynamically via `env.invoke_contract`.
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+token-factory = { path = "../token-factory" }
+farmland-token = { path = "../../templates/farmland-token" }

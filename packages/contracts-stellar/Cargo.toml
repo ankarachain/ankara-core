@@ -1,0 +1,43 @@
+[workspace]
+resolver = "2"
+members = [
+    "contracts/common",
+    "contracts/templates/farmland-token",
+    "contracts/templates/commodity-receipt-token",
+    "contracts/templates/real-estate-token",
+    "contracts/templates/invoice-token",
+    "contracts/templates/carbon-credit-token",
+    "contracts/templates/mining-rights-token",
+    "contracts/templates/farmland-nft",
+    "contracts/templates/real-estate-nft",
+    "contracts/templates/mining-rights-nft",
+    "contracts/templates/commodity-vault-nft",
+    "contracts/templates/commodity-batch-token",
+    "contracts/templates/pool-vault",
+    "contracts/oracle/manual-oracle",
+    "contracts/factory/token-factory",
+    "contracts/factory/nft-factory",
+    "contracts/factory/multi-token-factory",
+    "contracts/escrow/milestone-escrow",
+    "contracts/factory/escrow-factory",
+    "contracts/ramp/ramp-settlement",
+    "contracts/factory/ramp-settlement-factory",
+    "contracts/factory/ankara-factory-registry",
+]
+
+[workspace.dependencies]
+soroban-sdk = "26.1.0"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true

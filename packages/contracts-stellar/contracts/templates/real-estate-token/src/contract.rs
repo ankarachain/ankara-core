@@ -1,0 +1,232 @@
+use ankara_common::{
+    asset,
+    roles::{self, require_role, Role},
+    verifier, AssetStatus,
+};
+use soroban_sdk::{
+    contract, contractimpl, panic_with_error, symbol_short, token::TokenInterface, Address,
+    BytesN, Env, String,
+};
+
+use crate::metadata::{self, RealEstateMetadata};
+
+#[soroban_sdk::contracterror]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u32)]
+pub enum RealEstateError {
+    NoTokensInCirculation = 1,
+}
+
+#[contract]
+pub struct RealEstateToken;
+
+#[contractimpl]
+impl RealEstateToken {
+    #[allow(clippy::too_many_arguments)]
+    pub fn initialize(
+        env: Env,
+        name: String,
+        symbol: String,
+        asset_id: BytesN<32>,
+        country_code: String,
+        admin: Address,
+        verifier: Option<Address>,
+        fee_recipient: Option<Address>,
+        real_estate_metadata: RealEstateMetadata,
+    ) {
+        roles::init_roles(&env, &admin);
+        asset::init_asset(&env, &asset_id, &country_code, &fee_recipient);
+        ankara_common::fungible::init_metadata(&env, 18, name, symbol);
+        ankara_common::verifier::init_identity_verifier(&env, &verifier);
+        metadata::init_metadata(&env, real_estate_metadata);
+    }
+
+    // ─── Reads ──────────────────────────────────────────────────────────
+
+    pub fn get_metadata(env: Env) -> RealEstateMetadata {
+        metadata::get_metadata(&env)
+    }
+
+    pub fn total_supply(env: Env) -> i128 {
+        ankara_common::fungible::total_supply(&env)
+    }
+
+    pub fn valuation_usd(env: Env) -> i128 {
+        metadata::get_metadata(&env).valuation_usd
+    }
+
+    pub fn rental_yield_bps(env: Env) -> u32 {
+        metadata::get_metadata(&env).rental_yield_bps
+    }
+
+    pub fn occupancy_status(env: Env) -> String {
+        metadata::get_metadata(&env).occupancy_status
+    }
+
+    pub fn title_document_hash(env: Env) -> BytesN<32> {
+        metadata::get_metadata(&env).title_document_hash
+    }
+
+    pub fn total_rental_distributed(env: Env) -> i128 {
+        metadata::total_rental_distributed(&env)
+    }
+
+    pub fn asset_id(env: Env) -> BytesN<32> {
+        asset::asset_id(&env)
+    }
+
+    pub fn country_code(env: Env) -> String {
+        asset::country_code(&env)
+    }
+
+    pub fn status(env: Env) -> AssetStatus {
+        asset::status(&env)
+    }
+
+    pub fn metadata_version(env: Env) -> u32 {
+        asset::metadata_version(&env)
+    }
+
+    pub fn identity_verifier(env: Env) -> Option<Address> {
+        verifier::identity_verifier(&env)
+    }
+
+    // ─── Writes (Role::Manager) ─────────────────────────────────────────
+
+    pub fn update_metadata(env: Env, real_estate_metadata: RealEstateMetadata) {
+        require_role(&env, Role::Manager);
+        let (old_valuation, new_valuation) =
+            metadata::update_metadata(&env, real_estate_metadata);
+        asset::bump_metadata_version(&env);
+        if old_valuation != new_valuation {
+            env.events().publish(
+                (symbol_short!("valuation"),),
+                (old_valuation, new_valuation, env.ledger().timestamp()),
+            );
+        }
+    }
+
+    pub fn update_valuation(env: Env, new_valuation_usd: i128) {
+        require_role(&env, Role::Manager);
+        let old = metadata::update_valuation(&env, new_valuation_usd);
+        asset::bump_metadata_version(&env);
+        env.events().publish(
+            (symbol_short!("valuation"),),
+            (old, new_valuation_usd, env.ledger().timestamp()),
+        );
+    }
+
+    pub fn update_occupancy_status(env: Env, new_status: String) {
+        require_role(&env, Role::Manager);
+        let old = metadata::update_occupancy_status(&env, new_status.clone());
+        asset::bump_metadata_version(&env);
+        env.events().publish(
+            (symbol_short!("occupancy"),),
+            (old, new_status, env.ledger().timestamp()),
+        );
+    }
+
+    /// Mirrors `declareRentalDistribution()` — on-chain record only, actual
+    /// payment distribution happens off-chain or via a separate contract.
+    pub fn declare_rental_distribution(env: Env, amount_usd: i128) {
+        require_role(&env, Role::Manager);
+        let supply = ankara_common::fungible::total_supply(&env);
+        if supply == 0 {
+            panic_with_error!(&env, RealEstateError::NoTokensInCirculation);
+        }
+        let per_token = metadata::declare_rental_distribution(&env, amount_usd, supply);
+        env.events().publish(
+            (symbol_short!("rental"),),
+            (amount_usd, per_token, env.ledger().timestamp()),
+        );
+    }
+
+    pub fn set_status(env: Env, new_status: AssetStatus) {
+        asset::set_status_gated(&env, new_status);
+    }
+
+    pub fn set_identity_verifier(env: Env, new_verifier: Option<Address>) {
+        verifier::set_identity_verifier(&env, &new_verifier);
+    }
+
+    pub fn link_to_nft(env: Env, nft_address: Address) {
+        asset::link_nft(&env, &nft_address);
+    }
+
+    // ─── Minting (Role::Minter) ──────────────────────────────────────────
+
+    pub fn mint(env: Env, to: Address, amount: i128) {
+        require_role(&env, Role::Minter);
+        verifier::check_verified(&env, &to);
+        ankara_common::fungible::mint(&env, &to, amount);
+    }
+
+    // ─── Upgrade (Role::Upgrader) ────────────────────────────────────────
+
+    // ─── Pause (Role::Pauser) ────────────────────────────────────────────
+
+    pub fn pause(env: Env) {
+        ankara_common::pausable::pause(&env);
+    }
+
+    pub fn unpause(env: Env) {
+        ankara_common::pausable::unpause(&env);
+    }
+
+    pub fn is_paused(env: Env) -> bool {
+        ankara_common::pausable::is_paused(&env)
+    }
+
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) {
+        require_role(&env, Role::Upgrader);
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
+    }
+}
+
+#[contractimpl]
+impl TokenInterface for RealEstateToken {
+    fn allowance(env: Env, from: Address, spender: Address) -> i128 {
+        ankara_common::fungible::allowance(&env, &from, &spender)
+    }
+
+    fn approve(env: Env, from: Address, spender: Address, amount: i128, expiration_ledger: u32) {
+        ankara_common::fungible::approve(&env, &from, &spender, amount, expiration_ledger);
+    }
+
+    fn balance(env: Env, id: Address) -> i128 {
+        ankara_common::fungible::balance(&env, &id)
+    }
+
+    fn transfer(env: Env, from: Address, to: soroban_sdk::MuxedAddress, amount: i128) {
+        let to_address = to.address();
+        verifier::check_verified(&env, &from);
+        verifier::check_verified(&env, &to_address);
+        ankara_common::fungible::transfer(&env, &from, &to_address, amount);
+    }
+
+    fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
+        verifier::check_verified(&env, &from);
+        verifier::check_verified(&env, &to);
+        ankara_common::fungible::transfer_from(&env, &spender, &from, &to, amount);
+    }
+
+    fn burn(env: Env, from: Address, amount: i128) {
+        ankara_common::fungible::burn(&env, &from, amount);
+    }
+
+    fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
+        ankara_common::fungible::burn_from(&env, &spender, &from, amount);
+    }
+
+    fn decimals(env: Env) -> u32 {
+        ankara_common::fungible::decimals(&env)
+    }
+
+    fn name(env: Env) -> String {
+        ankara_common::fungible::name(&env)
+    }
+
+    fn symbol(env: Env) -> String {
+        ankara_common::fungible::symbol(&env)
+    }
+}

@@ -1,0 +1,27 @@
+[package]
+name = "token-factory"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+# NOTE: the 6 template crates are dev-dependencies only (used by this
+# crate's tests to type-check against the deployed contracts), never a
+# normal dependency. Depending on them at the [dependencies] level would
+# pull each template's `#[contractimpl]`-exported wasm symbols (mint,
+# transfer, initialize, ...) into this crate's own wasm binary, and every
+# template shares those same exported names — linking more than one in
+# produces "duplicate symbol" errors. The factory instead calls deployed
+# instances dynamically via `env.invoke_contract(...)` (see contract.rs)
+# and keeps its own local copies of each metadata struct shape (metadata.rs)
+# so its public API stays strongly typed without a compile-time dependency
+# on the implementation crates.
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+farmland-token = { path = "../../templates/farmland-token" }
+commodity-receipt-token = { path = "../../templates/commodity-receipt-token" }

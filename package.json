@@ -9,6 +9,8 @@
     "test": "npm run test --workspaces --if-present",
     "test:contracts": "npm run test --workspace=packages/contracts-evm",
     "compile": "npm run compile --workspace=packages/contracts-evm",
+    "compile:stellar": "npm run build --workspace=packages/contracts-stellar",
+    "test:stellar": "npm run test --workspace=packages/contracts-stellar",
     "deploy:amoy": "npm run deploy:amoy --workspace=packages/contracts-evm",
     "clean": "npm run clean --workspaces --if-present"
   },

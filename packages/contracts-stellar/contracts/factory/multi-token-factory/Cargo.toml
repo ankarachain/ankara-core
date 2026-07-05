@@ -1,0 +1,18 @@
+[package]
+name = "multi-token-factory"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+# See token-factory/Cargo.toml for why the template crates are dev-only.
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+commodity-batch-token = { path = "../../templates/commodity-batch-token" }
+pool-vault = { path = "../../templates/pool-vault" }
+manual-oracle = { path = "../../oracle/manual-oracle" }

@@ -1,0 +1,16 @@
+[package]
+name = "nft-factory"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+# See token-factory/Cargo.toml for why the template crates are dev-only.
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+farmland-nft = { path = "../../templates/farmland-nft" }

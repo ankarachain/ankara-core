@@ -15,3 +15,9 @@ deployments/
 *.log
 ankara.config.json
 _private/
+
+# Rust / Soroban (packages/contracts-stellar)
+target/
+Cargo.lock
+test_snapshots/
+*.wasm

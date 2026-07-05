@@ -1,0 +1,13 @@
+{
+  "name": "@ankarachain/contracts-stellar",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Ankara Chain SDK — Soroban (Stellar) smart contracts",
+  "scripts": {
+    "build": "cargo build --target wasm32v1-none --release --workspace",
+    "test": "npm run build && cargo test --workspace",
+    "clean": "cargo clean"
+  },
+  "license": "MIT",
+  "author": "Cranebolt Technologies <hello@cranebolt.com>"
+}
