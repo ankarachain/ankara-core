@@ -165,27 +165,44 @@ describe("MilestoneEscrow", function () {
   // ─── fund ─────────────────────────────────────────────────────────────────
 
   describe("fund", function () {
-    it("transfers totalAmount from payer to escrow", async function () {
-      await escrow.connect(payer).fund();
+    it("transfers only the funded milestone's amount, not the whole total", async function () {
+      await escrow.connect(payer).fund(0);
+      expect(await stablecoin.balanceOf(await escrow.getAddress())).to.equal(AMOUNTS[0]);
+      // Milestones are funded independently (installments) — the deal isn't
+      // "funded" as a whole until every milestone has been funded.
+      expect(await escrow.funded()).to.be.false;
+      expect((await escrow.getMilestone(0)).funded).to.be.true;
+      expect((await escrow.getMilestone(1)).funded).to.be.false;
+    });
+
+    it("funded() becomes true once every milestone is funded", async function () {
+      for (let i = 0; i < AMOUNTS.length; i++) {
+        await escrow.connect(payer).fund(i);
+      }
       expect(await stablecoin.balanceOf(await escrow.getAddress())).to.equal(TOTAL);
       expect(await escrow.funded()).to.be.true;
     });
 
-    it("emits EscrowFunded", async function () {
-      await expect(escrow.connect(payer).fund())
-        .to.emit(escrow, "EscrowFunded")
-        .withArgs(TOTAL);
+    it("emits MilestoneFunded", async function () {
+      await expect(escrow.connect(payer).fund(0))
+        .to.emit(escrow, "MilestoneFunded")
+        .withArgs(0n, AMOUNTS[0]);
     });
 
     it("reverts if caller is not payer", async function () {
-      await expect(escrow.connect(stranger).fund())
+      await expect(escrow.connect(stranger).fund(0))
         .to.be.revertedWithCustomError(escrow, "NotPayer");
     });
 
-    it("reverts if already funded", async function () {
-      await escrow.connect(payer).fund();
-      await expect(escrow.connect(payer).fund())
+    it("reverts if that milestone is already funded", async function () {
+      await escrow.connect(payer).fund(0);
+      await expect(escrow.connect(payer).fund(0))
         .to.be.revertedWithCustomError(escrow, "AlreadyFunded");
+    });
+
+    it("reverts on out-of-range milestone id", async function () {
+      await expect(escrow.connect(payer).fund(99))
+        .to.be.revertedWithCustomError(escrow, "InvalidMilestoneId");
     });
   });
 
@@ -193,7 +210,7 @@ describe("MilestoneEscrow", function () {
 
   describe("markDelivered", function () {
     beforeEach(async function () {
-      await escrow.connect(payer).fund();
+      await escrow.connect(payer).fund(0);
     });
 
     it("payee can mark a PENDING milestone delivered", async function () {
@@ -235,7 +252,7 @@ describe("MilestoneEscrow", function () {
 
   describe("approveMilestone", function () {
     beforeEach(async function () {
-      await escrow.connect(payer).fund();
+      await escrow.connect(payer).fund(0);
       await escrow.connect(payee).markDelivered(0);
     });
 
@@ -273,7 +290,7 @@ describe("MilestoneEscrow", function () {
 
   describe("raiseDispute / resolveDispute", function () {
     beforeEach(async function () {
-      await escrow.connect(payer).fund();
+      await escrow.connect(payer).fund(0);
       await escrow.connect(payee).markDelivered(0);
     });
 
@@ -332,7 +349,7 @@ describe("MilestoneEscrow", function () {
       const e2 = await deployEscrow({ arbiter: ethers.ZeroAddress });
       await stablecoin.mint(payer.address, TOTAL);
       await stablecoin.connect(payer).approve(await e2.getAddress(), ethers.MaxUint256);
-      await e2.connect(payer).fund();
+      await e2.connect(payer).fund(0);
       await e2.connect(payee).markDelivered(0);
       await e2.connect(payer).raiseDispute(0);
       await expect(e2.connect(arbiter).resolveDispute(0, true))
@@ -349,7 +366,7 @@ describe("MilestoneEscrow", function () {
 
   describe("claimTimelockRelease", function () {
     beforeEach(async function () {
-      await escrow.connect(payer).fund();
+      await escrow.connect(payer).fund(0);
       await escrow.connect(payee).markDelivered(0);
     });
 
@@ -390,7 +407,7 @@ describe("MilestoneEscrow", function () {
     });
 
     it("both votes cancel the escrow and refund PENDING milestones", async function () {
-      await escrow.connect(payer).fund();
+      for (let i = 0; i < AMOUNTS.length; i++) await escrow.connect(payer).fund(i);
       await escrow.connect(payer).voteCancel();
       const before = await stablecoin.balanceOf(payer.address);
       await escrow.connect(payee).voteCancel();
@@ -401,7 +418,7 @@ describe("MilestoneEscrow", function () {
     });
 
     it("only refunds PENDING milestones, leaves RELEASED ones alone", async function () {
-      await escrow.connect(payer).fund();
+      for (let i = 0; i < AMOUNTS.length; i++) await escrow.connect(payer).fund(i);
       await escrow.connect(payee).markDelivered(0);
       await escrow.connect(payer).approveMilestone(0); // milestone 0 released
 
@@ -414,7 +431,7 @@ describe("MilestoneEscrow", function () {
     });
 
     it("emits EscrowCancelled with the refunded amount", async function () {
-      await escrow.connect(payer).fund();
+      for (let i = 0; i < AMOUNTS.length; i++) await escrow.connect(payer).fund(i);
       await escrow.connect(payer).voteCancel();
       await expect(escrow.connect(payee).voteCancel())
         .to.emit(escrow, "EscrowCancelled")
@@ -462,11 +479,11 @@ describe("MilestoneEscrow", function () {
   describe("pause", function () {
     it("fund reverts when paused", async function () {
       await escrow.pause();
-      await expect(escrow.connect(payer).fund()).to.be.reverted;
+      await expect(escrow.connect(payer).fund(0)).to.be.reverted;
     });
 
     it("markDelivered reverts when paused", async function () {
-      await escrow.connect(payer).fund();
+      await escrow.connect(payer).fund(0);
       await escrow.pause();
       await expect(escrow.connect(payee).markDelivered(0)).to.be.reverted;
     });
@@ -496,18 +513,18 @@ describe("MilestoneEscrow", function () {
     });
 
     it("fund reverts if payer is not verified", async function () {
-      await expect(gatedEscrow.connect(payer).fund())
+      await expect(gatedEscrow.connect(payer).fund(0))
         .to.be.revertedWithCustomError(gatedEscrow, "NotVerified");
     });
 
     it("fund succeeds once payer is verified", async function () {
       await verifier.verifyIdentity(payer.address);
-      await expect(gatedEscrow.connect(payer).fund()).to.not.be.reverted;
+      await expect(gatedEscrow.connect(payer).fund(0)).to.not.be.reverted;
     });
 
     it("approveMilestone reverts if payee is not verified", async function () {
       await verifier.verifyIdentity(payer.address);
-      await gatedEscrow.connect(payer).fund();
+      await gatedEscrow.connect(payer).fund(0);
       await gatedEscrow.connect(payee).markDelivered(0);
 
       await expect(gatedEscrow.connect(payer).approveMilestone(0))
@@ -517,7 +534,7 @@ describe("MilestoneEscrow", function () {
     it("approveMilestone succeeds once payee is verified", async function () {
       await verifier.verifyIdentity(payer.address);
       await verifier.verifyIdentity(payee.address);
-      await gatedEscrow.connect(payer).fund();
+      await gatedEscrow.connect(payer).fund(0);
       await gatedEscrow.connect(payee).markDelivered(0);
 
       await expect(gatedEscrow.connect(payer).approveMilestone(0)).to.not.be.reverted;
@@ -529,7 +546,7 @@ describe("MilestoneEscrow", function () {
   describe("views", function () {
     it("remainingBalance reflects the escrow's token balance", async function () {
       expect(await escrow.remainingBalance()).to.equal(0n);
-      await escrow.connect(payer).fund();
+      for (let i = 0; i < AMOUNTS.length; i++) await escrow.connect(payer).fund(i);
       expect(await escrow.remainingBalance()).to.equal(TOTAL);
     });
 

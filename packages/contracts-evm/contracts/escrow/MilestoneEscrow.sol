@@ -48,6 +48,7 @@ contract MilestoneEscrow is
         bytes32 descriptionHash;  // IPFS/description hash agreed off-chain
         MilestoneStatus status;
         uint256 deliveredAt;      // 0 until marked delivered; starts the timelock clock
+        bool    funded;           // funded independently per milestone — payer can pay in installments
     }
 
     // ─── State ─────────────────────────────────────────────────────────────
@@ -59,7 +60,6 @@ contract MilestoneEscrow is
 
     uint256 public timelockDuration;     // seconds after delivery before payee can force-release
     uint256 public totalAmount;          // sum of all milestone amounts
-    bool    public funded;
     bool    public cancelled;
 
     Milestone[] private _milestones;
@@ -87,7 +87,7 @@ contract MilestoneEscrow is
     error AlreadyCancelled();
 
     // ─── Events ────────────────────────────────────────────────────────────
-    event EscrowFunded(uint256 totalAmount);
+    event MilestoneFunded(uint256 indexed id, uint256 amount);
     event MilestoneDelivered(uint256 indexed id, uint256 timestamp);
     event MilestoneReleased(uint256 indexed id, uint256 amount, bool viaTimelock);
     event MilestoneDisputed(uint256 indexed id, address indexed raisedBy);
@@ -150,7 +150,8 @@ contract MilestoneEscrow is
                 amount: amounts_[i],
                 descriptionHash: descriptionHashes_[i],
                 status: MilestoneStatus.PENDING,
-                deliveredAt: 0
+                deliveredAt: 0,
+                funded: false
             }));
         }
         totalAmount = sum;
@@ -164,17 +165,23 @@ contract MilestoneEscrow is
     // ─── Funding ───────────────────────────────────────────────────────────
 
     /**
-     * @notice Deposit the full agreed amount into escrow.
-     * @dev Payer only. Requires prior ERC-20 approval for `totalAmount`.
+     * @notice Deposit a single milestone's amount into escrow.
+     * @dev Payer only. Requires prior ERC-20 approval for that milestone's amount.
+     *      Milestones are funded independently — the payer can pay in
+     *      installments instead of depositing the full total up front.
      */
-    function fund() external whenNotPaused {
+    function fund(uint256 milestoneId) external whenNotPaused {
         if (msg.sender != payer) revert NotPayer();
-        if (funded) revert AlreadyFunded();
+
+        Milestone storage m = _get(milestoneId);
+        if (m.funded) revert AlreadyFunded();
+        if (m.status != MilestoneStatus.PENDING) revert InvalidMilestoneStatus();
         _checkVerified(payer);
 
-        funded = true;
-        token.safeTransferFrom(payer, address(this), totalAmount);
-        emit EscrowFunded(totalAmount);
+        m.funded = true;
+        uint256 amount = m.amount;
+        token.safeTransferFrom(payer, address(this), amount);
+        emit MilestoneFunded(milestoneId, amount);
     }
 
     // ─── Milestone lifecycle ─────────────────────────────────────────────────
@@ -182,9 +189,9 @@ contract MilestoneEscrow is
     /// @notice Flag a milestone as complete. Payee only. Starts the timelock clock.
     function markDelivered(uint256 milestoneId) external whenNotPaused {
         if (msg.sender != payee) revert NotPayee();
-        if (!funded) revert NotFunded();
 
         Milestone storage m = _get(milestoneId);
+        if (!m.funded) revert NotFunded();
         if (m.status != MilestoneStatus.PENDING) revert InvalidMilestoneStatus();
 
         m.status      = MilestoneStatus.DELIVERED;
@@ -269,12 +276,14 @@ contract MilestoneEscrow is
         for (uint256 i = 0; i < _milestones.length; i++) {
             Milestone storage m = _milestones[i];
             if (m.status == MilestoneStatus.PENDING) {
+                if (m.funded) {
+                    refundAmount += m.amount;
+                }
                 m.status = MilestoneStatus.REFUNDED;
-                refundAmount += m.amount;
             }
         }
 
-        if (refundAmount > 0 && funded) {
+        if (refundAmount > 0) {
             token.safeTransfer(payer, refundAmount);
         }
         emit EscrowCancelled(refundAmount);
@@ -303,6 +312,15 @@ contract MilestoneEscrow is
 
     function identityVerifier() external view returns (address) {
         return address(_identityVerifier);
+    }
+
+    /// @notice True once every milestone has been individually funded — funding
+    /// happens per milestone (installments), not once for the whole deal.
+    function funded() external view returns (bool) {
+        for (uint256 i = 0; i < _milestones.length; i++) {
+            if (!_milestones[i].funded) return false;
+        }
+        return true;
     }
 
     function milestoneCount() external view returns (uint256) {
