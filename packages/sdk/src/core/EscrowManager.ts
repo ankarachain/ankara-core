@@ -4,8 +4,9 @@ import type { Milestone, EscrowActivityEvent } from "../types";
 /**
  * EscrowManager
  *
- * Read and drive the lifecycle of a deployed MilestoneEscrow contract —
- * funding, marking milestones delivered, approvals, disputes, and cancellation.
+ * The chain moves money; MilestoneEscrow decides *when* it moves. Read and
+ * drive the lifecycle of a deployed MilestoneEscrow contract — funding,
+ * marking milestones delivered, approvals, disputes, and cancellation.
  * Works against a deployed escrow on either chain: pass an `EVMAdapter` for
  * an EVM-deployed `MilestoneEscrow`, or a `StellarAdapter` for a
  * Soroban-deployed `milestone-escrow` contract — both implement `IAdapter`.

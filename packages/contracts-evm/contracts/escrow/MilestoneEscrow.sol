@@ -12,7 +12,8 @@ import "../interfaces/IIdentityVerifier.sol";
 /**
  * @title MilestoneEscrow
  * @author Cranebolt Technologies — Ankara Chain SDK
- * @notice Tranche-based escrow for diaspora payments — one deal per contract instance.
+ * @notice The chain moves money; MilestoneEscrow decides *when* it moves.
+ * Tranche-based escrow for diaspora payments — one deal per contract instance.
  *
  * A payer deposits a stablecoin for the full agreed amount, split across milestones.
  * Each milestone releases to the payee only when both sides agree:

@@ -5,6 +5,8 @@ description: MilestoneEscrow and EscrowFactory — tranche-based, dual-approval 
 
 ## Overview
 
+Stellar and EVM chains both handle moving money. Neither handles *conditional* release of money — `MilestoneEscrow` is the contract that adds that condition: "release the funds when the milestone is delivered," not before.
+
 `MilestoneEscrow` is a tranche-based escrow for diaspora payments: someone abroad funds a deal, and payment is released to the recipient in agreed installments as milestones are completed — rather than as a single lump-sum transfer with no recourse.
 
 Each `MilestoneEscrow` contract is a single deal between one payer and one payee. No admin, arbiter, or Ankara Chain wallet ever custodies funds outside the contract — every release either requires payer approval, arbiter resolution of an active dispute, or an elapsed timelock with no dispute raised.
