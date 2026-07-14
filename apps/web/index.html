@@ -643,10 +643,10 @@ section {
 .usecase-badge.dev  { background: rgba(200,149,30,0.12); color: var(--gold-light); border: 1px solid rgba(200,149,30,0.25); }
 .usecase-badge.live { background: rgba(29,222,114,0.1);  color: var(--green);      border: 1px solid rgba(29,222,114,0.22); }
 
-.usecase-controls { display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 48px; }
+.usecase-controls { display: flex; align-items: center; justify-content: flex-end; gap: 20px; margin-top: 48px; }
 .usecase-arrow {
-  width: 40px; height: 40px; border-radius: 50%;
-  border: 1px solid var(--border-bright);
+  width: 40px; height: 40px; border-radius: 0;
+  border: none;
   background: transparent;
   color: var(--text-secondary);
   font-size: 18px;
@@ -654,10 +654,10 @@ section {
   display: flex; align-items: center; justify-content: center;
   transition: all 0.2s;
 }
-.usecase-arrow:hover { border-color: var(--green); color: var(--green); }
+.usecase-arrow:hover { color: var(--green); }
 .usecase-dots { display: flex; gap: 8px; }
 .usecase-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-bright); cursor: pointer; transition: all 0.2s; border: none; padding: 0; }
-.usecase-dot.active { background: var(--green); width: 22px; border-radius: 4px; }
+.usecase-dot.active { background: var(--green); }
 
 .usecase-card {
   background: var(--bg-card);
@@ -896,6 +896,34 @@ section {
   overflow: hidden;
   box-shadow: 0 20px 48px rgba(0,0,0,0.4);
 }
+.chain-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+.chain-switch-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+.chain-switch-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+.chain-switch-btn:hover { border-color: var(--border-bright); transform: translateY(-1px); }
+.chain-switch-btn.active { border-color: var(--green); box-shadow: 0 0 0 2px rgba(29,222,114,0.18); }
 .code-header {
   padding: 12px 16px;
   background: #0A1A0E;
@@ -996,6 +1024,10 @@ pre {
   font-size: 12px;
   color: var(--green);
 }
+.usecase-slide .section-label { font-size: 10px; margin-bottom: 16px; }
+.usecase-slide .step-num { width: 24px; height: 24px; font-size: 10px; }
+.usecase-slide .step-title { font-size: 13px; margin-bottom: 4px; }
+.usecase-slide .step-desc { font-size: 13px; }
 
 /* ─── CHAINS ─── */
 #chains {
@@ -1389,9 +1421,9 @@ footer {
     <span class="logo-text">Ankara <span>Chain</span></span>
   </a>
   <ul class="nav-links">
-    <li><a href="#what">What is it</a></li>
     <li><a href="#assets">Asset Classes</a></li>
     <li><a href="#usecases">Use Cases</a></li>
+    <li><a href="#what">What is it</a></li>
     <li><a href="#modules">Modules</a></li>
     <li><a href="#code">Quick Start</a></li>
     <li><a href="#pricing">Pricing</a></li>
@@ -1482,24 +1514,435 @@ footer {
 <!-- STATS STRIP -->
 <div class="stats-strip">
   <div class="stats-scroll">
-    <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">EVM Chains Supported</span></div>
+    <div class="stat-item"><span class="stat-num">5</span><span class="stat-label">Chains Supported (EVM + Stellar)</span></div>
     <div class="stat-item"><span class="stat-num">6</span><span class="stat-label">African Asset Classes</span></div>
     <div class="stat-item"><span class="stat-num">30min</span><span class="stat-label">First Token Deploy</span></div>
     <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Open Source License</span></div>
     <div class="stat-item"><span class="stat-num">Pluggable</span><span class="stat-label">KYC Interface</span></div>
-    <div class="stat-item"><span class="stat-num">12</span><span class="stat-label">Asset Templates (ERC-20/721/1155)</span></div>
+    <div class="stat-item"><span class="stat-num">12</span><span class="stat-label">Asset Templates (Fungible, NFT & Multi-Token)</span></div>
     <div class="stat-item"><span class="stat-num">&lt;150KB</span><span class="stat-label">Bundle Size</span></div>
     <div class="stat-item"><span class="stat-num">2G/3G</span><span class="stat-label">Low-Bandwidth Ready</span></div>
     <!-- duplicate for seamless scroll -->
-    <div class="stat-item"><span class="stat-num">4</span><span class="stat-label">EVM Chains Supported</span></div>
+    <div class="stat-item"><span class="stat-num">5</span><span class="stat-label">Chains Supported (EVM + Stellar)</span></div>
     <div class="stat-item"><span class="stat-num">6</span><span class="stat-label">African Asset Classes</span></div>
     <div class="stat-item"><span class="stat-num">30min</span><span class="stat-label">First Token Deploy</span></div>
     <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Open Source License</span></div>
     <div class="stat-item"><span class="stat-num">Pluggable</span><span class="stat-label">KYC Interface</span></div>
-    <div class="stat-item"><span class="stat-num">12</span><span class="stat-label">Asset Templates (ERC-20/721/1155)</span></div>
+    <div class="stat-item"><span class="stat-num">12</span><span class="stat-label">Asset Templates (Fungible, NFT & Multi-Token)</span></div>
     <div class="stat-item"><span class="stat-num">&lt;150KB</span><span class="stat-label">Bundle Size</span></div>
     <div class="stat-item"><span class="stat-num">2G/3G</span><span class="stat-label">Low-Bandwidth Ready</span></div>
   </div>
+</div>
+
+<!-- ASSET CLASSES -->
+<div style="position:relative; overflow:hidden; border-bottom:1px solid var(--border);">
+  <div class="orb orb-gold" style="top:10%; right:-10%; opacity:0.5;"></div>
+  <section id="assets">
+    <div class="reveal">
+      <div class="section-label">Supported Assets</div>
+      <h2 class="section-title">African asset classes,<br>natively on-chain.</h2>
+      <p class="section-desc">Purpose-built smart contract templates for the asset classes that matter most across African markets — not generic token wrappers, and live on both EVM chains and Stellar.</p>
+    </div>
+    <div class="assets-grid reveal">
+      <div class="asset-card">
+        <span class="asset-icon">🌾</span>
+        <div class="asset-name">Farmland</div>
+        <p class="asset-desc">Tokenize agricultural land with GPS coordinates, soil classification, irrigation data, and title document hashes linked to IPFS.</p>
+        <span class="asset-tag"><code>FarmlandToken</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">🌽</span>
+        <div class="asset-name">Commodity Receipts</div>
+        <p class="asset-desc">On-chain warehouse receipts for cocoa, coffee, maize, and cotton — with inspection reports, grade classification, and expiry tracking.</p>
+        <span class="asset-tag"><code>CommodityReceiptToken</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">🏢</span>
+        <div class="asset-name">Real Estate</div>
+        <p class="asset-desc">Fractional property ownership tokens for Lagos, Nairobi, Accra, and Cape Town markets. ERC-20 fungible shares or ERC-721 unique parcels.</p>
+        <span class="asset-tag"><code>RealEstateToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">📄</span>
+        <div class="asset-name">Invoices & Receivables</div>
+        <p class="asset-desc">Trade finance on-chain. Tokenize invoices with face value, discount rates, due dates, and debtor references for financing workflows.</p>
+        <span class="asset-tag"><code>InvoiceToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">🌱</span>
+        <div class="asset-name">Carbon Credits</div>
+        <p class="asset-desc">Verified emission reduction units with provenance, verification body reference, and retirement tracking baked into the token standard.</p>
+        <span class="asset-tag"><code>CarbonCreditToken.sol</code></span>
+      </div>
+      <div class="asset-card">
+        <span class="asset-icon">⛏️</span>
+        <div class="asset-name">Mining Rights</div>
+        <p class="asset-desc">Tokenize mineral rights and extraction licenses with jurisdiction metadata, license expiry, and royalty distribution hooks.</p>
+        <span class="asset-tag"><code>MiningRightsToken.sol</code></span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- FEATURES & USE CASES CAROUSEL -->
+<div style="position:relative; overflow:hidden; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background: var(--bg-surface);">
+  <div class="kente-bg" style="opacity:0.4;"></div>
+  <section id="usecases">
+    <div class="reveal">
+      <div class="section-label">Features &amp; Use Cases</div>
+      <h2 class="section-title">One SDK.<br>Six ways to build.</h2>
+      <p class="section-desc">From diaspora escrow to warehouse trade finance — six capabilities live in the SDK today.</p>
+    </div>
+
+    <div class="usecase-carousel reveal">
+      <div class="usecase-track">
+
+        <!-- Slide 1: Milestone Escrow -->
+        <div class="usecase-slide active" data-slide="0">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">The chain moves money. Milestone Escrow decides when.</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Payer funds the escrow</div>
+                  <div class="step-desc">The diaspora buyer deposits a stablecoin (USDC, cUSD) for the full agreed amount into a dedicated escrow contract — no intermediary custody, ever.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Milestones agreed upfront</div>
+                  <div class="step-desc">Both sides define tranche amounts and conditions before any funds move — e.g. deposit, shipment, delivery.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">Payee marks a milestone complete</div>
+                  <div class="step-desc">Goods ship, a service is delivered, a phase finishes — the payee flags it on-chain.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Both approve, funds release</div>
+                  <div class="step-desc">Dual-approval releases the tranche automatically. A dispute freezes it for an optional arbiter — or the payee auto-releases after a timelock if the payer goes silent.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="escrow-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Import Order</div>
+              <div class="escrow-total">$2,400 <span style="font-size:14px; color:var(--text-muted); font-weight:500;">held in escrow</span></div>
+              <div style="margin-top:20px;">
+                <div class="milestone-row">
+                  <div class="milestone-info">
+                    <span class="milestone-dot done"></span>
+                    <div><div class="milestone-name">Deposit paid</div><div class="milestone-pct">30% · $720</div></div>
+                  </div>
+                  <span class="milestone-status done">Released</span>
+                </div>
+                <div class="milestone-row">
+                  <div class="milestone-info">
+                    <span class="milestone-dot pending"></span>
+                    <div><div class="milestone-name">Goods shipped</div><div class="milestone-pct">40% · $960</div></div>
+                  </div>
+                  <span class="milestone-status pending">Pending approval</span>
+                </div>
+                <div class="milestone-row">
+                  <div class="milestone-info">
+                    <span class="milestone-dot locked"></span>
+                    <div><div class="milestone-name">Delivery confirmed</div><div class="milestone-pct">30% · $720</div></div>
+                  </div>
+                  <span class="milestone-status locked">Locked</span>
+                </div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                Ships open-source (MIT) as <code style="color:var(--green); font-size:11px;">MilestoneEscrow</code> — same factory-deploy pattern as every other Ankara Chain template, live on both EVM chains and Stellar.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 2: Farmland Tokenization -->
+        <div class="usecase-slide" data-slide="1">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">Farmland Investment — How it works</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Tokenize the parcel</div>
+                  <div class="step-desc">Deploy a <code style="color:var(--green); font-size:12px;">FarmlandToken</code> with GPS coordinates, soil type, irrigation data, and a title document hash anchored on-chain.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Sell fractional shares</div>
+                  <div class="step-desc">Diaspora and local investors buy ERC-20 shares representing a stake in the land — no full-capital requirement.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">Track value on-chain</div>
+                  <div class="step-desc">The farmer or manager updates the valuation as the land appreciates or a harvest completes.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Trade or hold</div>
+                  <div class="step-desc">Shares transfer freely between identity-verified holders, with pause and lifecycle controls if disputes arise.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="usecase-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Kano Farmland Token</div>
+              <div class="escrow-total">KFT <span style="font-size:14px; color:var(--text-muted); font-weight:500;">10,000 m² parcel</span></div>
+              <div style="margin-top:16px;">
+                <div class="stat-row"><span class="stat-label">Location</span><span class="stat-value">Kano, Nigeria</span></div>
+                <div class="stat-row"><span class="stat-label">Soil type</span><span class="stat-value">Loam</span></div>
+                <div class="stat-row"><span class="stat-label">Valuation</span><span class="stat-value">$50,000</span></div>
+                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">ACTIVE</span></div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <code style="color:var(--green); font-size:11px;">FarmlandToken.sol</code> — deployed via TokenFactory, one of 6 ERC-20 templates live today.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 3: Commodity Trade Finance -->
+        <div class="usecase-slide" data-slide="2">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">Warehouse Trade Finance — How it works</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Warehouse registers a batch</div>
+                  <div class="step-desc">Grade, quantity, harvest season, and inspection report hash recorded as a new ERC-1155 token ID.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Financiers mint against the batch</div>
+                  <div class="step-desc">Buyers or lenders hold tokens representing a claim on the physical goods sitting in storage.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">Value tracked per batch</div>
+                  <div class="step-desc">The warehouse operator updates the on-chain valuation as market rates shift.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Batches merge, expire, or redeem</div>
+                  <div class="step-desc">Compatible batches consolidate on request; expired batches stop minting automatically.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="usecase-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Batch #14</div>
+              <div class="escrow-total">Cocoa <span style="font-size:14px; color:var(--text-muted); font-weight:500;">Grade A</span></div>
+              <div style="margin-top:16px;">
+                <div class="stat-row"><span class="stat-label">Warehouse</span><span class="stat-value">Ibadan</span></div>
+                <div class="stat-row"><span class="stat-label">Quantity</span><span class="stat-value">12,000 kg</span></div>
+                <div class="stat-row"><span class="stat-label">Valuation</span><span class="stat-value">$9,600</span></div>
+                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">ACTIVE</span></div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <code style="color:var(--green); font-size:11px;">CommodityBatchToken.sol</code> — ERC-1155, one contract per warehouse.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 4: Multi-Asset Pool Vault -->
+        <div class="usecase-slide" data-slide="3">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">Multi-Asset Pool Vault — How it works</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Manager builds the basket</div>
+                  <div class="step-desc">Whitelist accepted Ankara ERC-20 tokens and set target allocation weights — up to 50 tokens per vault.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Investors deposit, priced at NAV</div>
+                  <div class="step-desc">Deposits mint pool tokens priced against the current oracle-fed net asset value.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">NAV updates continuously</div>
+                  <div class="step-desc">Total AUM and NAV-per-token read live oracle prices across every accepted token in the basket.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Withdraw a proportional basket</div>
+                  <div class="step-desc">Burn pool tokens anytime to redeem your share of the underlying holdings — a management fee accrues automatically.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="usecase-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Diversified Harvest Fund</div>
+              <div class="escrow-total">$1.42 <span style="font-size:14px; color:var(--text-muted); font-weight:500;">NAV per token</span></div>
+              <div style="margin-top:20px;">
+                <div class="alloc-row">
+                  <div class="alloc-label"><span>Cocoa Receipts</span><span>40%</span></div>
+                  <div class="alloc-track"><div class="alloc-fill" style="width:40%; background:var(--green);"></div></div>
+                </div>
+                <div class="alloc-row">
+                  <div class="alloc-label"><span>Farmland</span><span>35%</span></div>
+                  <div class="alloc-track"><div class="alloc-fill" style="width:35%; background:var(--gold);"></div></div>
+                </div>
+                <div class="alloc-row">
+                  <div class="alloc-label"><span>Real Estate</span><span>25%</span></div>
+                  <div class="alloc-track"><div class="alloc-fill" style="width:25%; background:var(--text-muted);"></div></div>
+                </div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <code style="color:var(--green); font-size:11px;">PoolVault.sol</code> — oracle-priced, 0.5% annual management fee by default.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 5: Fractional Real Estate -->
+        <div class="usecase-slide" data-slide="4">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">Fractional Real Estate — How it works</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Property goes on-chain</div>
+                  <div class="step-desc">Title deed hash, valuation, and rental yield recorded on a <code style="color:var(--green); font-size:12px;">RealEstateToken</code>.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Fractional shares sold</div>
+                  <div class="step-desc">Investors buy ERC-20 shares instead of needing the full purchase price for the property.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">Rental income distributed</div>
+                  <div class="step-desc">Rental proceeds are declared on-chain and shared proportional to each holder's stake.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Occupancy and valuation tracked</div>
+                  <div class="step-desc">Status updates keep the on-chain record current as the market and tenancy change.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="usecase-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Lagos Duplex</div>
+              <div class="escrow-total">LKS <span style="font-size:14px; color:var(--text-muted); font-weight:500;">fractional shares</span></div>
+              <div style="margin-top:16px;">
+                <div class="stat-row"><span class="stat-label">Valuation</span><span class="stat-value">$220,000</span></div>
+                <div class="stat-row"><span class="stat-label">Rental yield</span><span class="stat-value">6.2%</span></div>
+                <div class="stat-row"><span class="stat-label">Occupancy</span><span class="stat-value">Occupied</span></div>
+                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">ACTIVE</span></div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <code style="color:var(--green); font-size:11px;">RealEstateToken.sol</code> — one of 6 ERC-20 templates live today.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 6: AI-Native Deployment (MCP) -->
+        <div class="usecase-slide" data-slide="5">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">AI-Native Deployment — How it works</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Add the MCP server</div>
+                  <div class="step-desc"><code style="color:var(--green); font-size:12px;">npx @ankarachain/mcp</code> plugs straight into Claude Code, Cursor, or any MCP-compatible assistant.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Describe the asset in plain English</div>
+                  <div class="step-desc">"Deploy a farmland token for 5 hectares in Kaduna, symbol KAD5" — no SDK code required.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">The assistant calls the right tool</div>
+                  <div class="step-desc"><code style="color:var(--green); font-size:12px;">deploy_token</code>, <code style="color:var(--green); font-size:12px;">deploy_nft</code>, or <code style="color:var(--green); font-size:12px;">deploy_batch_token</code> fires with the parsed parameters.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Get the result in-chat</div>
+                  <div class="step-desc">Contract address and transaction hash return directly in the conversation — no context switch to a terminal.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="usecase-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">Example — inside Claude Code</div>
+              <div class="terminal-body" style="padding:0;">
+                <div class="t-line"><span class="t-prompt">You:</span><span class="t-cmd">Deploy a farmland token for 5 hectares in Kaduna, symbol KAD5</span></div>
+                <div class="t-output">Calling deploy_token(template: "farmland", symbol: "KAD5", ...)</div>
+                <div style="height:8px"></div>
+                <div class="t-success">✓ Deployed: <span class="t-gold">0x8f2A...c41B</span></div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <code style="color:var(--green); font-size:11px;">@ankarachain/mcp</code> — 7 tools covering deploy, mint, status, and lifecycle management.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="usecase-controls">
+        <button class="usecase-arrow" id="usecase-prev" aria-label="Previous">←</button>
+        <div class="usecase-dots" id="usecase-dots">
+          <button class="usecase-dot active" data-goto="0" aria-label="Slide 1"></button>
+          <button class="usecase-dot" data-goto="1" aria-label="Slide 2"></button>
+          <button class="usecase-dot" data-goto="2" aria-label="Slide 3"></button>
+          <button class="usecase-dot" data-goto="3" aria-label="Slide 4"></button>
+          <button class="usecase-dot" data-goto="4" aria-label="Slide 5"></button>
+          <button class="usecase-dot" data-goto="5" aria-label="Slide 6"></button>
+        </div>
+        <button class="usecase-arrow" id="usecase-next" aria-label="Next">→</button>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- WHAT IS ANKARA CHAIN -->
@@ -1578,423 +2021,6 @@ footer {
     </div>
   </div>
 </section>
-
-<!-- ASSET CLASSES -->
-<div style="position:relative; overflow:hidden; border-top:1px solid var(--border); border-bottom:1px solid var(--border); background: var(--bg-surface);">
-  <div class="kente-bg" style="opacity:0.4;"></div>
-  <section id="assets">
-    <div class="reveal">
-      <div class="section-label">Supported Assets</div>
-      <h2 class="section-title">African asset classes,<br>natively on-chain.</h2>
-      <p class="section-desc">Purpose-built smart contract templates for the asset classes that matter most across African markets — not generic ERC-20 wrappers.</p>
-    </div>
-    <div class="assets-grid reveal">
-      <div class="asset-card">
-        <span class="asset-icon">🌾</span>
-        <div class="asset-name">Farmland</div>
-        <p class="asset-desc">Tokenize agricultural land with GPS coordinates, soil classification, irrigation data, and title document hashes linked to IPFS.</p>
-        <span class="asset-tag"><code>FarmlandToken.sol</code></span>
-      </div>
-      <div class="asset-card">
-        <span class="asset-icon">🌽</span>
-        <div class="asset-name">Commodity Receipts</div>
-        <p class="asset-desc">On-chain warehouse receipts for cocoa, coffee, maize, and cotton — with inspection reports, grade classification, and expiry tracking.</p>
-        <span class="asset-tag"><code>CommodityReceiptToken.sol</code></span>
-      </div>
-      <div class="asset-card">
-        <span class="asset-icon">🏢</span>
-        <div class="asset-name">Real Estate</div>
-        <p class="asset-desc">Fractional property ownership tokens for Lagos, Nairobi, Accra, and Cape Town markets. ERC-20 fungible shares or ERC-721 unique parcels.</p>
-        <span class="asset-tag"><code>RealEstateToken.sol</code></span>
-      </div>
-      <div class="asset-card">
-        <span class="asset-icon">📄</span>
-        <div class="asset-name">Invoices & Receivables</div>
-        <p class="asset-desc">Trade finance on-chain. Tokenize invoices with face value, discount rates, due dates, and debtor references for financing workflows.</p>
-        <span class="asset-tag"><code>InvoiceToken.sol</code></span>
-      </div>
-      <div class="asset-card">
-        <span class="asset-icon">🌱</span>
-        <div class="asset-name">Carbon Credits</div>
-        <p class="asset-desc">Verified emission reduction units with provenance, verification body reference, and retirement tracking baked into the token standard.</p>
-        <span class="asset-tag"><code>CarbonCreditToken.sol</code></span>
-      </div>
-      <div class="asset-card">
-        <span class="asset-icon">⛏️</span>
-        <div class="asset-name">Mining Rights</div>
-        <p class="asset-desc">Tokenize mineral rights and extraction licenses with jurisdiction metadata, license expiry, and royalty distribution hooks.</p>
-        <span class="asset-tag"><code>MiningRightsToken.sol</code></span>
-      </div>
-    </div>
-  </section>
-</div>
-
-<!-- FEATURES & USE CASES CAROUSEL -->
-<div style="position:relative; overflow:hidden; border-bottom:1px solid var(--border);">
-  <div class="orb orb-gold" style="top:10%; right:-10%; opacity:0.5;"></div>
-  <section id="usecases">
-    <div class="reveal">
-      <div class="section-label">Features &amp; Use Cases</div>
-      <h2 class="section-title">One SDK.<br>Six ways to build.</h2>
-      <p class="section-desc">From diaspora escrow to warehouse trade finance — six capabilities live in the SDK today.</p>
-    </div>
-
-    <div class="usecase-carousel reveal">
-      <div class="usecase-track">
-
-        <!-- Slide 1: Milestone Escrow -->
-        <div class="usecase-slide active" data-slide="0">
-          <div class="usecase-badge live">Available Now</div>
-          <div class="usecase-layout">
-            <div class="code-steps">
-              <div class="section-label" style="margin-bottom:24px;">Diaspora Payments — How Milestone Escrow works</div>
-              <div class="step-item">
-                <div class="step-num">01</div>
-                <div class="step-content">
-                  <div class="step-title">Payer funds the escrow</div>
-                  <div class="step-desc">The diaspora buyer deposits a stablecoin (USDC, cUSD) for the full agreed amount into a dedicated escrow contract — no intermediary custody, ever.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">02</div>
-                <div class="step-content">
-                  <div class="step-title">Milestones agreed upfront</div>
-                  <div class="step-desc">Both sides define tranche amounts and conditions before any funds move — e.g. deposit, shipment, delivery.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">03</div>
-                <div class="step-content">
-                  <div class="step-title">Payee marks a milestone complete</div>
-                  <div class="step-desc">Goods ship, a service is delivered, a phase finishes — the payee flags it on-chain.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">04</div>
-                <div class="step-content">
-                  <div class="step-title">Both approve, funds release</div>
-                  <div class="step-desc">Dual-approval releases the tranche automatically. A dispute freezes it for an optional arbiter — or the payee auto-releases after a timelock if the payer goes silent.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="escrow-card">
-              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Import Order</div>
-              <div class="escrow-total">$2,400 <span style="font-size:14px; color:var(--text-muted); font-weight:500;">held in escrow</span></div>
-              <div style="margin-top:20px;">
-                <div class="milestone-row">
-                  <div class="milestone-info">
-                    <span class="milestone-dot done"></span>
-                    <div><div class="milestone-name">Deposit paid</div><div class="milestone-pct">30% · $720</div></div>
-                  </div>
-                  <span class="milestone-status done">Released</span>
-                </div>
-                <div class="milestone-row">
-                  <div class="milestone-info">
-                    <span class="milestone-dot pending"></span>
-                    <div><div class="milestone-name">Goods shipped</div><div class="milestone-pct">40% · $960</div></div>
-                  </div>
-                  <span class="milestone-status pending">Pending approval</span>
-                </div>
-                <div class="milestone-row">
-                  <div class="milestone-info">
-                    <span class="milestone-dot locked"></span>
-                    <div><div class="milestone-name">Delivery confirmed</div><div class="milestone-pct">30% · $720</div></div>
-                  </div>
-                  <span class="milestone-status locked">Locked</span>
-                </div>
-              </div>
-              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
-                Ships open-source (MIT) as <code style="color:var(--green); font-size:11px;">MilestoneEscrow.sol</code> — same factory-deploy pattern as every other Ankara Chain template.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 2: Farmland Tokenization -->
-        <div class="usecase-slide" data-slide="1">
-          <div class="usecase-badge live">Available Now</div>
-          <div class="usecase-layout">
-            <div class="code-steps">
-              <div class="section-label" style="margin-bottom:24px;">Farmland Investment — How it works</div>
-              <div class="step-item">
-                <div class="step-num">01</div>
-                <div class="step-content">
-                  <div class="step-title">Tokenize the parcel</div>
-                  <div class="step-desc">Deploy a <code style="color:var(--green); font-size:12px;">FarmlandToken</code> with GPS coordinates, soil type, irrigation data, and a title document hash anchored on-chain.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">02</div>
-                <div class="step-content">
-                  <div class="step-title">Sell fractional shares</div>
-                  <div class="step-desc">Diaspora and local investors buy ERC-20 shares representing a stake in the land — no full-capital requirement.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">03</div>
-                <div class="step-content">
-                  <div class="step-title">Track value on-chain</div>
-                  <div class="step-desc">The farmer or manager updates the valuation as the land appreciates or a harvest completes.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">04</div>
-                <div class="step-content">
-                  <div class="step-title">Trade or hold</div>
-                  <div class="step-desc">Shares transfer freely between identity-verified holders, with pause and lifecycle controls if disputes arise.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="usecase-card">
-              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Kano Farmland Token</div>
-              <div class="escrow-total">KFT <span style="font-size:14px; color:var(--text-muted); font-weight:500;">10,000 m² parcel</span></div>
-              <div style="margin-top:16px;">
-                <div class="stat-row"><span class="stat-label">Location</span><span class="stat-value">Kano, Nigeria</span></div>
-                <div class="stat-row"><span class="stat-label">Soil type</span><span class="stat-value">Loam</span></div>
-                <div class="stat-row"><span class="stat-label">Valuation</span><span class="stat-value">$50,000</span></div>
-                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">ACTIVE</span></div>
-              </div>
-              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
-                <code style="color:var(--green); font-size:11px;">FarmlandToken.sol</code> — deployed via TokenFactory, one of 6 ERC-20 templates live today.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 3: Commodity Trade Finance -->
-        <div class="usecase-slide" data-slide="2">
-          <div class="usecase-badge live">Available Now</div>
-          <div class="usecase-layout">
-            <div class="code-steps">
-              <div class="section-label" style="margin-bottom:24px;">Warehouse Trade Finance — How it works</div>
-              <div class="step-item">
-                <div class="step-num">01</div>
-                <div class="step-content">
-                  <div class="step-title">Warehouse registers a batch</div>
-                  <div class="step-desc">Grade, quantity, harvest season, and inspection report hash recorded as a new ERC-1155 token ID.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">02</div>
-                <div class="step-content">
-                  <div class="step-title">Financiers mint against the batch</div>
-                  <div class="step-desc">Buyers or lenders hold tokens representing a claim on the physical goods sitting in storage.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">03</div>
-                <div class="step-content">
-                  <div class="step-title">Value tracked per batch</div>
-                  <div class="step-desc">The warehouse operator updates the on-chain valuation as market rates shift.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">04</div>
-                <div class="step-content">
-                  <div class="step-title">Batches merge, expire, or redeem</div>
-                  <div class="step-desc">Compatible batches consolidate on request; expired batches stop minting automatically.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="usecase-card">
-              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Batch #14</div>
-              <div class="escrow-total">Cocoa <span style="font-size:14px; color:var(--text-muted); font-weight:500;">Grade A</span></div>
-              <div style="margin-top:16px;">
-                <div class="stat-row"><span class="stat-label">Warehouse</span><span class="stat-value">Ibadan</span></div>
-                <div class="stat-row"><span class="stat-label">Quantity</span><span class="stat-value">12,000 kg</span></div>
-                <div class="stat-row"><span class="stat-label">Valuation</span><span class="stat-value">$9,600</span></div>
-                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">ACTIVE</span></div>
-              </div>
-              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
-                <code style="color:var(--green); font-size:11px;">CommodityBatchToken.sol</code> — ERC-1155, one contract per warehouse.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 4: Multi-Asset Pool Vault -->
-        <div class="usecase-slide" data-slide="3">
-          <div class="usecase-badge live">Available Now</div>
-          <div class="usecase-layout">
-            <div class="code-steps">
-              <div class="section-label" style="margin-bottom:24px;">Multi-Asset Pool Vault — How it works</div>
-              <div class="step-item">
-                <div class="step-num">01</div>
-                <div class="step-content">
-                  <div class="step-title">Manager builds the basket</div>
-                  <div class="step-desc">Whitelist accepted Ankara ERC-20 tokens and set target allocation weights — up to 50 tokens per vault.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">02</div>
-                <div class="step-content">
-                  <div class="step-title">Investors deposit, priced at NAV</div>
-                  <div class="step-desc">Deposits mint pool tokens priced against the current oracle-fed net asset value.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">03</div>
-                <div class="step-content">
-                  <div class="step-title">NAV updates continuously</div>
-                  <div class="step-desc">Total AUM and NAV-per-token read live oracle prices across every accepted token in the basket.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">04</div>
-                <div class="step-content">
-                  <div class="step-title">Withdraw a proportional basket</div>
-                  <div class="step-desc">Burn pool tokens anytime to redeem your share of the underlying holdings — a management fee accrues automatically.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="usecase-card">
-              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Diversified Harvest Fund</div>
-              <div class="escrow-total">$1.42 <span style="font-size:14px; color:var(--text-muted); font-weight:500;">NAV per token</span></div>
-              <div style="margin-top:20px;">
-                <div class="alloc-row">
-                  <div class="alloc-label"><span>Cocoa Receipts</span><span>40%</span></div>
-                  <div class="alloc-track"><div class="alloc-fill" style="width:40%; background:var(--green);"></div></div>
-                </div>
-                <div class="alloc-row">
-                  <div class="alloc-label"><span>Farmland</span><span>35%</span></div>
-                  <div class="alloc-track"><div class="alloc-fill" style="width:35%; background:var(--gold);"></div></div>
-                </div>
-                <div class="alloc-row">
-                  <div class="alloc-label"><span>Real Estate</span><span>25%</span></div>
-                  <div class="alloc-track"><div class="alloc-fill" style="width:25%; background:var(--text-muted);"></div></div>
-                </div>
-              </div>
-              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
-                <code style="color:var(--green); font-size:11px;">PoolVault.sol</code> — oracle-priced, 0.5% annual management fee by default.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 5: Fractional Real Estate -->
-        <div class="usecase-slide" data-slide="4">
-          <div class="usecase-badge live">Available Now</div>
-          <div class="usecase-layout">
-            <div class="code-steps">
-              <div class="section-label" style="margin-bottom:24px;">Fractional Real Estate — How it works</div>
-              <div class="step-item">
-                <div class="step-num">01</div>
-                <div class="step-content">
-                  <div class="step-title">Property goes on-chain</div>
-                  <div class="step-desc">Title deed hash, valuation, and rental yield recorded on a <code style="color:var(--green); font-size:12px;">RealEstateToken</code>.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">02</div>
-                <div class="step-content">
-                  <div class="step-title">Fractional shares sold</div>
-                  <div class="step-desc">Investors buy ERC-20 shares instead of needing the full purchase price for the property.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">03</div>
-                <div class="step-content">
-                  <div class="step-title">Rental income distributed</div>
-                  <div class="step-desc">Rental proceeds are declared on-chain and shared proportional to each holder's stake.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">04</div>
-                <div class="step-content">
-                  <div class="step-title">Occupancy and valuation tracked</div>
-                  <div class="step-desc">Status updates keep the on-chain record current as the market and tenancy change.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="usecase-card">
-              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Lagos Duplex</div>
-              <div class="escrow-total">LKS <span style="font-size:14px; color:var(--text-muted); font-weight:500;">fractional shares</span></div>
-              <div style="margin-top:16px;">
-                <div class="stat-row"><span class="stat-label">Valuation</span><span class="stat-value">$220,000</span></div>
-                <div class="stat-row"><span class="stat-label">Rental yield</span><span class="stat-value">6.2%</span></div>
-                <div class="stat-row"><span class="stat-label">Occupancy</span><span class="stat-value">Occupied</span></div>
-                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">ACTIVE</span></div>
-              </div>
-              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
-                <code style="color:var(--green); font-size:11px;">RealEstateToken.sol</code> — one of 6 ERC-20 templates live today.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 6: AI-Native Deployment (MCP) -->
-        <div class="usecase-slide" data-slide="5">
-          <div class="usecase-badge live">Available Now</div>
-          <div class="usecase-layout">
-            <div class="code-steps">
-              <div class="section-label" style="margin-bottom:24px;">AI-Native Deployment — How it works</div>
-              <div class="step-item">
-                <div class="step-num">01</div>
-                <div class="step-content">
-                  <div class="step-title">Add the MCP server</div>
-                  <div class="step-desc"><code style="color:var(--green); font-size:12px;">npx @ankarachain/mcp</code> plugs straight into Claude Code, Cursor, or any MCP-compatible assistant.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">02</div>
-                <div class="step-content">
-                  <div class="step-title">Describe the asset in plain English</div>
-                  <div class="step-desc">"Deploy a farmland token for 5 hectares in Kaduna, symbol KAD5" — no SDK code required.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">03</div>
-                <div class="step-content">
-                  <div class="step-title">The assistant calls the right tool</div>
-                  <div class="step-desc"><code style="color:var(--green); font-size:12px;">deploy_token</code>, <code style="color:var(--green); font-size:12px;">deploy_nft</code>, or <code style="color:var(--green); font-size:12px;">deploy_batch_token</code> fires with the parsed parameters.</div>
-                </div>
-              </div>
-              <div class="step-item">
-                <div class="step-num">04</div>
-                <div class="step-content">
-                  <div class="step-title">Get the result in-chat</div>
-                  <div class="step-desc">Contract address and transaction hash return directly in the conversation — no context switch to a terminal.</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="usecase-card">
-              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:10px;">Example — inside Claude Code</div>
-              <div class="terminal-body" style="padding:0;">
-                <div class="t-line"><span class="t-prompt">You:</span><span class="t-cmd">Deploy a farmland token for 5 hectares in Kaduna, symbol KAD5</span></div>
-                <div class="t-output">Calling deploy_token(template: "farmland", symbol: "KAD5", ...)</div>
-                <div style="height:8px"></div>
-                <div class="t-success">✓ Deployed: <span class="t-gold">0x8f2A...c41B</span></div>
-              </div>
-              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
-                <code style="color:var(--green); font-size:11px;">@ankarachain/mcp</code> — 7 tools covering deploy, mint, status, and lifecycle management.
-              </p>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="usecase-controls">
-        <button class="usecase-arrow" id="usecase-prev" aria-label="Previous">‹</button>
-        <div class="usecase-dots" id="usecase-dots">
-          <button class="usecase-dot active" data-goto="0" aria-label="Slide 1"></button>
-          <button class="usecase-dot" data-goto="1" aria-label="Slide 2"></button>
-          <button class="usecase-dot" data-goto="2" aria-label="Slide 3"></button>
-          <button class="usecase-dot" data-goto="3" aria-label="Slide 4"></button>
-          <button class="usecase-dot" data-goto="4" aria-label="Slide 5"></button>
-          <button class="usecase-dot" data-goto="5" aria-label="Slide 6"></button>
-        </div>
-        <button class="usecase-arrow" id="usecase-next" aria-label="Next">›</button>
-      </div>
-    </div>
-  </section>
-</div>
 
 <!-- CORE MODULES -->
 <section id="modules">
@@ -2174,7 +2200,7 @@ footer {
   <div class="reveal">
     <div class="section-label">Developer Experience</div>
     <h2 class="section-title">From npm install<br>to mainnet in a day.</h2>
-    <p class="section-desc">Designed for developers who've never touched blockchain before. Full testnet token in 30 minutes — no Solidity required.</p>
+    <p class="section-desc">Designed for developers who've never touched blockchain before. Full testnet token in 30 minutes — no Solidity or Rust required.</p>
   </div>
 
   <div class="code-layout reveal">
@@ -2203,7 +2229,7 @@ footer {
 <span class="op">npx</span> ankara init <span class="str">my-rwa-project</span>
 
 <span class="cmt"># Deploy the on-chain TokenFactory (once per network)</span>
-<span class="op">npx</span> ankara deploy-factory</pre>
+<span class="op">npx</span> ankara deploy-factory <span class="str">--network polygon-amoy</span></pre>
       </div>
 
       <div class="code-block" id="code-deploy" style="display:none;">
@@ -2288,6 +2314,25 @@ footer {
   );
 }</pre>
       </div>
+
+      <div class="chain-switch-row">
+        <span class="chain-switch-label">View as</span>
+        <button class="chain-switch-btn active" data-chain="polygon-amoy" aria-label="Polygon" title="Polygon" style="background:#8247E522;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#8247E5"><path d="m17.82 16.342 5.692-3.287A.98.98 0 0 0 24 12.21V5.635a.98.98 0 0 0-.488-.846l-5.693-3.286a.98.98 0 0 0-.977 0L11.15 4.789a.98.98 0 0 0-.489.846v11.747L6.67 19.686l-3.992-2.304v-4.61l3.992-2.304 2.633 1.52V8.896L7.158 7.658a.98.98 0 0 0-.977 0L.488 10.945a.98.98 0 0 0-.488.846v6.573a.98.98 0 0 0 .488.847l5.693 3.286a.981.981 0 0 0 .977 0l5.692-3.286a.98.98 0 0 0 .489-.846V6.618l.072-.041 3.92-2.263 3.99 2.305v4.609l-3.99 2.304-2.63-1.517v3.092l2.14 1.236a.981.981 0 0 0 .978 0v-.001Z"/></svg>
+        </button>
+        <button class="chain-switch-btn" data-chain="ethereum" aria-label="Ethereum" title="Ethereum" style="background:#627EEA22;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#627EEA"><path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z"/></svg>
+        </button>
+        <button class="chain-switch-btn" data-chain="bnb" aria-label="BNB Chain" title="BNB Chain" style="background:#F3BA2F22;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#F3BA2F"><path d="M16.624 13.9202l2.7175 2.7154-7.353 7.353-7.353-7.352 2.7175-2.7164 4.6355 4.6595 4.6356-4.6595zm4.6366-4.6366L24 12l-2.7154 2.7164L18.5682 12l2.6924-2.7164zm-9.272.001l2.7163 2.6914-2.7164 2.7174v-.001L9.2721 12l2.7164-2.7154zm-9.2722-.001L5.4088 12l-2.6914 2.6924L0 12l2.7164-2.7164zM11.9885.0115l7.353 7.329-2.7174 2.7154-4.6356-4.6356-4.6355 4.6595-2.7174-2.7154 7.353-7.353z"/></svg>
+        </button>
+        <button class="chain-switch-btn" data-chain="celo" aria-label="Celo" title="Celo" style="background:#FCFF5222;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="12" r="6.5" stroke="#FCFF52" stroke-width="2.5"/><circle cx="15" cy="12" r="6.5" stroke="#35D07F" stroke-width="2.5"/></svg>
+        </button>
+        <button class="chain-switch-btn" data-chain="stellar-testnet" aria-label="Stellar" title="Stellar" style="background:#3E1BDB22;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#8B6EF5"><path d="M12.003 1.716c-1.37 0-2.7.27-3.948.78A10.18 10.18 0 0 0 2.66 7.901a10.136 10.136 0 0 0-.797 3.954c0 .258.01.516.027.775a1.942 1.942 0 0 1-1.055 1.88L0 14.934v1.902l2.463-1.26.072-.032v.005l.77-.39.758-.385.066-.039 14.807-7.56 1.666-.847 3.392-1.732V2.694L17.792 5.86 3.744 13.025l-.104.055-.017-.115a8.286 8.286 0 0 1-.071-1.105c0-2.255.88-4.377 2.474-5.977a8.462 8.462 0 0 1 2.71-1.82 8.513 8.513 0 0 1 3.2-.654h.067a8.41 8.41 0 0 1 4.09 1.055l1.628-.83.126-.066a10.11 10.11 0 0 0-5.845-1.853zM24 7.143 5.047 16.808l-1.666.847L0 19.382v1.902l3.282-1.671 2.91-1.485 14.058-7.153.105-.055.016.115c.05.369.072.743.072 1.11 0 2.255-.88 4.383-2.475 5.978a8.461 8.461 0 0 1-2.71 1.82 8.305 8.305 0 0 1-3.2.654h-.06c-1.441 0-2.86-.369-4.102-1.061l-.066.033-1.683.857c.594.418 1.232.776 1.903 1.062a10.11 10.11 0 0 0 3.947.797 10.09 10.09 0 0 0 7.17-2.975 10.136 10.136 0 0 0 2.969-7.18c0-.259-.005-.523-.027-.781a1.942 1.942 0 0 1 1.055-1.88L24 9.044z"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="code-steps">
@@ -2319,7 +2364,7 @@ footer {
         <div class="step-num">04</div>
         <div class="step-content">
           <div class="step-title">Deploy Contracts</div>
-          <div class="step-desc">Deploy UUPS-upgradeable smart contracts to testnet in seconds.</div>
+          <div class="step-desc">Deploy upgradeable smart contracts to testnet in seconds — on EVM or Stellar.</div>
           <code class="step-cmd">npx ankara deploy --template farmland</code>
         </div>
       </div>
@@ -2400,6 +2445,7 @@ footer {
         <li><span class="pf-check">✓</span> Transfer Engine</li>
         <li><span class="pf-check">✓</span> Identity Hooks Interface</li>
         <li><span class="pf-check">✓</span> Multi-Chain Adapter</li>
+        <li><span class="pf-check">✓</span> Milestone Escrow</li>
         <li><span class="pf-check">✓</span> CLI Tools</li>
         <li><span class="pf-check">✓</span> React Hooks</li>
         <li><span class="pf-cross">–</span> <span style="color:var(--text-muted)">Enterprise Dashboard</span></li>
@@ -2616,6 +2662,112 @@ document.querySelectorAll('.code-tab').forEach(tab => {
   });
 });
 
+// Chain switcher — swaps the network/address/amount specifics in the
+// Deploy/Mint/React code samples to reflect the selected chain, since the
+// same TokenFactory/AssetRegistry/React-hook calls work unchanged across
+// EVM chains and Stellar behind the IAdapter interface.
+(function() {
+  const buttons = document.querySelectorAll('.chain-switch-btn');
+  if (!buttons.length) return;
+
+  function family(chainId) {
+    return chainId === 'stellar-testnet' ? 'stellar' : 'evm';
+  }
+
+  function renderInstall(chainId) {
+    return `<span class="cmt"># Install the SDK</span>
+<span class="op">npm</span> install <span class="str">@ankarachain/sdk</span>
+
+<span class="cmt"># Scaffold a new project</span>
+<span class="op">npx</span> ankara init <span class="str">my-rwa-project</span>
+
+<span class="cmt"># Deploy the on-chain TokenFactory (once per network)</span>
+<span class="op">npx</span> ankara deploy-factory <span class="str">--network ${chainId}</span>`;
+  }
+
+  function renderDeploy(chainId) {
+    const factoryAddr = family(chainId) === 'stellar'
+      ? 'CYOURFACTORYCONTRACTID2Q3W4E5R6T7Y8U9I0OPASDFGH'
+      : '0xYourFactoryAddress';
+    return `<span class="kw">import</span> { <span class="cls">TokenFactory</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk'</span>;
+
+<span class="kw">const</span> <span class="var">factory</span> = <span class="kw">new</span> <span class="cls">TokenFactory</span>({
+  <span class="var">network</span>: <span class="str">'${chainId}'</span>,
+  <span class="var">signer</span>,
+  <span class="var">factoryAddress</span>: <span class="str">'${factoryAddr}'</span>,
+});
+
+<span class="cmt">// Deploy a farmland token</span>
+<span class="kw">const</span> <span class="var">result</span> = <span class="kw">await</span> <span class="var">factory</span>.<span class="fn">deployFarmland</span>({
+  <span class="var">name</span>: <span class="str">'Kano Farmland Token'</span>,
+  <span class="var">symbol</span>: <span class="str">'KFT'</span>,
+  <span class="var">assetId</span>: <span class="str">'KANO-FARM-001'</span>,
+  <span class="var">countryCode</span>: <span class="str">'NG'</span>,
+  <span class="var">metadata</span>: { <span class="op">...</span> },
+});
+
+<span class="var">console</span>.<span class="fn">log</span>(<span class="str">\`Deployed: <span class="op">\${</span><span class="var">result</span>.<span class="var">tokenAddress</span><span class="op">}</span>\`</span>);`;
+  }
+
+  function renderMint(chainId) {
+    if (family(chainId) === 'stellar') {
+      return `<span class="kw">import</span> { <span class="cls">AssetRegistry</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk'</span>;
+
+<span class="kw">const</span> <span class="var">registry</span> = <span class="kw">new</span> <span class="cls">AssetRegistry</span>(<span class="var">adapter</span>, <span class="var">tokenAddress</span>, <span class="str">'farmland'</span>);
+
+<span class="cmt">// Mint fractional shares to an investor (Stellar assets use 7 decimals)</span>
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">mint</span>(<span class="var">investorAddress</span>, <span class="num">10_000_000_000n</span>);
+
+<span class="cmt">// Update the on-chain valuation as the asset appreciates</span>
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">updateValuation</span>(<span class="num">1_500_000_000_000n</span>);`;
+    }
+    return `<span class="kw">import</span> { <span class="cls">AssetRegistry</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk'</span>;
+
+<span class="kw">const</span> <span class="var">registry</span> = <span class="kw">new</span> <span class="cls">AssetRegistry</span>(<span class="var">adapter</span>, <span class="var">tokenAddress</span>, <span class="str">'farmland'</span>);
+
+<span class="cmt">// Mint fractional shares to an investor</span>
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">mint</span>(<span class="var">investorAddress</span>, <span class="var">ethers</span>.<span class="fn">parseEther</span>(<span class="str">'1000'</span>));
+
+<span class="cmt">// Update the on-chain valuation as the asset appreciates</span>
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">updateValuation</span>(<span class="var">ethers</span>.<span class="fn">parseEther</span>(<span class="str">'150000'</span>));`;
+  }
+
+  function renderReact(chainId) {
+    return `<span class="kw">import</span> { <span class="fn">useAsset</span>, <span class="fn">useTokenBalance</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk/react'</span>;
+
+<span class="kw">export function</span> <span class="fn">AssetPortfolio</span>({ <span class="var">tokenAddress</span>, <span class="var">walletAddress</span> }) {
+  <span class="kw">const</span> { <span class="var">name</span>, <span class="var">status</span>, <span class="var">isLoading</span> } = <span class="fn">useAsset</span>({
+    <span class="var">tokenAddress</span>, <span class="var">template</span>: <span class="str">'farmland'</span>, <span class="var">network</span>: <span class="str">'${chainId}'</span>,
+  });
+  <span class="kw">const</span> { <span class="var">formatted</span> } = <span class="fn">useTokenBalance</span>({
+    <span class="var">tokenAddress</span>, <span class="var">walletAddress</span>, <span class="var">network</span>: <span class="str">'${chainId}'</span>,
+  });
+
+  <span class="kw">if</span> (<span class="var">isLoading</span>) <span class="kw">return</span> <span class="str">&lt;Spinner /&gt;</span>;
+
+  <span class="kw">return</span> (
+    <span class="str">&lt;div className=</span><span class="op">"portfolio"</span><span class="str">&gt;</span>
+      <span class="str">&lt;h2&gt;</span>{<span class="var">name</span>}<span class="str">&lt;/h2&gt;</span>
+      <span class="str">&lt;p&gt;</span>Your shares: <span class="str">&lt;strong&gt;</span>{<span class="var">formatted</span>}<span class="str">&lt;/strong&gt;&lt;/p&gt;</span>
+      <span class="str">&lt;p&gt;</span>Status: <span class="str">&lt;Badge&gt;</span>{<span class="var">status</span>}<span class="str">&lt;/Badge&gt;&lt;/p&gt;</span>
+    <span class="str">&lt;/div&gt;</span>
+  );
+}`;
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const chainId = btn.dataset.chain;
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('code-content-install').innerHTML = renderInstall(chainId);
+      document.getElementById('code-content-deploy').innerHTML = renderDeploy(chainId);
+      document.getElementById('code-content-mint').innerHTML = renderMint(chainId);
+      document.getElementById('code-content-react').innerHTML = renderReact(chainId);
+    });
+  });
+})();
+
 // Use case carousel
 (function() {
   const slides = document.querySelectorAll('.usecase-slide');
@@ -2623,7 +2775,6 @@ document.querySelectorAll('.code-tab').forEach(tab => {
   if (!slides.length) return;
 
   let current = 0;
-  let timer;
 
   function goTo(index) {
     current = (index + slides.length) % slides.length;
@@ -2631,20 +2782,9 @@ document.querySelectorAll('.code-tab').forEach(tab => {
     dots.forEach((d, i) => d.classList.toggle('active', i === current));
   }
 
-  function resetTimer() {
-    clearInterval(timer);
-    timer = setInterval(() => goTo(current + 1), 7000);
-  }
-
-  document.getElementById('usecase-next').addEventListener('click', () => { goTo(current + 1); resetTimer(); });
-  document.getElementById('usecase-prev').addEventListener('click', () => { goTo(current - 1); resetTimer(); });
-  dots.forEach((dot, i) => dot.addEventListener('click', () => { goTo(i); resetTimer(); }));
-
-  const carousel = document.querySelector('.usecase-carousel');
-  carousel.addEventListener('mouseenter', () => clearInterval(timer));
-  carousel.addEventListener('mouseleave', resetTimer);
-
-  resetTimer();
+  document.getElementById('usecase-next').addEventListener('click', () => goTo(current + 1));
+  document.getElementById('usecase-prev').addEventListener('click', () => goTo(current - 1));
+  dots.forEach((dot, i) => dot.addEventListener('click', () => goTo(i)));
 })();
 
 // Copy code
