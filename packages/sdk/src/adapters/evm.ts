@@ -65,6 +65,7 @@ import type {
   TokenMetadata,
   OffRampDeposit,
   OnRampRecord,
+  Loan,
   AssetTemplate,
   NFTAssetTemplate,
   AssetStatus,
@@ -1183,6 +1184,84 @@ export class EVMAdapter implements IAdapter {
 
   async oracleSetPrice(oracleAddress: string, tokenAddress: string, priceUSD: bigint): Promise<string> {
     return this._sendAndWait(this.manualOracle(oracleAddress).setPrice(tokenAddress, priceUSD));
+  }
+
+  // ─── CollateralVault (IAdapter) — Stellar-only in v1: no CollateralVault.sol
+  // exists yet, so every method here throws rather than silently no-op'ing.
+  // Interface methods are still declared on EVMAdapter (not omitted) to keep
+  // IAdapter's cross-chain contract unified — see IAdapter.ts's doc comment
+  // on why every adapter implements the full interface. ──────────────────────
+
+  private _vaultNotAvailable(): never {
+    throw new Error("CollateralVault is not yet available on EVM — it's a Stellar-only feature in v1.");
+  }
+
+  async vaultOpenLoan(): Promise<{ loanId: number; txHash: string }> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultRepayLoan(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultLiquidate(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultSetLtvBps(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultSetLiquidationThresholdBps(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultSetOracle(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultPause(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultUnpause(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultGetLoan(): Promise<Loan> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultGetBorrowerLoans(): Promise<number[]> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultCurrentLtvBps(): Promise<number> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultIsLiquidatable(): Promise<boolean> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultGetBorrowedToken(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultGetOracle(): Promise<string> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultGetLtvBps(): Promise<number> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultGetLiquidationThresholdBps(): Promise<number> {
+    this._vaultNotAvailable();
+  }
+
+  async vaultIsPaused(): Promise<boolean> {
+    this._vaultNotAvailable();
   }
 
   // ─── Generic transfer (IAdapter) ────────────────────────────────────────────

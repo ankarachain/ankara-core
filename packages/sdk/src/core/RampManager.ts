@@ -8,8 +8,10 @@ import type {
   RampSession,
   OffRampDeposit,
   OnRampRecord,
+  StellarExternalSigner,
 } from "../types";
 import { RampSessionStatus } from "../types";
+import { StellarAnchorProvider } from "../providers/StellarAnchorProvider";
 
 export interface RampManagerOptions {
   /** Address of a deployed RampSettlement contract — enables the on-chain methods below. */
@@ -57,6 +59,29 @@ export class RampManager {
     this._provider = provider;
     this._adapter = adapter;
     this._settlementAddress = opts.settlementAddress;
+  }
+
+  /**
+   * Builds a RampManager backed by a real Stellar anchor's SEP-24 flow
+   * instead of a manually-configured `RampProvider` — swap `new
+   * RampManager(new ManualRampProvider(), ...)` for `await
+   * RampManager.connectAnchor("cowrie.exchange", signer, adapter, opts)` to
+   * make any Stellar anchor (Cowrie, MoneyGram, etc.) usable through the
+   * same interface. Additive: doesn't touch the constructor above, since
+   * `RampManager`'s provider is fixed at construction and has no swap
+   * method — this is just a convenience that constructs a
+   * `StellarAnchorProvider` for you. The anchor's stellar.toml/SEP-10
+   * handshake is resolved lazily, on first real call — not here — so this
+   * doesn't do a slow or failing network call disguised as a constructor.
+   */
+  static connectAnchor(
+    anchorHomeDomain: string,
+    signer: StellarExternalSigner,
+    adapter?: IAdapter,
+    opts: RampManagerOptions = {}
+  ): RampManager {
+    const provider = new StellarAnchorProvider({ homeDomain: anchorHomeDomain, signer });
+    return new RampManager(provider, adapter, opts);
   }
 
   get providerName(): string { return this._provider.name; }

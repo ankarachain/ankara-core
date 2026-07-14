@@ -41,10 +41,11 @@ import type {
   RetirementRecord,
   BatchMetadata,
   PoolVaultStatus,
+  Loan,
 } from "../types";
 // Value (not type-only) imports — `decodeStatusEnum` below needs the actual
 // enum objects at runtime to map a Soroban tag string back to its number.
-import { RampSettlementStatus, MilestoneStatus, AssetStatus, InvoiceStatus } from "../types";
+import { RampSettlementStatus, MilestoneStatus, AssetStatus, InvoiceStatus, LoanStatus } from "../types";
 
 /**
  * A Soroban contract's generated client has one method per contract
@@ -1362,6 +1363,132 @@ export class StellarAdapter implements IAdapter {
       token: tokenAddress, price_usd: priceUSD,
     });
     return txHash;
+  }
+
+  // ─── CollateralVault (IAdapter) — `set_ltv_bps`/`set_liquidation_threshold_bps`
+  // /`set_oracle`/`pause`/`unpause` enforce Role::Manager internally via
+  // `require_auth()` on the stored role address, same as the escrow admin-only
+  // methods above — no explicit caller argument needed. `loan_id` is a u64
+  // on-chain, so it's passed as BigInt(...), same convention as
+  // `timelock_duration` above. ──────────────────────────────────────────────
+
+  async vaultOpenLoan(
+    vaultAddress: string,
+    collateralToken: string,
+    collateralAmount: bigint,
+    borrowAmount: bigint
+  ): Promise<{ loanId: number; txHash: string }> {
+    const caller = await this.getSignerAddress();
+    const { result, txHash } = await this.writeAndExtract<bigint>(vaultAddress, "open_loan", {
+      caller,
+      collateral_token: collateralToken,
+      collateral_amount: collateralAmount,
+      borrow_amount: borrowAmount,
+    });
+    return { loanId: Number(result), txHash };
+  }
+
+  async vaultRepayLoan(vaultAddress: string, loanId: number): Promise<string> {
+    const caller = await this.getSignerAddress();
+    const { txHash } = await this.writeAndExtract<void>(vaultAddress, "repay_loan", {
+      caller, loan_id: BigInt(loanId),
+    });
+    return txHash;
+  }
+
+  async vaultLiquidate(vaultAddress: string, loanId: number): Promise<string> {
+    const { txHash } = await this.writeAndExtract<void>(vaultAddress, "liquidate", {
+      loan_id: BigInt(loanId),
+    });
+    return txHash;
+  }
+
+  async vaultSetLtvBps(vaultAddress: string, newLtvBps: number): Promise<string> {
+    const { txHash } = await this.writeAndExtract<void>(vaultAddress, "set_ltv_bps", {
+      new_ltv_bps: newLtvBps,
+    });
+    return txHash;
+  }
+
+  async vaultSetLiquidationThresholdBps(vaultAddress: string, newThresholdBps: number): Promise<string> {
+    const { txHash } = await this.writeAndExtract<void>(vaultAddress, "set_liquidation_threshold_bps", {
+      new_threshold_bps: newThresholdBps,
+    });
+    return txHash;
+  }
+
+  async vaultSetOracle(vaultAddress: string, oracleAddress: string): Promise<string> {
+    const { txHash } = await this.writeAndExtract<void>(vaultAddress, "set_oracle", {
+      new_oracle: oracleAddress,
+    });
+    return txHash;
+  }
+
+  async vaultPause(vaultAddress: string): Promise<string> {
+    const { txHash } = await this.writeAndExtract<void>(vaultAddress, "pause", {});
+    return txHash;
+  }
+
+  async vaultUnpause(vaultAddress: string): Promise<string> {
+    const { txHash } = await this.writeAndExtract<void>(vaultAddress, "unpause", {});
+    return txHash;
+  }
+
+  async vaultGetLoan(vaultAddress: string, loanId: number): Promise<Loan> {
+    const l = await this.read<{
+      borrower: string;
+      collateral_token: string;
+      collateral_amount: bigint;
+      borrowed_token: string;
+      borrowed_amount: bigint;
+      ltv_bps: number;
+      opened_at: bigint;
+      status: unknown;
+    }>(vaultAddress, "get_loan", { loan_id: BigInt(loanId) });
+    return {
+      borrower: l.borrower,
+      collateralToken: l.collateral_token,
+      collateralAmount: l.collateral_amount,
+      borrowedToken: l.borrowed_token,
+      borrowedAmount: l.borrowed_amount,
+      ltvBps: l.ltv_bps,
+      openedAt: l.opened_at,
+      status: decodeStatusEnum(LoanStatus, l.status),
+    };
+  }
+
+  async vaultGetBorrowerLoans(vaultAddress: string, borrower?: string): Promise<number[]> {
+    const addr = borrower ?? await this.getSignerAddress();
+    const ids = await this.read<bigint[]>(vaultAddress, "get_borrower_loans", { borrower: addr });
+    return ids.map((id) => Number(id));
+  }
+
+  async vaultCurrentLtvBps(vaultAddress: string, loanId: number): Promise<number> {
+    return this.read<number>(vaultAddress, "current_ltv_bps", { loan_id: BigInt(loanId) });
+  }
+
+  async vaultIsLiquidatable(vaultAddress: string, loanId: number): Promise<boolean> {
+    return this.read<boolean>(vaultAddress, "is_liquidatable", { loan_id: BigInt(loanId) });
+  }
+
+  async vaultGetBorrowedToken(vaultAddress: string): Promise<string> {
+    return this.read<string>(vaultAddress, "borrowed_token", {});
+  }
+
+  async vaultGetOracle(vaultAddress: string): Promise<string> {
+    return this.read<string>(vaultAddress, "oracle", {});
+  }
+
+  async vaultGetLtvBps(vaultAddress: string): Promise<number> {
+    return this.read<number>(vaultAddress, "ltv_bps", {});
+  }
+
+  async vaultGetLiquidationThresholdBps(vaultAddress: string): Promise<number> {
+    return this.read<number>(vaultAddress, "liquidation_threshold_bps", {});
+  }
+
+  async vaultIsPaused(vaultAddress: string): Promise<boolean> {
+    return this.read<boolean>(vaultAddress, "is_paused", {});
   }
 
   // ─── Generic transfer (IAdapter) — `transfer` on a fungible SEP-41

@@ -24,6 +24,7 @@ import type {
   TokenMetadata,
   OffRampDeposit,
   OnRampRecord,
+  Loan,
   AssetTemplate,
   NFTAssetTemplate,
   AssetStatus,
@@ -167,6 +168,30 @@ export interface IAdapter {
   // ─── ManualOracle — lifecycle (operates on an already-deployed oracle at
   // `oracleAddress`) ──────────────────────────────────────────────────────────
   oracleSetPrice(oracleAddress: string, tokenAddress: string, priceUSD: bigint): Promise<string>;
+
+  // ─── CollateralVault — lifecycle (operates on an already-deployed vault at
+  // `vaultAddress`; Stellar-only in v1 — no CollateralVault.sol exists yet,
+  // so EVMAdapter's implementations throw. See CollateralVault SDK class and
+  // types/index.ts for why there's no deploy method: it's a singleton
+  // provisioned via deploy-testnet.sh, not deployed through a factory) ───────
+  vaultOpenLoan(vaultAddress: string, collateralToken: string, collateralAmount: bigint, borrowAmount: bigint): Promise<{ loanId: number; txHash: string }>;
+  vaultRepayLoan(vaultAddress: string, loanId: number): Promise<string>;
+  vaultLiquidate(vaultAddress: string, loanId: number): Promise<string>;
+  vaultSetLtvBps(vaultAddress: string, newLtvBps: number): Promise<string>;
+  vaultSetLiquidationThresholdBps(vaultAddress: string, newThresholdBps: number): Promise<string>;
+  vaultSetOracle(vaultAddress: string, oracleAddress: string): Promise<string>;
+  vaultPause(vaultAddress: string): Promise<string>;
+  vaultUnpause(vaultAddress: string): Promise<string>;
+  vaultGetLoan(vaultAddress: string, loanId: number): Promise<Loan>;
+  vaultGetBorrowerLoans(vaultAddress: string, borrower?: string): Promise<number[]>;
+  vaultCurrentLtvBps(vaultAddress: string, loanId: number): Promise<number>;
+  vaultIsLiquidatable(vaultAddress: string, loanId: number): Promise<boolean>;
+  /** The vault's own static config — not a per-loan value. */
+  vaultGetBorrowedToken(vaultAddress: string): Promise<string>;
+  vaultGetOracle(vaultAddress: string): Promise<string>;
+  vaultGetLtvBps(vaultAddress: string): Promise<number>;
+  vaultGetLiquidationThresholdBps(vaultAddress: string): Promise<number>;
+  vaultIsPaused(vaultAddress: string): Promise<boolean>;
 
   // ─── Generic transfer (used by the `transfer` CLI command against any
   // deployed fungible token / NFT contract, regardless of template) ────────

@@ -473,6 +473,63 @@ export interface RampSettlementDeployResult {
   deployedAt: number;
 }
 
+// ─── CollateralVault — lifecycle (Stellar-only in v1; see IAdapter) ─────────
+//
+// A singleton lending pool, not deployed per-relationship like MilestoneEscrow
+// — there is no DeployCollateralVaultOptions/CollateralVaultDeployResult pair
+// here because the SDK doesn't deploy it (no on-chain factory exists for it,
+// same as ManualOracle). It's provisioned once per network via
+// `contracts-stellar/scripts/deploy-testnet.sh`; the SDK only operates on an
+// already-deployed instance.
+
+/** Mirrors the on-chain CollateralVault.LoanStatus enum */
+export enum LoanStatus {
+  OPEN       = 0,
+  REPAID     = 1,
+  LIQUIDATED = 2,
+}
+
+export interface Loan {
+  borrower: string;
+  collateralToken: string;
+  collateralAmount: bigint;
+  borrowedToken: string;
+  borrowedAmount: bigint;
+  /** LTV at open time, locked in — doesn't move if the vault's global LTV config changes later. */
+  ltvBps: number;
+  openedAt: bigint;
+  status: LoanStatus;
+}
+
+// ─── Indexer — event query + webhook client (talks to a running
+// `@ankarachain/indexer` service, not directly to a chain) ─────────────────
+
+export interface IndexedEvent {
+  id: string;
+  contract: string;
+  eventType: string;
+  ledger: number;
+  txHash: string;
+  timestamp: number;
+  data: unknown;
+}
+
+export interface EventQueryFilter {
+  contract?: string;
+  type?: string;
+  since?: number;
+  limit?: number;
+}
+
+export interface RegisteredWebhook {
+  id: string;
+  url: string;
+  events: string[];
+  /** Present only in the response from `registerWebhook()` — shown once, at creation time. Absent from `listWebhooks()`. */
+  secret?: string;
+  createdAt: number;
+}
+
 // ─── On/Off-Ramp: provider abstraction (off-chain half) ──────────────────────
 
 export type RampDirection = "on-ramp" | "off-ramp";

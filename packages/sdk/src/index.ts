@@ -9,10 +9,14 @@ export { TokenFactory }    from "./core/TokenFactory";
 export { AssetRegistry }   from "./core/AssetRegistry";
 export { EscrowManager }   from "./core/EscrowManager";
 export { RampManager }     from "./core/RampManager";
+export { CollateralVault } from "./core/CollateralVault";
+export { IndexerClient }   from "./core/IndexerClient";
 
 // Providers (reference implementations — swap in a real provider adapter for production)
 export { ManualRampProvider } from "./providers/ManualRampProvider";
 export type { ManualRampProviderOptions } from "./providers/ManualRampProvider";
+export { StellarAnchorProvider } from "./providers/StellarAnchorProvider";
+export type { StellarAnchorProviderOptions } from "./providers/StellarAnchorProvider";
 
 // Adapters (advanced use)
 export { EVMAdapter }      from "./adapters/evm";
@@ -79,6 +83,12 @@ export type {
   OnRampRecord,
   DeployRampSettlementOptions,
   RampSettlementDeployResult,
+  // CollateralVault types
+  Loan,
+  // Indexer types
+  IndexedEvent,
+  EventQueryFilter,
+  RegisteredWebhook,
   // Ramp types (off-chain provider)
   RampDirection,
   RampQuoteInput,
@@ -90,7 +100,7 @@ export type {
   RampProvider,
 } from "./types";
 
-export { AssetStatus, InvoiceStatus, MilestoneStatus, RampSettlementStatus, RampSessionStatus } from "./types";
+export { AssetStatus, InvoiceStatus, MilestoneStatus, RampSettlementStatus, RampSessionStatus, LoanStatus } from "./types";
 export type { RetirementRecord } from "./types";
 
 // Utilities
