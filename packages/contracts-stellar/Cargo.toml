@@ -15,6 +15,7 @@ members = [
     "contracts/templates/commodity-batch-token",
     "contracts/templates/pool-vault",
     "contracts/oracle/manual-oracle",
+    "contracts/collateral-vault",
     "contracts/factory/token-factory",
     "contracts/factory/nft-factory",
     "contracts/factory/multi-token-factory",
