@@ -113,6 +113,104 @@ async function main() {
 
   const deployed = await factory.getDeployerTokens(deployer.address);
 
+  // 11. Deploy NFT templates (FarmlandNFT, RealEstateNFT, MiningRightsNFT, CommodityVaultNFT)
+  console.log("\n11. NFT templates...");
+  const nftTemplates = [
+    "FarmlandNFT",
+    "RealEstateNFT",
+    "MiningRightsNFT",
+    "CommodityVaultNFT",
+  ];
+  const nftImpls: Record<string, string> = {};
+  for (let i = 0; i < nftTemplates.length; i++) {
+    const impl = await (await ethers.getContractFactory(nftTemplates[i])).deploy();
+    await impl.waitForDeployment();
+    nftImpls[nftTemplates[i]] = await impl.getAddress();
+    console.log(`   ✓ ${nftTemplates[i]}`, nftImpls[nftTemplates[i]]);
+  }
+
+  // 12. Deploy NFTFactory; register the 4 NFT templates
+  console.log("\n12. NFTFactory...");
+  const nftFactory = await (await ethers.getContractFactory("NFTFactory"))
+    .deploy(deployer.address, deployer.address);
+  await nftFactory.waitForDeployment();
+  const nftFactoryAddress = await nftFactory.getAddress();
+  console.log("   ✓", nftFactoryAddress);
+  for (let i = 0; i < nftTemplates.length; i++) {
+    await (await nftFactory.registerTemplate(i, nftImpls[nftTemplates[i]])).wait();
+    console.log(`   ✓ ${nftTemplates[i]} → template ${i}`);
+  }
+
+  // 13. Deploy MultiToken templates (CommodityBatchToken, PoolVault)
+  console.log("\n13. MultiToken templates...");
+  const multiTokenTemplates = ["CommodityBatchToken", "PoolVault"];
+  const multiTokenImpls: Record<string, string> = {};
+  for (let i = 0; i < multiTokenTemplates.length; i++) {
+    const impl = await (await ethers.getContractFactory(multiTokenTemplates[i])).deploy();
+    await impl.waitForDeployment();
+    multiTokenImpls[multiTokenTemplates[i]] = await impl.getAddress();
+    console.log(`   ✓ ${multiTokenTemplates[i]}`, multiTokenImpls[multiTokenTemplates[i]]);
+  }
+
+  // 14. Deploy MultiTokenFactory; register CommodityBatchToken + PoolVault
+  console.log("\n14. MultiTokenFactory...");
+  const multiTokenFactory = await (await ethers.getContractFactory("MultiTokenFactory"))
+    .deploy(deployer.address, deployer.address);
+  await multiTokenFactory.waitForDeployment();
+  const multiTokenFactoryAddress = await multiTokenFactory.getAddress();
+  console.log("   ✓", multiTokenFactoryAddress);
+  for (let i = 0; i < multiTokenTemplates.length; i++) {
+    await (await multiTokenFactory.registerTemplate(i, multiTokenImpls[multiTokenTemplates[i]])).wait();
+    console.log(`   ✓ ${multiTokenTemplates[i]} → template ${i}`);
+  }
+
+  // 15. Deploy MilestoneEscrow implementation + EscrowFactory
+  //     NOTE: deployEscrow() will revert with StablecoinNotAccepted until
+  //     setStablecoinAccepted(token, true) is called for a real stablecoin —
+  //     no mock ERC-20 exists in this repo, so that call and a live test
+  //     escrow deployment are intentionally skipped here.
+  console.log("\n15. MilestoneEscrow + EscrowFactory...");
+  const escrowImpl = await (await ethers.getContractFactory("MilestoneEscrow")).deploy();
+  await escrowImpl.waitForDeployment();
+  const escrowImplAddress = await escrowImpl.getAddress();
+  console.log("   ✓ MilestoneEscrow impl", escrowImplAddress);
+  const escrowFactory = await (await ethers.getContractFactory("EscrowFactory"))
+    .deploy(deployer.address, deployer.address);
+  await escrowFactory.waitForDeployment();
+  const escrowFactoryAddress = await escrowFactory.getAddress();
+  console.log("   ✓ EscrowFactory", escrowFactoryAddress);
+  await (await escrowFactory.setImplementation(escrowImplAddress)).wait();
+  console.log("   ✓ implementation set");
+
+  // 16. Deploy RampSettlement implementation + RampSettlementFactory
+  console.log("\n16. RampSettlement + RampSettlementFactory...");
+  const rampImpl = await (await ethers.getContractFactory("RampSettlement")).deploy();
+  await rampImpl.waitForDeployment();
+  const rampImplAddress = await rampImpl.getAddress();
+  console.log("   ✓ RampSettlement impl", rampImplAddress);
+  const rampFactory = await (await ethers.getContractFactory("RampSettlementFactory"))
+    .deploy(deployer.address, deployer.address);
+  await rampFactory.waitForDeployment();
+  const rampFactoryAddress = await rampFactory.getAddress();
+  console.log("   ✓ RampSettlementFactory", rampFactoryAddress);
+  await (await rampFactory.setImplementation(rampImplAddress)).wait();
+  console.log("   ✓ implementation set");
+
+  // 17. Deploy AnkaraFactoryRegistry; register all 5 sub-factories
+  console.log("\n17. AnkaraFactoryRegistry...");
+  const registry = await (await ethers.getContractFactory("AnkaraFactoryRegistry"))
+    .deploy(deployer.address);
+  await registry.waitForDeployment();
+  const registryAddress = await registry.getAddress();
+  console.log("   ✓", registryAddress);
+  const FactoryType = { ERC20: 0, NFT: 1, MULTI_TOKEN: 2, ESCROW: 3, RAMP: 4 };
+  await (await registry.setFactory(FactoryType.ERC20, factoryAddress)).wait();
+  await (await registry.setFactory(FactoryType.NFT, nftFactoryAddress)).wait();
+  await (await registry.setFactory(FactoryType.MULTI_TOKEN, multiTokenFactoryAddress)).wait();
+  await (await registry.setFactory(FactoryType.ESCROW, escrowFactoryAddress)).wait();
+  await (await registry.setFactory(FactoryType.RAMP, rampFactoryAddress)).wait();
+  console.log("   ✓ 5 sub-factories registered");
+
   console.log("\n" + "─".repeat(54));
   console.log("✅  Ankara Chain — full suite deployed");
   console.log("─".repeat(54));
@@ -121,6 +219,19 @@ async function main() {
     console.log(`${t.padEnd(25)}`, impls[t]);
   });
   console.log("TokenFactory:            ", factoryAddress);
+  nftTemplates.forEach((t) => {
+    console.log(`${t.padEnd(25)}`, nftImpls[t]);
+  });
+  console.log("NFTFactory:              ", nftFactoryAddress);
+  multiTokenTemplates.forEach((t) => {
+    console.log(`${t.padEnd(25)}`, multiTokenImpls[t]);
+  });
+  console.log("MultiTokenFactory:       ", multiTokenFactoryAddress);
+  console.log("MilestoneEscrow impl:    ", escrowImplAddress);
+  console.log("EscrowFactory:           ", escrowFactoryAddress);
+  console.log("RampSettlement impl:     ", rampImplAddress);
+  console.log("RampSettlementFactory:   ", rampFactoryAddress);
+  console.log("AnkaraFactoryRegistry:   ", registryAddress);
   console.log("─".repeat(54));
   console.log("Test tokens deployed:", deployed.length);
   deployed.forEach((addr: string, i: number) => {
