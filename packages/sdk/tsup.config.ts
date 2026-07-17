@@ -16,4 +16,11 @@ export default defineConfig([
     sourcemap: true,
     external: ["react", "ethers"],
   },
+  {
+    entry: { "server/index": "src/server/index.ts" },
+    format: ["cjs", "esm"],
+    dts: true,
+    sourcemap: true,
+    external: ["react"],
+  },
 ]);

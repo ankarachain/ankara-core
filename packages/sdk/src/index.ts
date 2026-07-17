@@ -98,6 +98,7 @@ export type {
   InitiateOffRampInput,
   RampSession,
   RampProvider,
+  RampProviderSelection,
 } from "./types";
 
 export { AssetStatus, InvoiceStatus, MilestoneStatus, RampSettlementStatus, RampSessionStatus, LoanStatus } from "./types";

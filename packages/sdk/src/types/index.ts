@@ -610,6 +610,19 @@ export interface RampProvider {
   getStatus(sessionId: string): Promise<RampSessionStatus>;
 }
 
+/**
+ * Declarative description of which RampProvider to construct — the input to
+ * `createRampProvider()` (see providers/createRampProvider.ts). Lets a
+ * caller (e.g. a config file, or a dashboard's persisted Settings) select a
+ * provider by name plus its credentials, instead of importing and
+ * constructing a provider class directly. On-ramp and off-ramp can each
+ * have their own independent selection — see RampManager.withProviders().
+ */
+export type RampProviderSelection =
+  | { provider: "manual"; exchangeRates?: Record<string, number>; feeBps?: number }
+  | { provider: "stellar-anchor"; homeDomain: string }
+  | { provider: "moonpay"; apiKey: string; secretKey: string; sandbox?: boolean };
+
 // ─── SDK config ──────────────────────────────────────────────────────────────
 
 export interface EVMAnkaraChainConfig {

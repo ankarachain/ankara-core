@@ -32,6 +32,14 @@ export interface RampManagerOptions {
  * The settlement contract can be deployed on either chain — pass an
  * `EVMAdapter` or a `StellarAdapter`, both implement `IAdapter`.
  *
+ * The constructor takes one `RampProvider` for both directions (the common
+ * case). Use `RampManager.withProviders({ onRamp, offRamp })` instead if
+ * on-ramp and off-ramp should go through different providers — e.g. MoonPay
+ * in, a Stellar anchor out. See also `createRampProvider()`
+ * (providers/createRampProvider.ts) for building a provider from a
+ * declarative `{ provider: "moonpay" | "stellar-anchor" | "manual", ... }`
+ * selection instead of importing provider classes directly.
+ *
  * @example
  * ```typescript
  * import { RampManager, ManualRampProvider } from "@ankarachain/sdk";
@@ -51,14 +59,35 @@ export interface RampManagerOptions {
  * ```
  */
 export class RampManager {
-  private _provider: RampProvider;
+  private _onRampProvider: RampProvider;
+  private _offRampProvider: RampProvider;
   private _adapter?: IAdapter;
   private _settlementAddress?: string;
+  /** Tracks which provider produced a session, so getStatus() can ask the right one even when on-ramp and off-ramp use different providers. Only populated for sessions created through this instance — see getStatus()'s fallback for sessions from elsewhere (e.g. a restarted process). */
+  private _sessionProviders = new Map<string, RampProvider>();
 
   constructor(provider: RampProvider, adapter?: IAdapter, opts: RampManagerOptions = {}) {
-    this._provider = provider;
+    this._onRampProvider = provider;
+    this._offRampProvider = provider;
     this._adapter = adapter;
     this._settlementAddress = opts.settlementAddress;
+  }
+
+  /**
+   * Builds a RampManager where on-ramp and off-ramp go through independently
+   * configured providers — e.g. MoonPay for on-ramp, a Stellar anchor for
+   * off-ramp. Each RampProvider implementation already handles both
+   * directions on its own (that's the interface), so this is purely for
+   * cases where you deliberately want different providers per direction.
+   */
+  static withProviders(
+    providers: { onRamp: RampProvider; offRamp: RampProvider },
+    adapter?: IAdapter,
+    opts: RampManagerOptions = {}
+  ): RampManager {
+    const manager = new RampManager(providers.onRamp, adapter, opts);
+    manager._offRampProvider = providers.offRamp;
+    return manager;
   }
 
   /**
@@ -84,28 +113,50 @@ export class RampManager {
     return new RampManager(provider, adapter, opts);
   }
 
-  get providerName(): string { return this._provider.name; }
+  /** The on-ramp provider's name — kept for backward compatibility with single-provider construction. */
+  get providerName(): string { return this._onRampProvider.name; }
+  get onRampProviderName(): string { return this._onRampProvider.name; }
+  get offRampProviderName(): string { return this._offRampProvider.name; }
   get hasSettlementContract(): boolean { return !!this._settlementAddress; }
   get settlementAddress(): string | undefined { return this._settlementAddress; }
 
   // ─── Off-chain (provider) ─────────────────────────────────────────────────
 
   async getQuote(input: RampQuoteInput): Promise<RampQuote> {
-    return this._provider.getQuote(input);
+    const provider = input.direction === "off-ramp" ? this._offRampProvider : this._onRampProvider;
+    return provider.getQuote(input);
   }
 
-  /** Start an on-ramp session with the provider. Does not touch the chain. */
+  /** Start an on-ramp session with the on-ramp provider. Does not touch the chain. */
   async initiateOnRamp(input: InitiateOnRampInput): Promise<RampSession> {
-    return this._provider.initiateOnRamp(input);
+    const session = await this._onRampProvider.initiateOnRamp(input);
+    this._sessionProviders.set(session.sessionId, this._onRampProvider);
+    return session;
   }
 
-  /** Start an off-ramp session with the provider. Does not touch the chain. */
+  /** Start an off-ramp session with the off-ramp provider. Does not touch the chain. */
   async initiateOffRamp(input: InitiateOffRampInput): Promise<RampSession> {
-    return this._provider.initiateOffRamp(input);
+    const session = await this._offRampProvider.initiateOffRamp(input);
+    this._sessionProviders.set(session.sessionId, this._offRampProvider);
+    return session;
   }
 
   async getStatus(sessionId: string): Promise<RampSessionStatus> {
-    return this._provider.getStatus(sessionId);
+    const known = this._sessionProviders.get(sessionId);
+    if (known) return known.getStatus(sessionId);
+
+    // Unknown session (e.g. this RampManager was just constructed and didn't
+    // create it) — on-ramp and off-ramp are the same provider in the common
+    // single-provider case, so this resolves immediately then; only a
+    // genuine withProviders() split pays the cost of trying both.
+    if (this._onRampProvider === this._offRampProvider) {
+      return this._onRampProvider.getStatus(sessionId);
+    }
+    try {
+      return await this._onRampProvider.getStatus(sessionId);
+    } catch {
+      return this._offRampProvider.getStatus(sessionId);
+    }
   }
 
   // ─── On-chain (optional settlement contract) ─────────────────────────────
