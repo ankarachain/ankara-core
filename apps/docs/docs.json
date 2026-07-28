@@ -17,7 +17,14 @@
             "group": "Getting Started",
             "pages": [
               "introduction",
+              "quickstart-stellar",
               "quickstart"
+            ]
+          },
+          {
+            "group": "Stellar",
+            "pages": [
+              "stellar/overview"
             ]
           },
           {

@@ -42,7 +42,11 @@
   "navigation": [
     {
       "group": "Getting Started",
-      "pages": ["introduction", "quickstart"]
+      "pages": ["introduction", "quickstart-stellar", "quickstart"]
+    },
+    {
+      "group": "Stellar",
+      "pages": ["stellar/overview"]
     },
     {
       "group": "CLI",
