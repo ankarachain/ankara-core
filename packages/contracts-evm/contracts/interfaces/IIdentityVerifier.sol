@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * @title IIdentityVerifier
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Pluggable identity verification interface for Ankara Chain tokens.
  *
  * Ankara Chain does NOT implement KYC or AML. This interface defines the

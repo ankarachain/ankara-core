@@ -5,7 +5,7 @@ import "../base/AnkaraNFTBase.sol";
 
 /**
  * @title FarmlandNFT
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain NFT template — unique on-chain deed for an agricultural land parcel.
  *
  * Each token = one physical farm parcel (legal title / Certificate of Occupancy).

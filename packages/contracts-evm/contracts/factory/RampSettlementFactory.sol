@@ -7,7 +7,7 @@ import "../ramp/RampSettlement.sol";
 
 /**
  * @title RampSettlementFactory
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Deploys RampSettlement contracts via upgradeable proxies.
  *
  * Pattern:

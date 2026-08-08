@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title RampSettlement
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Optional on-chain settlement layer for fiat on-ramp / off-ramp flows.
  *
  * This contract does not talk to any payment provider — it's the on-chain half

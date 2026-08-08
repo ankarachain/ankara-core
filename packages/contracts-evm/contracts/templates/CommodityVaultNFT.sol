@@ -5,7 +5,7 @@ import "../base/AnkaraNFTBase.sol";
 
 /**
  * @title CommodityVaultNFT
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain NFT template — certified warehouse receipt as a unique NFT.
  *
  * Each token = one certified warehouse unit / lot held in a physical vault.

@@ -5,7 +5,7 @@ import "../base/AnkaraNFTBase.sol";
 
 /**
  * @title MiningRightsNFT
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain NFT template — unique on-chain mining license deed.
  *
  * Each token = one mining license / concession area.

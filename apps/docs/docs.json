@@ -74,7 +74,7 @@
       "anchors": [
         {
           "anchor": "GitHub",
-          "href": "https://github.com/cranebolt/ankarachain",
+          "href": "https://github.com/ankarachain/ankara-core",
           "icon": "github"
         },
         {
@@ -93,7 +93,7 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/cranebolt/ankarachain"
+        "href": "https://github.com/ankarachain/ankara-core"
       }
     ],
     "primary": {
@@ -104,7 +104,7 @@
   },
   "footer": {
     "socials": {
-      "github": "https://github.com/cranebolt/ankarachain"
+      "github": "https://github.com/ankarachain/ankara-core"
     }
   }
 }

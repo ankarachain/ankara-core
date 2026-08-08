@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * @title IAnkaraChainToken
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Common interface shared by all Ankara Chain RWA tokens.
  */
 interface IAnkaraChainToken {

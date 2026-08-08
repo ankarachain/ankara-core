@@ -1,7 +1,7 @@
 /**
  * @ankarachain/sdk
  * Open-source RWA tokenization infrastructure
- * by Cranebolt Technologies — cranebolt.com
+ * by PIE Drops Studio — piedrops.com
  */
 
 // Core classes

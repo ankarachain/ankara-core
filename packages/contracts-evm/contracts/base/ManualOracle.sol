@@ -6,7 +6,7 @@ import "../interfaces/IAnkaraOracle.sol";
 
 /**
  * @title ManualOracle
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Reference IAnkaraOracle implementation — MANAGER_ROLE sets prices manually.
  *
  * Use cases:

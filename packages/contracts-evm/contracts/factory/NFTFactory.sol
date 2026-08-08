@@ -10,7 +10,7 @@ import "../templates/CommodityVaultNFT.sol";
 
 /**
  * @title NFTFactory
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Deploys all Ankara Chain NFT asset record templates via upgradeable proxies.
  *
  * Supports 4 NFT templates:

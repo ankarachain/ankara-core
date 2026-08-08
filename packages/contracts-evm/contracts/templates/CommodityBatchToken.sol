@@ -5,7 +5,7 @@ import "../base/AnkaraMultiToken.sol";
 
 /**
  * @title CommodityBatchToken
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain ERC-1155 template — tokenized warehouse commodity batches.
  *
  * One contract per warehouse/operator. One token ID per commodity batch (lot).

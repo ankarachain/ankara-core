@@ -12,7 +12,7 @@ import "../templates/MiningRightsToken.sol";
 
 /**
  * @title TokenFactory
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Deploys all Ankara Chain RWA token templates via upgradeable proxies.
  *
  * Supports all 6 African asset class templates:

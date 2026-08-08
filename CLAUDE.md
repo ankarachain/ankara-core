@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Ankara Chain SDK — open-source RWA (Real-World Asset) tokenization infrastructure for African markets, built by Cranebolt Technologies. Think "Stripe for asset tokenization": developers plug in the SDK, deploy pre-audited contracts to their own network, and own their infrastructure with no platform lock-in.
+Ankara Chain SDK — open-source RWA (Real-World Asset) tokenization infrastructure for African markets, built by PIE Drops Studio. Think "Stripe for asset tokenization": developers plug in the SDK, deploy pre-audited contracts to their own network, and own their infrastructure with no platform lock-in.
 
 ## Monorepo Structure
 

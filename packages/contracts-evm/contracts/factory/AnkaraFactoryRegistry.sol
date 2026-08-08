@@ -10,7 +10,7 @@ import "./RampSettlementFactory.sol";
 
 /**
  * @title AnkaraFactoryRegistry
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Unified top-level registry pointing to all five Ankara Chain sub-factories.
  *
  * Acts as the single entry point for:

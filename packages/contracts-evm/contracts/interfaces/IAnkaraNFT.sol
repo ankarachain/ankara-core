@@ -5,7 +5,7 @@ import "./IAnkaraChainToken.sol";
 
 /**
  * @title IAnkaraNFT
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Common interface shared by all Ankara Chain NFT asset record contracts.
  *         Mirrors the IAnkaraChainToken pattern for the ERC-721 layer.
  */

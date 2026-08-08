@@ -14,7 +14,7 @@
   "topbarLinks": [
     {
       "name": "GitHub",
-      "url": "https://github.com/cranebolt/ankarachain"
+      "url": "https://github.com/ankarachain/ankara-core"
     }
   ],
   "topbarCtaButton": {
@@ -31,7 +31,7 @@
     {
       "name": "GitHub",
       "icon": "github",
-      "url": "https://github.com/cranebolt/ankarachain"
+      "url": "https://github.com/ankarachain/ankara-core"
     },
     {
       "name": "Discord",
@@ -70,6 +70,6 @@
     }
   ],
   "footerSocials": {
-    "github": "https://github.com/cranebolt/ankarachain"
+    "github": "https://github.com/ankarachain/ankara-core"
   }
 }

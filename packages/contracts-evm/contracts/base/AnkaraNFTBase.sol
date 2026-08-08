@@ -12,7 +12,7 @@ import "../interfaces/IAnkaraNFT.sol";
 
 /**
  * @title AnkaraNFTBase
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Abstract base inherited by all Ankara Chain NFT asset record templates.
  *
  * Provides:

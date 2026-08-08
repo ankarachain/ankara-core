@@ -12,7 +12,7 @@ import "../interfaces/IAnkaraChainToken.sol";
 
 /**
  * @title AnkaraChainBaseToken
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Base ERC-20 contract inherited by all Ankara Chain asset templates.
  *
  * Provides:

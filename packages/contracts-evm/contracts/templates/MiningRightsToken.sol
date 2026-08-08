@@ -5,7 +5,7 @@ import "../base/AnkaraChainBaseToken.sol";
 
 /**
  * @title MiningRightsToken
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Tokenized mineral rights for African mining projects.
  *
  * Each token = 1 fractional share of a mining license or concession.

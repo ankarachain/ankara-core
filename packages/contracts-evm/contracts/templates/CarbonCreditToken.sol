@@ -5,7 +5,7 @@ import "../base/AnkaraChainBaseToken.sol";
 
 /**
  * @title CarbonCreditToken
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Tokenized verified carbon credits for African conservation projects.
  *
  * Each token = 1 tonne of CO2 equivalent (1 tCO2e).

@@ -5,7 +5,7 @@ import "../base/AnkaraChainBaseToken.sol";
 
 /**
  * @title RealEstateToken
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Fractional ownership shares in African real estate.
  *
  * Each token = 1 fractional share of the underlying property.

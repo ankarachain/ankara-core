@@ -8,7 +8,7 @@ import "../templates/PoolVault.sol";
 
 /**
  * @title MultiTokenFactory
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Deploys Ankara Chain ERC-1155 and Pool multi-token templates via upgradeable proxies.
  *
  * Supported templates:

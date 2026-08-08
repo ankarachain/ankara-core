@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ankara Chain SDK — The Stripe for RWA Tokenization in Africa</title>
+<meta name="description" content="Open-source RWA tokenization infrastructure for African markets. Deploy pre-audited contracts to your own chain and go live in minutes, not months.">
+<link rel="icon" href="/assets/brand/ankara-favicon.svg" type="image/svg+xml">
+<meta property="og:title" content="Ankara Chain — Tokenize real-world assets, built for African markets">
+<meta property="og:description" content="Open-source RWA tokenization infrastructure. Deploy pre-audited contracts to your own chain, no platform lock-in.">
+<meta property="og:image" content="/assets/brand/ankara-og-card-1200x630.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ankara Chain — Tokenize real-world assets, built for African markets">
+<meta name="twitter:description" content="Open-source RWA tokenization infrastructure. Deploy pre-audited contracts to your own chain, no platform lock-in.">
+<meta name="twitter:image" content="/assets/brand/ankara-og-card-1200x630.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;600;700;900&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -13,7 +23,7 @@
   --bg-surface: #0C1C10;
   --bg-card: #101F14;
   --bg-card-hover: #162819;
-  --gold: #C8951E;
+  --gold: #F0B429;
   --gold-light: #F0B429;
   --gold-glow: #F0B42922;
   --green: #1DDE72;
@@ -99,19 +109,11 @@ nav.scrolled { border-bottom-color: var(--border); }
   gap: 10px;
   text-decoration: none;
 }
-.logo-mark {
-  width: 36px;
-  height: 36px;
-  position: relative;
+.nav-logo-img {
+  height: 28px;
+  width: auto;
+  display: block;
 }
-.logo-text {
-  font-family: 'Unbounded', sans-serif;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.02em;
-  color: var(--text-primary);
-}
-.logo-text span { color: var(--gold-light); }
 
 .nav-links {
   display: flex;
@@ -166,7 +168,7 @@ nav.scrolled { border-bottom-color: var(--border); }
   letter-spacing: 0.03em;
 }
 .btn-primary:hover {
-  background: var(--gold-light);
+  filter: brightness(1.08);
   transform: translateY(-1px);
   box-shadow: 0 8px 24px rgba(240, 180, 41, 0.25);
 }
@@ -200,7 +202,7 @@ nav.scrolled { border-bottom-color: var(--border); }
   left: 20%;
   width: 500px;
   height: 400px;
-  background: radial-gradient(ellipse, rgba(200, 149, 30, 0.05) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(240, 180, 41, 0.05) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -246,11 +248,37 @@ nav.scrolled { border-bottom-color: var(--border); }
 .hero-title .line-gold { color: var(--gold-light); }
 .hero-title .line-dim { color: var(--text-muted); font-weight: 300; }
 
+.word-rotator {
+  display: inline-block;
+  position: relative;
+  height: 1.05em;
+  overflow: hidden;
+  vertical-align: top;
+  text-align: left;
+}
+.word-rotator-track {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
+  will-change: transform;
+}
+.word-rotator-track span {
+  display: block;
+  height: 1.05em;
+  line-height: 1.05;
+  color: var(--green);
+  text-align: left;
+}
+@media (prefers-reduced-motion: reduce) {
+  .word-rotator-track { transition: none; }
+}
+
 .hero-sub {
   font-size: clamp(16px, 2vw, 20px);
   color: var(--text-secondary);
-  max-width: 560px;
-  margin: 24px auto 40px;
+  max-width: 650px;
+  margin: 24px auto 44px;
   font-weight: 400;
   line-height: 1.6;
   animation: fadeUp 0.6s 0.2s ease both;
@@ -282,7 +310,7 @@ nav.scrolled { border-bottom-color: var(--border); }
   gap: 8px;
 }
 .btn-hero-primary:hover {
-  background: var(--gold-light);
+  filter: brightness(1.08);
   transform: translateY(-2px);
   box-shadow: 0 12px 32px rgba(240, 180, 41, 0.3);
 }
@@ -365,46 +393,6 @@ nav.scrolled { border-bottom-color: var(--border); }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
 /* ─── STATS STRIP ─── */
-.stats-strip {
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 20px 0;
-  overflow: hidden;
-  position: relative;
-}
-.stats-scroll {
-  display: flex;
-  gap: 0;
-  animation: scroll-left 30s linear infinite;
-  width: max-content;
-}
-.stats-scroll:hover { animation-play-state: paused; }
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 48px;
-  border-right: 1px solid var(--border);
-  white-space: nowrap;
-}
-.stat-num {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--gold-light);
-}
-.stat-label {
-  font-size: 12px;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 600;
-}
-@keyframes scroll-left {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
 /* ─── SECTION BASE ─── */
 section {
   padding: 100px 48px;
@@ -509,10 +497,13 @@ section {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
 }
-.tag-you { background: rgba(200,149,30,0.15); color: var(--gold-light); }
-.tag-cranebolt { background: rgba(29,222,114,0.12); color: var(--green); }
+.tag-you { background: rgba(240,180,41,0.15); color: var(--gold-light); }
+.tag-brand { padding: 0; background: none; border-radius: 6px; overflow: hidden; }
 .tag-infra { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+.tag-logo-img { height: 22px; width: auto; display: block; }
 
 .what-points {
   display: flex;
@@ -528,8 +519,8 @@ section {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(200,149,30,0.1);
-  border: 1px solid rgba(200,149,30,0.2);
+  background: rgba(240,180,41,0.1);
+  border: 1px solid rgba(240,180,41,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -579,14 +570,14 @@ section {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(200,149,30,0.06) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(240,180,41,0.06) 0%, transparent 60%);
   opacity: 0;
   transition: opacity 0.3s;
 }
 .asset-card:hover {
   border-color: var(--gold);
   transform: translateY(-4px);
-  box-shadow: 0 20px 48px rgba(0,0,0,0.3), 0 0 0 1px rgba(200,149,30,0.1);
+  box-shadow: 0 20px 48px rgba(0,0,0,0.3), 0 0 0 1px rgba(240,180,41,0.1);
 }
 .asset-card:hover::after { opacity: 1; }
 .asset-icon {
@@ -628,6 +619,84 @@ section {
   z-index: 1;
 }
 
+/* ─── REAL STAKES NARRATIVE ─── */
+.stories-intro {
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  max-width: 680px;
+  margin: 0 0 20px;
+}
+.stories-intro b { color: var(--text-primary); font-weight: 600; }
+.stories-pivot {
+  font-family: 'Unbounded', sans-serif;
+  font-weight: 700;
+  font-size: clamp(17px, 1.8vw, 21px);
+  line-height: 1.4;
+  color: var(--green);
+  max-width: 660px;
+  margin: 0;
+}
+.stories-pivot span { color: var(--text-muted); font-weight: 400; }
+.pain-list { display: flex; flex-direction: column; }
+.pain-vignette {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 36px 56px;
+  padding: 48px 0;
+  border-top: 1px solid var(--border);
+  align-items: start;
+}
+.pain-lead {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--gold-light);
+  line-height: 1.5;
+}
+.pain-body p {
+  color: var(--text-secondary);
+  font-size: 15.5px;
+  line-height: 1.8;
+  margin: 0 0 16px;
+  max-width: 620px;
+}
+.pain-body p:last-child { margin-bottom: 0; }
+.pain-tag {
+  display: inline-block;
+  margin-top: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.pain-code {
+  margin: 6px 0 18px;
+  background: #080F0A;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.pain-code pre {
+  padding: 14px 18px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+@media (max-width: 860px) {
+  .pain-vignette { grid-template-columns: 1fr; gap: 14px; padding: 36px 0; }
+}
+
+.pain-close {
+  margin-top: 8px;
+  padding-top: 44px;
+  border-top: 1px solid var(--border-bright);
+  font-size: 17px;
+  line-height: 1.85;
+  color: var(--text-secondary);
+  max-width: 720px;
+}
+.pain-close b { color: var(--text-primary); font-weight: 600; }
+
 /* ─── FEATURES & USE CASES CAROUSEL ─── */
 .usecase-carousel { margin-top: 60px; }
 .usecase-track { position: relative; }
@@ -640,7 +709,7 @@ section {
   font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
   margin-bottom: 24px;
 }
-.usecase-badge.dev  { background: rgba(200,149,30,0.12); color: var(--gold-light); border: 1px solid rgba(200,149,30,0.25); }
+.usecase-badge.dev  { background: rgba(240,180,41,0.12); color: var(--gold-light); border: 1px solid rgba(240,180,41,0.25); }
 .usecase-badge.live { background: rgba(29,222,114,0.1);  color: var(--green);      border: 1px solid rgba(29,222,114,0.22); }
 
 .usecase-controls { display: flex; align-items: center; justify-content: flex-end; gap: 20px; margin-top: 48px; }
@@ -717,7 +786,7 @@ section {
   white-space: nowrap;
 }
 .milestone-status.done { background: rgba(29,222,114,0.12); color: var(--green); }
-.milestone-status.pending { background: rgba(200,149,30,0.12); color: var(--gold-light); }
+.milestone-status.pending { background: rgba(240,180,41,0.12); color: var(--gold-light); }
 .milestone-status.locked { background: rgba(255,255,255,0.05); color: var(--text-muted); }
 
 /* ─── MODULES ─── */
@@ -765,7 +834,7 @@ section {
   flex-shrink: 0;
 }
 .tab-icon.green { background: rgba(29,222,114,0.1); }
-.tab-icon.gold { background: rgba(200,149,30,0.1); }
+.tab-icon.gold { background: rgba(240,180,41,0.1); }
 .tab-name {
   font-size: 14px;
   font-weight: 600;
@@ -852,7 +921,7 @@ section {
 /* ─── CODE SECTION ─── */
 #code {
   position: relative;
-  background: linear-gradient(to bottom, transparent, rgba(29,222,114,0.02), transparent);
+  /* background: linear-gradient(to bottom, transparent, rgba(29,222,114,0.02), transparent); */
 }
 .code-layout {
   display: grid;
@@ -1101,7 +1170,7 @@ pre {
 .pricing-card:hover { transform: translateY(-4px); }
 .pricing-card.featured {
   border-color: var(--gold);
-  background: linear-gradient(135deg, rgba(200,149,30,0.06) 0%, var(--bg-card) 60%);
+  background: linear-gradient(135deg, rgba(240,180,41,0.06) 0%, var(--bg-card) 60%);
 }
 .pricing-card.featured::before {
   content: 'MOST POPULAR';
@@ -1196,7 +1265,7 @@ pre {
   color: #000;
 }
 .btn-pricing.gold:hover {
-  background: var(--gold-light);
+  filter: brightness(1.08);
   box-shadow: 0 8px 24px rgba(240,180,41,0.25);
 }
 
@@ -1281,7 +1350,7 @@ pre {
   top: 0; left: 50%; transform: translateX(-50%);
   width: 600px;
   height: 300px;
-  background: radial-gradient(ellipse, rgba(200,149,30,0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(240,180,41,0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 .cta-title {
@@ -1321,13 +1390,11 @@ footer {
   flex-wrap: wrap;
   gap: 24px;
 }
-.footer-logo {
-  font-family: 'Unbounded', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
+.footer-logo-img {
+  height: 22px;
+  width: auto;
+  display: block;
 }
-.footer-logo span { color: var(--gold-light); }
 .footer-meta {
   font-size: 12px;
   color: var(--text-muted);
@@ -1375,7 +1442,7 @@ footer {
 }
 .orb-gold {
   width: 300px; height: 300px;
-  background: rgba(200,149,30,0.05);
+  background: rgba(240,180,41,0.05);
   bottom: 10%; left: -5%;
 }
 
@@ -1412,30 +1479,24 @@ footer {
 <!-- NAV -->
 <nav id="main-nav">
   <a href="#" class="nav-logo">
-    <svg class="logo-mark" viewBox="0 0 36 36" fill="none">
-      <rect width="36" height="36" rx="8" fill="#0C1C10"/>
-      <path d="M18 4L32 12V24L18 32L4 24V12L18 4Z" stroke="#1DDE72" stroke-width="1.5" fill="none"/>
-      <path d="M18 10L26 15V21L18 26L10 21V15L18 10Z" fill="rgba(200,149,30,0.3)" stroke="#C8951E" stroke-width="1"/>
-      <circle cx="18" cy="18" r="3" fill="#1DDE72"/>
-    </svg>
-    <span class="logo-text">Ankara <span>Chain</span></span>
+    <img src="/assets/brand/ankara-lockup-horizontal.png" alt="Ankara Chain" class="nav-logo-img">
   </a>
   <ul class="nav-links">
+    <li><a href="#what">What is it</a></li>
     <li><a href="#assets">Asset Classes</a></li>
     <li><a href="#usecases">Use Cases</a></li>
-    <li><a href="#what">What is it</a></li>
     <li><a href="#modules">Modules</a></li>
     <li><a href="#code">Quick Start</a></li>
     <li><a href="#pricing">Pricing</a></li>
   </ul>
   <div class="nav-cta">
-    <a href="https://github.com/cranebolt/ankarachain" class="btn-ghost">GitHub</a>
+    <a href="https://github.com/ankarachain/ankara-core" class="btn-ghost">GitHub</a>
     <a href="#" class="btn-primary">Get Started</a>
   </div>
 </nav>
 
 <!-- HERO -->
-<div style="position:relative; overflow:hidden;">
+<div style="position:relative; overflow:hidden; border-bottom:2px solid var(--border);">
   <div class="kente-bg"></div>
   <div class="orb orb-green"></div>
   <div class="orb orb-gold"></div>
@@ -1449,13 +1510,25 @@ footer {
     </div>
 
     <h1 class="hero-title">
-      <div>The Stripe for</div>
-      <div class="line-gold">RWA Tokenization</div>
-      <div class="line-dim">in Africa.</div>
+      <div>Bring your
+        <span class="word-rotator" id="word-rotator">
+          <span class="word-rotator-track" id="word-rotator-track">
+            <span>business</span>
+            <span>company</span>
+            <span>product</span>
+            <span>idea</span>
+            <span>team</span>
+            <span>service</span>
+            <span>business</span>
+          </span>
+        </span>
+      </div>
+      <div class="line-gold">on-chain in minutes</div>
+      <div class="line-dim">not months.</div>
     </h1>
 
     <p class="hero-sub">
-      Deploy real-world asset tokens on-chain in 30 minutes. Smart contract templates, multi-chain APIs, and pluggable compliance — built for African developers.
+      Deploy pre-audited contracts to your own chain, and go live the same day, no more months of delay for integrations, no platform lock-in.
     </p>
 
     <div class="hero-actions">
@@ -1466,7 +1539,7 @@ footer {
         </svg>
         Start Building
       </a>
-      <a href="https://github.com/cranebolt/ankarachain" class="btn-hero-ghost">
+      <a href="https://github.com/ankarachain/ankara-core" class="btn-hero-ghost">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
           <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
         </svg>
@@ -1490,17 +1563,20 @@ footer {
         <div style="height:10px"></div>
         <div class="t-line">
           <span class="t-prompt">$</span>
-          <span class="t-cmd">npx ankara init <span class="t-gold">my-farmland-dapp</span></span>
+          <span class="t-cmd">npx ankara init <span class="t-gold">my-remittance-app</span></span>
         </div>
-        <div class="t-success">✓ Project initialized — polygon-amoy configured</div>
-        <div class="t-success">✓ Templates available: farmland, commodity, real-estate</div>
+        <div class="t-success">✓ Project initialized — stellar-testnet configured</div>
+        <div class="t-success">✓ Templates available: escrow, farmland, commodity</div>
         <div style="height:10px"></div>
         <div class="t-line">
           <span class="t-prompt">$</span>
-          <span class="t-cmd">npx ankara deploy <span class="t-gold">--template farmland --network polygon-amoy</span></span>
+          <span class="t-cmd">npx ankara deploy-escrow</span>
         </div>
-        <div class="t-success">✓ FarmlandToken deployed: <span class="t-gold">0x4Ac9...dB2F</span></div>
-        <div class="t-success">✓ AssetRegistry linked — ready to mint</div>
+        <div class="t-output">? Payer address: <span class="t-gold">GBTX3F...9K2Q</span></div>
+        <div class="t-output">? Payee address: <span class="t-gold">GCLM82...7XWE</span></div>
+        <div class="t-output">? Number of milestones: <span class="t-gold">3</span></div>
+        <div class="t-success">✓ MilestoneEscrow deployed: <span class="t-gold">CDLK94...MZQP</span></div>
+        <div class="t-success">✓ 3 milestones set — funds release stage by stage</div>
         <div style="height:10px"></div>
         <div class="t-line">
           <span class="t-prompt">$</span>
@@ -1511,27 +1587,212 @@ footer {
   </section>
 </div>
 
-<!-- STATS STRIP -->
-<div class="stats-strip">
-  <div class="stats-scroll">
-    <div class="stat-item"><span class="stat-num">5</span><span class="stat-label">Chains Supported (EVM + Stellar)</span></div>
-    <div class="stat-item"><span class="stat-num">6</span><span class="stat-label">African Asset Classes</span></div>
-    <div class="stat-item"><span class="stat-num">30min</span><span class="stat-label">First Token Deploy</span></div>
-    <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Open Source License</span></div>
-    <div class="stat-item"><span class="stat-num">Pluggable</span><span class="stat-label">KYC Interface</span></div>
-    <div class="stat-item"><span class="stat-num">12</span><span class="stat-label">Asset Templates (Fungible, NFT & Multi-Token)</span></div>
-    <div class="stat-item"><span class="stat-num">&lt;150KB</span><span class="stat-label">Bundle Size</span></div>
-    <div class="stat-item"><span class="stat-num">2G/3G</span><span class="stat-label">Low-Bandwidth Ready</span></div>
-    <!-- duplicate for seamless scroll -->
-    <div class="stat-item"><span class="stat-num">5</span><span class="stat-label">Chains Supported (EVM + Stellar)</span></div>
-    <div class="stat-item"><span class="stat-num">6</span><span class="stat-label">African Asset Classes</span></div>
-    <div class="stat-item"><span class="stat-num">30min</span><span class="stat-label">First Token Deploy</span></div>
-    <div class="stat-item"><span class="stat-num">MIT</span><span class="stat-label">Open Source License</span></div>
-    <div class="stat-item"><span class="stat-num">Pluggable</span><span class="stat-label">KYC Interface</span></div>
-    <div class="stat-item"><span class="stat-num">12</span><span class="stat-label">Asset Templates (Fungible, NFT & Multi-Token)</span></div>
-    <div class="stat-item"><span class="stat-num">&lt;150KB</span><span class="stat-label">Bundle Size</span></div>
-    <div class="stat-item"><span class="stat-num">2G/3G</span><span class="stat-label">Low-Bandwidth Ready</span></div>
+<!-- WHAT IS ANKARA CHAIN -->
+<section id="what" style="position:relative; overflow:hidden;  ">
+
+  <div class="orb orb-green" style="top:-100%; right:-15%; opacity:0.6;"></div>
+
+  <div class="reveal">
+    <div class="section-label">Infrastructure Layer</div>
+    <h2 class="section-title">Not a platform.<br>It's Infrastructure.</h2>
+    <p class="section-desc">Ankara Chain sits between raw blockchain protocols and your product. Plug it in the same way you'd plug Stripe for payments — and keep full control of your business logic.</p>
   </div>
+
+  <div class="what-grid reveal">
+    <div>
+      <div style="margin-bottom:12px; font-size:12px; font-family:'DM Mono',monospace; color:var(--text-muted); letter-spacing:0.08em;">ARCHITECTURE STACK</div>
+      <div class="layer-stack">
+        <div class="layer-row dim">
+          <div>
+            <div class="layer-name">Blockchain Protocol</div>
+            <div class="layer-tech">Ethereum · Polygon · Stellar · Celo · BNB</div>
+          </div>
+          <span class="layer-tag tag-infra">Protocol</span>
+        </div>
+        <div class="layer-row active">
+          <div>
+            <div class="layer-name">Ankara Chain SDK</div>
+            <div class="layer-tech">Smart Contracts · APIs · CLI · Templates</div>
+          </div>
+          <span class="layer-tag tag-brand">
+            <img src="/assets/brand/ankara-lockup-horizontal.png" alt="Ankara Chain" class="tag-logo-img">
+          </span>
+        </div>
+        <div class="layer-row dim">
+          <div>
+            <div class="layer-name">Your Application</div>
+            <div class="layer-tech">Business logic · UX · Compliance decisions</div>
+          </div>
+          <span class="layer-tag tag-you">You</span>
+        </div>
+        <div class="layer-row dim">
+          <div>
+            <div class="layer-name">End Users & Investors</div>
+            <div class="layer-tech">Farmers · Businesses · Diaspora investors</div>
+          </div>
+          <span class="layer-tag tag-infra">Users</span>
+        </div>
+      </div>
+    </div>
+    <div class="what-points">
+      <div class="what-point">
+        <div class="point-icon">🔌</div>
+        <div>
+          <div class="point-title">Plug in, not lock in</div>
+          <p class="point-desc">Import <code style="font-size:12px; color:var(--green);">@ankarachain/sdk</code> into your existing Node.js or React app. No platform dependency. Full chain custody stays with you.</p>
+        </div>
+      </div>
+      <div class="what-point">
+        <div class="point-icon">🌍</div>
+        <div>
+          <div class="point-title">Built for African context</div>
+          <p class="point-desc">Asset schemas for farmland, commodities, and receivables. Identity hooks for BVN, NIN, Huduma Namba, and Ghana Card — not retrofitted from European standards.</p>
+        </div>
+      </div>
+      <div class="what-point">
+        <div class="point-icon">⚖️</div>
+        <div>
+          <div class="point-title">Compliance hooks, not compliance</div>
+          <p class="point-desc">Ankara Chain provides the interfaces. You plug in your KYC provider — Smile Identity, Persona, or custom — without redeploying core contracts.</p>
+        </div>
+      </div>
+      <div class="what-point">
+        <div class="point-icon">🔓</div>
+        <div>
+          <div class="point-title">Open core, enterprise layer</div>
+          <p class="point-desc">Smart contracts and SDK core are MIT licensed. Dashboard, regulatory compliance modules, and audit reporting are paid enterprise tiers. Like Terraform, but for RWA.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REAL STAKES, NOT FEATURES -->
+<div>
+  <section id="stories">
+    <div class="reveal">
+      <div class="section-label">Real Markets, Real Stakes</div>
+      <h2 class="section-title">The problems are already<br>happening around you.</h2>
+      <p class="stories-intro">We've highlighted some, pulled from real situations happening in West African markets right now. Each one is a product nobody's built yet, sitting there waiting, for you to build it.</p>
+    </div>
+
+    <div class="pain-list reveal">
+
+      <div class="pain-vignette">
+        <div><span class="pain-lead">Who do you actually trust with $8,000?</span></div>
+        <div class="pain-body">
+          <p>For Amaka, it's her uncle. Not the builder — she's never met the builder, she found him through someone who knows someone back in Owerri. Her uncle is the one who drives out to the site every other week, the one whose word she'll believe over a WhatsApp photo any day of the week. But her uncle isn't a lawyer, isn't a contractor, and can't be there every single day. He's trusted, not qualified, and those have never been the same thing. So the money still leaves London before the wall goes up. Sometimes long before.</p>
+          <p>Here's the product a developer can see in this: a company whose entire job is walking the site on camera, with a lot more to lose from lying than a relative doing a favor — bonded, insured, the kind of outfit that can't afford to fake a foundation. Amaka still finds her own builder. She just names that company as the escrow's arbiter instead of leaving everything to one person's word. They visit at each stage, timestamp the photos, and send them to her before she has to approve anything. If she and the contractor ever disagree, it's that company — or the lawyer they keep on retainer — who actually settles it, not a family argument three thousand miles apart.</p>
+          <div class="pain-code"><pre><span class="cmt">// Amaka still finds her own builder — a verification company replaces her uncle as the check</span>
+<span class="kw">const</span> <span class="var">escrow</span> = <span class="kw">await</span> <span class="var">tokenFactory</span>.<span class="fn">deployEscrow</span>({ <span class="var">payer</span>: <span class="var">amaka</span>, <span class="var">payee</span>: <span class="var">contractor</span>, <span class="var">token</span>: <span class="var">usdc</span>,
+  <span class="var">arbiter</span>: <span class="var">siteProofCo</span>,  <span class="cmt">// bonded, licensed — answers for it if they certify falsely</span>
+  <span class="var">milestones</span>: [{ <span class="var">amount</span>: <span class="num">2400n</span> }, { <span class="var">amount</span>: <span class="num">3200n</span> }, { <span class="var">amount</span>: <span class="num">2400n</span> }] }); <span class="cmt">// foundation, roofing, finishing</span>
+<span class="kw">await</span> <span class="var">escrow</span>.<span class="fn">fund</span>(<span class="num">0</span>);              <span class="cmt">// Amaka funds the foundation stage</span>
+<span class="kw">await</span> <span class="var">escrow</span>.<span class="fn">markDelivered</span>(<span class="num">0</span>);     <span class="cmt">// the contractor flags it done</span>
+<span class="kw">await</span> <span class="var">escrow</span>.<span class="fn">approveMilestone</span>(<span class="num">0</span>);  <span class="cmt">// she approves — after SiteProof's photos, not a phone call</span></pre></div>
+          <span class="pain-tag">MilestoneEscrow</span>
+        </div>
+      </div>
+
+      <div class="pain-vignette">
+        <div><span class="pain-lead">Everyone already has "a guy" for changing money.</span></div>
+        <div class="pain-body">
+          <p>Ask anyone who sends money into Ghana regularly and they'll tell you about their guy — someone at the market, or a cousin's friend, who gives a better rate than the bank and turns it around the same day. Nobody picked this because it's safe. They picked it because the bank is slower, more expensive, and asks more questions than the guy at the market ever does. It works, mostly, right up until the one week it doesn't, and there's nobody left to call.</p>
+          <p>The product here is the thing that replaces "the guy" outright, not just a faster version of him: an app that checks the rate across every licensed anchor operating in Ghana before it moves a single cedi, settles straight to a mobile money wallet, and hands both sides a receipt neither has to take on faith. Nobody has to find a guy, vet a guy, or wonder if this is the week he's not answering his phone.</p>
+          <div class="pain-code"><pre><span class="cmt">// Compare licensed anchors before moving anything — not whichever changer is at the market</span>
+<span class="kw">const</span> <span class="var">cowrie</span> = <span class="var">RampManager</span>.<span class="fn">connectAnchor</span>(<span class="str">'cowrie.exchange'</span>, <span class="var">signer</span>);
+<span class="kw">const</span> <span class="var">mykobo</span> = <span class="var">RampManager</span>.<span class="fn">connectAnchor</span>(<span class="str">'mykobo.co'</span>, <span class="var">signer</span>);
+<span class="kw">const</span> [<span class="var">q1</span>, <span class="var">q2</span>] = <span class="kw">await</span> <span class="var">Promise</span>.<span class="fn">all</span>([
+  <span class="var">cowrie</span>.<span class="fn">getQuote</span>({ <span class="var">direction</span>: <span class="str">'off-ramp'</span>, <span class="var">tokenAmount</span>: <span class="num">300n</span>, <span class="var">fiatCurrency</span>: <span class="str">'GHS'</span> }),
+  <span class="var">mykobo</span>.<span class="fn">getQuote</span>({ <span class="var">direction</span>: <span class="str">'off-ramp'</span>, <span class="var">tokenAmount</span>: <span class="num">300n</span>, <span class="var">fiatCurrency</span>: <span class="str">'GHS'</span> }),
+]);
+<span class="kw">const</span> <span class="var">best</span> = <span class="var">q1</span>.<span class="var">exchangeRate</span> &gt; <span class="var">q2</span>.<span class="var">exchangeRate</span> ? <span class="var">cowrie</span> : <span class="var">mykobo</span>;
+<span class="kw">await</span> <span class="var">best</span>.<span class="fn">initiateOffRamp</span>({ <span class="var">tokenAmount</span>: <span class="num">300n</span>, <span class="var">fiatCurrency</span>: <span class="str">'GHS'</span>, <span class="var">recipientMobileMoney</span> }); <span class="cmt">// clears in minutes</span></pre></div>
+          <span class="pain-tag">RampSettlement · SEP-24</span>
+        </div>
+      </div>
+
+      <div class="pain-vignette">
+        <div><span class="pain-lead">The warehouse manager is honest. That's not the same as a record.</span></div>
+        <div class="pain-body">
+          <p>Everyone near Ibadan knows which warehouse to use, and it's not because of a certificate on the wall — it's because the man who runs it hasn't shorted anyone on weight in fifteen years. That reputation is real, and it's earned. It's also the only proof that exists that your maize is actually sitting in there. If he retires, has a bad year, or a dispute ever needs proving to someone outside the community, there's nothing written down that would hold up anywhere else.</p>
+          <p>The business a developer could build isn't the token — it's the network he's currently the only member of. Onboard a dozen warehouses across the region, send an independent inspector to verify grade and weight before any receipt gets minted, and suddenly a buyer in Lagos trusts a receipt from a warehouse they've never heard of, because it was checked the same way, by the same standard, as the one they have.</p>
+          <div class="pain-code"><pre><span class="cmt">// Your inspector app verifies the batch first — not just the warehouse's own scale</span>
+<span class="kw">const</span> <span class="var">inspection</span> = <span class="kw">await</span> <span class="var">inspectorApp</span>.<span class="fn">verifyBatch</span>({ <span class="var">warehouseId</span>: <span class="str">'IB-014'</span>, <span class="var">gradeClaimed</span>: <span class="str">'A'</span>, <span class="var">weightClaimed</span>: <span class="num">12_000</span> });
+<span class="kw">const</span> <span class="var">receipt</span> = <span class="kw">await</span> <span class="var">tokenFactory</span>.<span class="fn">deployCommodity</span>({
+  <span class="var">name</span>: <span class="str">'Ibadan Maize Batch 14'</span>, <span class="var">symbol</span>: <span class="str">'IBM14'</span>, <span class="var">assetId</span>: <span class="str">'NG-IB-014'</span>, <span class="var">countryCode</span>: <span class="str">'NG'</span>,
+  <span class="var">metadata</span>: { <span class="op">...</span><span class="var">inspection</span> }, <span class="cmt">// the receipt carries the inspector's numbers, not his</span>
+});
+<span class="kw">const</span> { <span class="var">loanId</span> } = <span class="kw">await</span> <span class="var">vault</span>.<span class="fn">openLoan</span>(<span class="var">receipt</span>.<span class="var">tokenAddress</span>, <span class="num">12_000n</span>, <span class="num">5_760n</span>); <span class="cmt">// a lender three states away is comfortable</span></pre></div>
+          <span class="pain-tag">CommodityReceiptToken</span>
+        </div>
+      </div>
+
+      <div class="pain-vignette">
+        <div><span class="pain-lead">Nobody invests in a farm. They invest in the chairwoman.</span></div>
+        <div class="pain-body">
+          <p>The cocoa cooperative outside Kumasi has raised planting money every season for longer than most of its members have been farming, because everyone trusts the woman who's run it for twenty years and has never once gone quiet with the fertilizer fund. That trust is real. It just doesn't travel well. A relative in London wiring $200 has to trust a phone call, a photo, and a story that's already passed through two cousins by the time it reaches her.</p>
+          <p>The product opportunity isn't the token — it's the proof layer around it. A developer could send a field agent to the farm every season, confirm the crop is actually growing the way it's supposed to, and push that update to every investor holding the token automatically. The chairwoman doesn't lose her role or her reputation. She gets backed by a photo and a GPS pin instead of having to be believed on twenty years of word alone.</p>
+          <div class="pain-code"><pre><span class="cmt">// The cooperative's land, on record once — every future backer reads it directly</span>
+<span class="kw">const</span> <span class="var">land</span> = <span class="kw">await</span> <span class="var">tokenFactory</span>.<span class="fn">deployFarmland</span>({
+  <span class="var">name</span>: <span class="str">'Kumasi Cocoa Co-op'</span>, <span class="var">symbol</span>: <span class="str">'KCC'</span>, <span class="var">assetId</span>: <span class="str">'GH-KUM-014'</span>, <span class="var">countryCode</span>: <span class="str">'GH'</span>, <span class="var">metadata</span>,
+});
+<span class="cmt">// Your field-agent app logs the season's photos and GPS off-chain, then updates the on-chain value</span>
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">updateValuation</span>(<span class="var">verifiedValuationUSD</span>); <span class="cmt">// every KCC holder sees the same checked number</span></pre></div>
+          <span class="pain-tag">FarmlandToken</span>
+        </div>
+      </div>
+
+      <div class="pain-vignette">
+        <div><span class="pain-lead">The bank said no. Oga said yes — for 30% a month.</span></div>
+        <div class="pain-body">
+          <p>A garment manufacturer in Kano lands the order that's supposed to change the business, and the payment terms that come with it: net-60. No bank will lend against an invoice from a first-time buyer with no credit file, so the only real offer comes from a man in the market everyone just calls Oga, whose rate is whatever he decides it is that week. Everyone in that market knows someone who took the deal anyway, because there wasn't another one.</p>
+          <p>The real product here is the phone call most investors would never think to make themselves: ring the retailer directly, confirm the order is real and undisputed, before the invoice ever gets listed. That single verification is worth more to an investor's confidence than any rate Oga could quote, and it's a service a developer builds once and runs across every invoice on the platform — not just this one.</p>
+          <div class="pain-code"><pre><span class="cmt">// Your verification service confirms the order with the retailer before listing it</span>
+<span class="kw">const</span> <span class="var">confirmed</span> = <span class="kw">await</span> <span class="var">verifierApp</span>.<span class="fn">confirmInvoice</span>({ <span class="var">retailer</span>: <span class="str">'LagosMart'</span>, <span class="var">amount</span>: <span class="num">12_000_000n</span> });
+<span class="kw">const</span> <span class="var">invoice</span> = <span class="kw">await</span> <span class="var">tokenFactory</span>.<span class="fn">deployInvoice</span>({
+  <span class="var">name</span>: <span class="str">'Kano Textile Order 0472'</span>, <span class="var">symbol</span>: <span class="str">'KTO'</span>, <span class="var">assetId</span>: <span class="str">'NG-KN-0472'</span>, <span class="var">countryCode</span>: <span class="str">'NG'</span>, <span class="var">metadata</span>,
+});
+<span class="cmt">// an investor buys in only after seeing that confirmation — cash lands this week, not day 60</span>
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">markRepaid</span>(); <span class="cmt">// retailer pays on day 60 — investor is settled instantly</span></pre></div>
+          <span class="pain-tag">InvoiceToken</span>
+        </div>
+      </div>
+
+      <div class="pain-vignette">
+        <div><span class="pain-lead">The "sponsor" isn't a bank. He acts like your partner for life.</span></div>
+        <div class="pain-body">
+          <p>A licensed small-scale gold operation in Ashanti Region has the permit, the land, and the gold coming out of the ground — everything a lender should want to see. What it doesn't have is anyone who'll treat that as collateral. So expansion money comes from a sponsor: an informal financier who fronts the cash for equipment and, in return, quietly takes a cut of every ounce for as long as he decides the debt isn't settled. Nobody else ever gets to check his math.</p>
+          <p>Tokenizing the royalty isn't the whole opportunity — verifying the number it's paid on is. A developer could build an independent auditing service that checks the concession's actual output each quarter against what's reported, so investors aren't trusting the operation's math any more than they trusted the sponsor's. Same royalty rate, but now the figure it's calculated from comes from someone with nothing riding on which way it comes out.</p>
+          <div class="pain-code"><pre><span class="kw">const</span> <span class="var">rights</span> = <span class="kw">await</span> <span class="var">tokenFactory</span>.<span class="fn">deployMiningRights</span>({
+  <span class="var">name</span>: <span class="str">'Ashanti Gold Concession 7'</span>, <span class="var">symbol</span>: <span class="str">'AGC7'</span>, <span class="var">assetId</span>: <span class="str">'GH-ASH-007'</span>, <span class="var">countryCode</span>: <span class="str">'GH'</span>, <span class="var">metadata</span>,
+});
+<span class="cmt">// Your independent auditor verifies the quarter's actual output — not the operator's own figure</span>
+<span class="kw">const</span> <span class="var">verifiedValueUSD</span> = <span class="kw">await</span> <span class="var">auditorApp</span>.<span class="fn">verifyExtraction</span>({ <span class="var">concession</span>: <span class="str">'AGC7'</span>, <span class="var">quarter</span>: <span class="str">'Q3-2026'</span> });
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">declareRoyalty</span>(<span class="var">verifiedValueUSD</span>); <span class="cmt">// every holder paid on the audited number, on-chain</span></pre></div>
+          <span class="pain-tag">MiningRightsToken</span>
+        </div>
+      </div>
+
+      <div class="pain-vignette">
+        <div><span class="pain-lead">This time, we're the ones who have to earn the trust.</span></div>
+        <div class="pain-body">
+          <p>A reforestation project in the Sahel does real, measurable work, and still fetches a worse price than a similar project in Europe — because international buyers have been burned before by carbon credits that got quietly resold, or never really existed. The project didn't do anything wrong. It's paying for someone else's fraud, because there's historically been no way for a buyer three thousand miles away to tell the difference.</p>
+          <p>The fundable business here isn't the credit — it's the measurement underneath it. Satellite imagery or a drone flyover confirming the trees are actually there and growing, feeding directly into how many credits the project is allowed to mint. That's the difference between a buyer taking the project's word for it and a buyer checking a number nobody at the project controls.</p>
+          <div class="pain-code"><pre><span class="cmt">// Satellite/drone MRV confirms this period's sequestration — not a self-report</span>
+<span class="kw">const</span> <span class="var">verifiedTons</span> = <span class="kw">await</span> <span class="var">mrvApp</span>.<span class="fn">verifySequestration</span>({ <span class="var">project</span>: <span class="str">'NE-SAH-026'</span>, <span class="var">period</span>: <span class="str">'H1-2026'</span> });
+<span class="kw">const</span> <span class="var">credits</span> = <span class="kw">await</span> <span class="var">tokenFactory</span>.<span class="fn">deployCarbonCredit</span>({
+  <span class="var">name</span>: <span class="str">'Sahel Reforestation 2026'</span>, <span class="var">symbol</span>: <span class="str">'SRF26'</span>, <span class="var">assetId</span>: <span class="str">'NE-SAH-026'</span>, <span class="var">countryCode</span>: <span class="str">'NE'</span>, <span class="var">metadata</span>,
+});
+<span class="kw">await</span> <span class="var">registry</span>.<span class="fn">retire</span>(<span class="var">verifiedTons</span>, <span class="var">buyer</span>, <span class="str">'offsetting Q3 emissions'</span>); <span class="cmt">// burned — can't be resold</span></pre></div>
+          <span class="pain-tag">CarbonCreditToken</span>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="pain-close reveal">None of these seven people know each other, but the pattern's the same: someone is quietly carrying trust that should be shared, not memorized. Every fix above is a shipped contract, not a concept — <b>which means the app you build on top of it doesn't need a dedicated blockchain engineer on the team. It needs you, and the SDK you already have.</b></p>
+  </section>
 </div>
 
 <!-- ASSET CLASSES -->
@@ -1590,8 +1851,8 @@ footer {
   <section id="usecases">
     <div class="reveal">
       <div class="section-label">Features &amp; Use Cases</div>
-      <h2 class="section-title">One SDK.<br>Six ways to build.</h2>
-      <p class="section-desc">From diaspora escrow to warehouse trade finance — six capabilities live in the SDK today.</p>
+      <h2 class="section-title">You have the tools<br>What will you build?</h2>
+      <p class="section-desc">From diaspora escrow to collateralized lending to anchor-settled remittance — eight capabilities live in the SDK today.</p>
     </div>
 
     <div class="usecase-carousel reveal">
@@ -1927,6 +2188,108 @@ footer {
           </div>
         </div>
 
+        <!-- Slide 7: Collateral Lending -->
+        <div class="usecase-slide" data-slide="6">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">Collateral Lending — How it works</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Pledge a tokenized asset</div>
+                  <div class="step-desc">Deposit any Ankara RWA token — a warehouse receipt, a farmland share — into <code style="color:var(--green); font-size:12px;">CollateralVault</code> instead of selling it.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Oracle prices the collateral</div>
+                  <div class="step-desc">A price oracle values the pledge, setting the maximum you can borrow against it in real time.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">Borrow up to your LTV</div>
+                  <div class="step-desc">Draw a stablecoin loan up to the configured loan-to-value ratio — no bank relationship, no credit bureau, no prior history required.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Repay or get liquidated</div>
+                  <div class="step-desc">Repay anytime to reclaim your collateral. Fall past the liquidation threshold, and anyone can settle the loan against the pledge.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="usecase-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Ibadan Maize Receipt</div>
+              <div class="escrow-total">60% <span style="font-size:14px; color:var(--text-muted); font-weight:500;">loan-to-value</span></div>
+              <div style="margin-top:16px;">
+                <div class="stat-row"><span class="stat-label">Collateral</span><span class="stat-value">12,000 kg maize receipt</span></div>
+                <div class="stat-row"><span class="stat-label">Oracle value</span><span class="stat-value">$9,600</span></div>
+                <div class="stat-row"><span class="stat-label">Borrowed</span><span class="stat-value">$5,760 USDC</span></div>
+                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">HEALTHY</span></div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <code style="color:var(--green); font-size:11px;">CollateralVault</code> — Stellar-native, live on testnet, oracle-priced. A HELOC for assets no bank would ever accept as collateral today.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 8: Anchor-Settled Remittance -->
+        <div class="usecase-slide" data-slide="7">
+          <div class="usecase-layout">
+            <div class="code-steps">
+              <div class="section-label" style="margin-bottom:24px;">On/Off-Ramp — How it works</div>
+              <div class="step-item">
+                <div class="step-num">01</div>
+                <div class="step-content">
+                  <div class="step-title">Connect any Stellar anchor</div>
+                  <div class="step-desc"><code style="color:var(--green); font-size:12px;">RampManager.connectAnchor(homeDomain)</code> points at any anchor's home domain — Cowrie, MoneyGram, or your own.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">02</div>
+                <div class="step-content">
+                  <div class="step-title">Authenticate once (SEP-10)</div>
+                  <div class="step-desc">The SDK signs the anchor's auth challenge and holds a session token — no manual token handling.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">03</div>
+                <div class="step-content">
+                  <div class="step-title">Deposit or withdraw (SEP-24)</div>
+                  <div class="step-desc">One method call kicks off the anchor's interactive flow — fiat in, crypto out, or the reverse.</div>
+                </div>
+              </div>
+              <div class="step-item">
+                <div class="step-num">04</div>
+                <div class="step-content">
+                  <div class="step-title">Settle to mobile money</div>
+                  <div class="step-desc">Funds land in a bank account or mobile money wallet on the anchor's side — no manual reconciliation on yours.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="usecase-card">
+              <div style="font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Example — Remittance to Accra</div>
+              <div class="escrow-total">300 <span style="font-size:14px; color:var(--text-muted); font-weight:500;">USDC off-ramped</span></div>
+              <div style="margin-top:16px;">
+                <div class="stat-row"><span class="stat-label">Anchor</span><span class="stat-value">SEP-24 interactive</span></div>
+                <div class="stat-row"><span class="stat-label">Settles to</span><span class="stat-value">Mobile money</span></div>
+                <div class="stat-row"><span class="stat-label">Settlement time</span><span class="stat-value">~2 minutes</span></div>
+                <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="color:var(--green);">COMPLETED</span></div>
+              </div>
+              <p style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); font-size:12px; color:var(--text-muted); line-height:1.6;">
+                <code style="color:var(--green); font-size:11px;">RampSettlement</code> + SEP-24 — one integration unlocks every Stellar anchor in Africa.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div class="usecase-controls">
@@ -1938,89 +2301,14 @@ footer {
           <button class="usecase-dot" data-goto="3" aria-label="Slide 4"></button>
           <button class="usecase-dot" data-goto="4" aria-label="Slide 5"></button>
           <button class="usecase-dot" data-goto="5" aria-label="Slide 6"></button>
+          <button class="usecase-dot" data-goto="6" aria-label="Slide 7"></button>
+          <button class="usecase-dot" data-goto="7" aria-label="Slide 8"></button>
         </div>
         <button class="usecase-arrow" id="usecase-next" aria-label="Next">→</button>
       </div>
     </div>
   </section>
 </div>
-
-<!-- WHAT IS ANKARA CHAIN -->
-<section id="what" style="position:relative; overflow:hidden;">
-  <div class="orb orb-green" style="top:-20%; left:-15%; opacity:0.6;"></div>
-
-  <div class="reveal">
-    <div class="section-label">Infrastructure Layer</div>
-    <h2 class="section-title">Not a platform.<br>Infrastructure.</h2>
-    <p class="section-desc">Ankara Chain sits between raw blockchain protocols and your product. Plug it in the same way you'd plug Stripe for payments — and keep full control of your business logic.</p>
-  </div>
-
-  <div class="what-grid reveal">
-    <div>
-      <div style="margin-bottom:12px; font-size:12px; font-family:'DM Mono',monospace; color:var(--text-muted); letter-spacing:0.08em;">ARCHITECTURE STACK</div>
-      <div class="layer-stack">
-        <div class="layer-row dim">
-          <div>
-            <div class="layer-name">Blockchain Protocol</div>
-            <div class="layer-tech">Ethereum · Polygon · Stellar · Celo · BNB</div>
-          </div>
-          <span class="layer-tag tag-infra">Protocol</span>
-        </div>
-        <div class="layer-row active">
-          <div>
-            <div class="layer-name">Ankara Chain SDK</div>
-            <div class="layer-tech">Smart Contracts · APIs · CLI · Templates</div>
-          </div>
-          <span class="layer-tag tag-cranebolt">Cranebolt</span>
-        </div>
-        <div class="layer-row dim">
-          <div>
-            <div class="layer-name">Your Application</div>
-            <div class="layer-tech">Business logic · UX · Compliance decisions</div>
-          </div>
-          <span class="layer-tag tag-you">You</span>
-        </div>
-        <div class="layer-row dim">
-          <div>
-            <div class="layer-name">End Users & Investors</div>
-            <div class="layer-tech">Farmers · Businesses · Diaspora investors</div>
-          </div>
-          <span class="layer-tag tag-infra">Users</span>
-        </div>
-      </div>
-    </div>
-    <div class="what-points">
-      <div class="what-point">
-        <div class="point-icon">🔌</div>
-        <div>
-          <div class="point-title">Plug in, not lock in</div>
-          <p class="point-desc">Import <code style="font-size:12px; color:var(--green);">@ankarachain/sdk</code> into your existing Node.js or React app. No platform dependency. Full chain custody stays with you.</p>
-        </div>
-      </div>
-      <div class="what-point">
-        <div class="point-icon">🌍</div>
-        <div>
-          <div class="point-title">Built for African context</div>
-          <p class="point-desc">Asset schemas for farmland, commodities, and receivables. Identity hooks for BVN, NIN, Huduma Namba, and Ghana Card — not retrofitted from European standards.</p>
-        </div>
-      </div>
-      <div class="what-point">
-        <div class="point-icon">⚖️</div>
-        <div>
-          <div class="point-title">Compliance hooks, not compliance</div>
-          <p class="point-desc">Ankara Chain provides the interfaces. You plug in your KYC provider — Smile Identity, Persona, or custom — without redeploying core contracts.</p>
-        </div>
-      </div>
-      <div class="what-point">
-        <div class="point-icon">🔓</div>
-        <div>
-          <div class="point-title">Open core, enterprise layer</div>
-          <p class="point-desc">Smart contracts and SDK core are MIT licensed. Dashboard, regulatory compliance modules, and audit reporting are paid enterprise tiers. Like Terraform, but for RWA.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- CORE MODULES -->
 <section id="modules">
@@ -2132,7 +2420,7 @@ footer {
         <div class="panel-features">
           <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>Pre-transfer hooks</strong> — enforce KYC verification on every transfer when a verifier is set</span></div>
           <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Emergency pause halts all transfers, mints, and burns instantly</span></div>
-          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>Milestone Escrow</strong> — tranche-based diaspora payments, see <a href="#usecases" style="color:var(--green);">Use Cases below</a></span></div>
+          <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text"><strong>Milestone Escrow</strong> — tranche-based diaspora payments, see <a href="#usecases" style="color:var(--green);">Use Cases above</a></span></div>
           <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">ERC-1155 batch mint/burn for warehouse and pool operations</span></div>
           <div class="panel-feature"><span class="feature-check">✓</span><span class="feature-text">Full event log: sender, receiver, amount, timestamp, asset ID</span></div>
         </div>
@@ -2175,7 +2463,7 @@ footer {
       <!-- Dashboard -->
       <div class="module-panel" id="panel-dashboard">
         <div class="panel-header">
-          <div class="panel-icon-large" style="background:rgba(200,149,30,0.1); border-color:rgba(200,149,30,0.2);">📊</div>
+          <div class="panel-icon-large" style="background:rgba(240,180,41,0.1); border-color:rgba(240,180,41,0.2);">📊</div>
           <div>
             <div class="panel-title">Enterprise Layer</div>
             <div class="panel-subtitle">Dashboard · Compliance · Reporting — building now, from $299/month</div>
@@ -2381,47 +2669,6 @@ footer {
 </section>
 </div>
 
-<!-- CHAINS -->
-<section id="chains">
-  <div class="reveal">
-    <div class="section-label" style="justify-content:center;">Multi-Chain Support</div>
-    <h2 class="section-title" style="text-align:center;">Deploy once.<br>Run anywhere.</h2>
-    <p class="section-desc" style="margin:0 auto; text-align:center;">One unified API across four EVM chains and Stellar Soroban. Switch networks with a config flag — no rewritten integration code, no missing features on either side.</p>
-  </div>
-  <div class="chains-wrap reveal">
-    <div class="chain-card">
-      <div class="chain-logo" style="background:#627EEA22;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#627EEA"><path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z"/></svg>
-      </div>
-      <div><div class="chain-name">Ethereum</div><div class="chain-type">Institutional trust · Roadmap</div></div>
-    </div>
-    <div class="chain-card">
-      <div class="chain-logo" style="background:#8247E522;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#8247E5"><path d="m17.82 16.342 5.692-3.287A.98.98 0 0 0 24 12.21V5.635a.98.98 0 0 0-.488-.846l-5.693-3.286a.98.98 0 0 0-.977 0L11.15 4.789a.98.98 0 0 0-.489.846v11.747L6.67 19.686l-3.992-2.304v-4.61l3.992-2.304 2.633 1.52V8.896L7.158 7.658a.98.98 0 0 0-.977 0L.488 10.945a.98.98 0 0 0-.488.846v6.573a.98.98 0 0 0 .488.847l5.693 3.286a.981.981 0 0 0 .977 0l5.692-3.286a.98.98 0 0 0 .489-.846V6.618l.072-.041 3.92-2.263 3.99 2.305v4.609l-3.99 2.304-2.63-1.517v3.092l2.14 1.236a.981.981 0 0 0 .978 0v-.001Z"/></svg>
-      </div>
-      <div><div class="chain-name">Polygon</div><div class="chain-type">Primary chain · Low fees</div></div>
-    </div>
-    <div class="chain-card">
-      <div class="chain-logo" style="background:#F3BA2F22;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#F3BA2F"><path d="M16.624 13.9202l2.7175 2.7154-7.353 7.353-7.353-7.352 2.7175-2.7164 4.6355 4.6595 4.6356-4.6595zm4.6366-4.6366L24 12l-2.7154 2.7164L18.5682 12l2.6924-2.7164zm-9.272.001l2.7163 2.6914-2.7164 2.7174v-.001L9.2721 12l2.7164-2.7154zm-9.2722-.001L5.4088 12l-2.6914 2.6924L0 12l2.7164-2.7164zM11.9885.0115l7.353 7.329-2.7174 2.7154-4.6356-4.6356-4.6355 4.6595-2.7174-2.7154 7.353-7.353z"/></svg>
-      </div>
-      <div><div class="chain-name">BNB Chain</div><div class="chain-type">Deep African liquidity · Roadmap</div></div>
-    </div>
-    <div class="chain-card">
-      <div class="chain-logo" style="background:#FCFF5222;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="12" r="6.5" stroke="#FCFF52" stroke-width="2.5"/><circle cx="15" cy="12" r="6.5" stroke="#35D07F" stroke-width="2.5"/></svg>
-      </div>
-      <div><div class="chain-name">Celo</div><div class="chain-type">Mobile-first · Stablecoin-native</div></div>
-    </div>
-    <div class="chain-card">
-      <div class="chain-logo" style="background:#3E1BDB22;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#8B6EF5"><path d="M12.003 1.716c-1.37 0-2.7.27-3.948.78A10.18 10.18 0 0 0 2.66 7.901a10.136 10.136 0 0 0-.797 3.954c0 .258.01.516.027.775a1.942 1.942 0 0 1-1.055 1.88L0 14.934v1.902l2.463-1.26.072-.032v.005l.77-.39.758-.385.066-.039 14.807-7.56 1.666-.847 3.392-1.732V2.694L17.792 5.86 3.744 13.025l-.104.055-.017-.115a8.286 8.286 0 0 1-.071-1.105c0-2.255.88-4.377 2.474-5.977a8.462 8.462 0 0 1 2.71-1.82 8.513 8.513 0 0 1 3.2-.654h.067a8.41 8.41 0 0 1 4.09 1.055l1.628-.83.126-.066a10.11 10.11 0 0 0-5.845-1.853zM24 7.143 5.047 16.808l-1.666.847L0 19.382v1.902l3.282-1.671 2.91-1.485 14.058-7.153.105-.055.016.115c.05.369.072.743.072 1.11 0 2.255-.88 4.383-2.475 5.978a8.461 8.461 0 0 1-2.71 1.82 8.305 8.305 0 0 1-3.2.654h-.06c-1.441 0-2.86-.369-4.102-1.061l-.066.033-1.683.857c.594.418 1.232.776 1.903 1.062a10.11 10.11 0 0 0 3.947.797 10.09 10.09 0 0 0 7.17-2.975 10.136 10.136 0 0 0 2.969-7.18c0-.259-.005-.523-.027-.781a1.942 1.942 0 0 1 1.055-1.88L24 9.044z"/></svg>
-      </div>
-      <div><div class="chain-name">Stellar</div><div class="chain-type">Ultra-low-cost · Soroban, live</div></div>
-    </div>
-  </div>
-</section>
-
 <!-- PRICING -->
 <div style="border-top:1px solid var(--border); background:var(--bg-surface);">
 <section id="pricing">
@@ -2568,11 +2815,11 @@ footer {
 <section id="cta" style="max-width:1200px; margin:0 auto; padding:80px 48px 120px;">
   <div class="cta-box reveal">
     <h2 class="cta-title">
-      Your first tokenized<br>
-      <span style="color:var(--gold-light);">African asset</span><br>
-      is 30 minutes away.
+     Get your product on<br>
+    the blockchain</span><br>
+      in just  <span style="color:var(--gold-light);"> 30 minutes.</span>
     </h2>
-    <p class="cta-sub">No blockchain expertise required. Open source. Built for African developers and the asset classes they know.</p>
+    <p class="cta-sub">No blockchain expertise required. Open source. Built for you and the workflows you already know.</p>
     <div class="cta-actions">
       <a href="#code" class="btn-hero-primary">
         Install @ankarachain/sdk
@@ -2601,17 +2848,17 @@ footer {
 <!-- FOOTER -->
 <footer>
   <div>
-    <div class="footer-logo">Ankara <span>Chain</span></div>
-    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">by Cranebolt · Digital Solutions & AI Infrastructure</div>
+    <img src="/assets/brand/ankara-lockup-horizontal.png" alt="Ankara Chain" class="footer-logo-img">
+    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">by PIE Drops Studio · Digital Solutions & AI Infrastructure</div>
   </div>
   <ul class="footer-links">
     <li><a href="#">Documentation</a></li>
-    <li><a href="https://github.com/cranebolt/ankarachain">GitHub</a></li>
+    <li><a href="https://github.com/ankarachain/ankara-core">GitHub</a></li>
     <li><a href="https://discord.gg/ankarachain">Discord</a></li>
     <li><a href="#">Changelog</a></li>
     <li><a href="#">Grants</a></li>
   </ul>
-  <div class="footer-meta">© 2026 Cranebolt. All rights reserved.</div>
+  <div class="footer-meta">© 2026 PIE Drops Studio. All rights reserved.</div>
 </footer>
 
 <script>
@@ -2619,6 +2866,34 @@ footer {
 window.addEventListener('scroll', () => {
   document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 20);
 });
+
+// Hero word rotator
+(() => {
+  const track = document.getElementById('word-rotator-track');
+  if (!track) return;
+  const words = track.children;
+  const total = words.length; // last word duplicates the first, for a seamless loop
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) return;
+
+  const stepEm = 1.05; // matches the track item height set in CSS
+  let index = 0;
+  setInterval(() => {
+    index++;
+    track.style.transform = `translateY(-${index * stepEm}em)`;
+
+    if (index === total - 1) {
+      setTimeout(() => {
+        track.style.transitionDuration = '0s';
+        track.style.transform = 'translateY(0em)';
+        index = 0;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => { track.style.transitionDuration = ''; });
+        });
+      }, 650);
+    }
+  }, 2200);
+})();
 
 // Reveal on scroll
 const observer = new IntersectionObserver((entries) => {

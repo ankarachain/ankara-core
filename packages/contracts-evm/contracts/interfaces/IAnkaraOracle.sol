@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * @title IAnkaraOracle
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Price feed interface for Ankara Chain oracle integrations.
  *
  * Implementations:

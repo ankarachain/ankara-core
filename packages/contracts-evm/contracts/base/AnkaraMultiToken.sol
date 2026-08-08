@@ -12,7 +12,7 @@ import "../interfaces/IAnkaraMultiToken.sol";
 
 /**
  * @title AnkaraMultiToken
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Abstract base inherited by all Ankara Chain ERC-1155 multi-token contracts.
  *
  * Provides:

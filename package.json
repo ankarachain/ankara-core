@@ -15,6 +15,6 @@
     "clean": "npm run clean --workspaces --if-present"
   },
   "engines": { "node": ">=18.0.0" },
-  "author": "Cranebolt Technologies <hello@cranebolt.com>",
+  "author": "PIE Drops Studio <hello@piedrops.com>",
   "license": "MIT"
 }

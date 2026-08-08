@@ -5,7 +5,7 @@ import "../base/AnkaraChainBaseToken.sol";
 
 /**
  * @title InvoiceToken
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Tokenized trade receivables for African SME financing.
  *
  * Represents a claim on a real invoice or trade receivable.

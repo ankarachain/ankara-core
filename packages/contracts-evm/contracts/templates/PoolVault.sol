@@ -8,7 +8,7 @@ import "../interfaces/IAnkaraOracle.sol";
 
 /**
  * @title PoolVault
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain ERC-20 template — on-chain multi-asset fund manager.
  *
  * The vault itself is an ERC-20 token (pool tokens = proportional ownership shares).

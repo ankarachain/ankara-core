@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * @title IAnkaraMultiToken
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Common interface for all Ankara Chain ERC-1155 multi-token contracts.
  *         Mirrors the IAnkaraNFT pattern for the ERC-1155 layer.
  *

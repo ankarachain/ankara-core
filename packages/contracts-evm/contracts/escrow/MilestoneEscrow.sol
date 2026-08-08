@@ -11,7 +11,7 @@ import "../interfaces/IIdentityVerifier.sol";
 
 /**
  * @title MilestoneEscrow
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice The chain moves money; MilestoneEscrow decides *when* it moves.
  * Tranche-based escrow for diaspora payments — one deal per contract instance.
  *

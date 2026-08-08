@@ -5,7 +5,7 @@ import "../base/AnkaraChainBaseToken.sol";
 
 /**
  * @title CommodityReceiptToken
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain template — tokenized warehouse commodity receipts.
  *
  * Represents a claim on physical commodity in a certified warehouse.

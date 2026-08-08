@@ -6,7 +6,7 @@ import "../interfaces/IIdentityVerifier.sol";
 
 /**
  * @title WhitelistVerifier
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Reference implementation of IIdentityVerifier using a simple whitelist.
  *
  * THIS IS FOR TESTING AND DEVELOPMENT ONLY.

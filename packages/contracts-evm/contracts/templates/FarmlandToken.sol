@@ -5,7 +5,7 @@ import "../base/AnkaraChainBaseToken.sol";
 
 /**
  * @title FarmlandToken
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain template — tokenized agricultural land.
  *
  * Each token = 1 fractional share of the underlying land parcel.

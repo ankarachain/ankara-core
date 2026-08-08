@@ -5,7 +5,7 @@ import "../base/AnkaraNFTBase.sol";
 
 /**
  * @title RealEstateNFT
- * @author Cranebolt Technologies
+ * @author PIE Drops Studio
  * @notice Ankara Chain NFT template — unique on-chain property title deed.
  *
  * Each token = one unique property (residential, commercial, industrial or land).

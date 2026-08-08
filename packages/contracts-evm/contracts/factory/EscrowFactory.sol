@@ -7,7 +7,7 @@ import "../escrow/MilestoneEscrow.sol";
 
 /**
  * @title EscrowFactory
- * @author Cranebolt Technologies — Ankara Chain SDK
+ * @author PIE Drops Studio — Ankara Chain SDK
  * @notice Deploys MilestoneEscrow contracts via upgradeable proxies.
  *
  * Pattern:

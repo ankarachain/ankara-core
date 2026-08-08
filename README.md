@@ -1,7 +1,7 @@
 # Ankara Chain SDK
 
 > The open-source RWA tokenization infrastructure for African markets.
-> Built by [Cranebolt Technologies](https://cranebolt.com) · MIT Licensed
+> Built by [PIE Drops Studio](https://piedrops.com) · MIT Licensed
 
 ## Monorepo Structure
 ```
@@ -19,7 +19,7 @@ ankarachain/
 
 ## Quick Start
 ```bash
-git clone https://github.com/cranebolt/ankarachain
+git clone https://github.com/ankarachain/ankara-core
 cd ankarachain
 npm install
 npm run compile
