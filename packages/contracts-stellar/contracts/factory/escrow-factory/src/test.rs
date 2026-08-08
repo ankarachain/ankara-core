@@ -76,7 +76,7 @@ fn deploy_escrow_and_fund() {
 
     assert_eq!(factory.total_deployed(), 1);
     let escrow = MilestoneEscrowClient::new(&env, &escrow_address);
-    escrow.fund(&payer);
+    escrow.fund(&payer, &0);
     assert!(escrow.funded());
     assert_eq!(token.balance(&payer), 0);
 }

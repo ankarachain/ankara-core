@@ -392,6 +392,30 @@ nav.scrolled { border-bottom-color: var(--border); }
 }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
+.hero-chain-switch {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.hero-chain-btn {
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  color: var(--text-muted);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.hero-chain-btn:hover { border-color: var(--border-bright); color: var(--text-secondary); }
+.hero-chain-btn.active {
+  border-color: rgba(29,222,114,0.45);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 2px rgba(29,222,114,0.14);
+}
+
 /* ─── STATS STRIP ─── */
 /* ─── SECTION BASE ─── */
 section {
@@ -1555,6 +1579,10 @@ footer {
         <div class="terminal-title">ankara — bash</div>
       </div>
       <div class="terminal-body">
+        <div class="hero-chain-switch" role="tablist" aria-label="Select chain">
+          <button class="hero-chain-btn active" type="button" role="tab" aria-selected="true" data-chain="polygon-amoy">Polygon</button>
+          <button class="hero-chain-btn" type="button" role="tab" aria-selected="false" data-chain="stellar-testnet">Stellar</button>
+        </div>
         <div class="t-line">
           <span class="t-prompt">$</span>
           <span class="t-cmd">npm install <span class="t-gold">@ankarachain/sdk</span></span>
@@ -1565,18 +1593,15 @@ footer {
           <span class="t-prompt">$</span>
           <span class="t-cmd">npx ankara init <span class="t-gold">my-remittance-app</span></span>
         </div>
-        <div class="t-success">✓ Project initialized — stellar-testnet configured</div>
-        <div class="t-success">✓ Templates available: escrow, farmland, commodity</div>
+        <div class="t-success">✓ Project initialized — <span class="t-gold" id="hero-network">polygon-amoy</span> configured</div>
+        <div class="t-success">✓ Templates available: farmland, commodity, real-estate</div>
         <div style="height:10px"></div>
         <div class="t-line">
           <span class="t-prompt">$</span>
-          <span class="t-cmd">npx ankara deploy-escrow</span>
+          <span class="t-cmd">npx ankara deploy <span class="t-gold">--template farmland --network <span id="hero-deploy-network">polygon-amoy</span></span></span>
         </div>
-        <div class="t-output">? Payer address: <span class="t-gold">GBTX3F...9K2Q</span></div>
-        <div class="t-output">? Payee address: <span class="t-gold">GCLM82...7XWE</span></div>
-        <div class="t-output">? Number of milestones: <span class="t-gold">3</span></div>
-        <div class="t-success">✓ MilestoneEscrow deployed: <span class="t-gold">CDLK94...MZQP</span></div>
-        <div class="t-success">✓ 3 milestones set — funds release stage by stage</div>
+        <div class="t-success">✓ FarmlandToken deployed: <span class="t-gold" id="hero-token-address">0x4Ac9...dB2F</span></div>
+        <div class="t-success">✓ AssetRegistry linked — ready to mint</div>
         <div style="height:10px"></div>
         <div class="t-line">
           <span class="t-prompt">$</span>
@@ -1840,6 +1865,29 @@ footer {
         <div class="asset-name">Mining Rights</div>
         <p class="asset-desc">Tokenize mineral rights and extraction licenses with jurisdiction metadata, license expiry, and royalty distribution hooks.</p>
         <span class="asset-tag"><code>MiningRightsToken.sol</code></span>
+      </div>
+    </div>
+    <div class="reveal" style="margin-top:54px;">
+      <div class="section-label">Stellar-native features</div>
+      <h3 class="section-title" style="font-size:34px;">Soroban finance primitives, included.</h3>
+      <p class="section-desc">Milestone escrow, collateralized loans, and ramp settlement contracts deployed on Stellar testnet today — with the same SDK surface as EVM networks.</p>
+    </div>
+    <div class="panel-features reveal" style="max-width:920px; margin:24px auto 0;">
+      <div class="panel-feature">
+        <span class="feature-check">✓</span>
+        <span class="feature-text"><strong>Milestone Escrow</strong> — tranche-based deals with fund, deliver, approve, dispute, and timelock release.</span>
+      </div>
+      <div class="panel-feature">
+        <span class="feature-check">✓</span>
+        <span class="feature-text"><strong>CollateralVault</strong> — borrow against tokenized assets with configurable LTV and liquidation thresholds.</span>
+      </div>
+      <div class="panel-feature">
+        <span class="feature-check">✓</span>
+        <span class="feature-text"><strong>ManualOracle</strong> — trusted price posting infrastructure for any asset symbol (data feeds are an integration step, not pre-populated).</span>
+      </div>
+      <div class="panel-feature">
+        <span class="feature-check">✓</span>
+        <span class="feature-text"><strong>RampSettlement + SEP-24</strong> — settlement contracts plus anchor connectivity via the SDK for real fiat rails.</span>
       </div>
     </div>
   </section>
@@ -2950,6 +2998,18 @@ document.querySelectorAll('.code-tab').forEach(tab => {
   }
 
   function renderInstall(chainId) {
+    if (family(chainId) === 'stellar') {
+      return `<span class="cmt"># Install the SDK</span>
+<span class="op">npm</span> install <span class="str">@ankarachain/sdk</span>
+
+<span class="cmt"># Scaffold a new project</span>
+<span class="op">npx</span> ankara init <span class="str">my-rwa-project</span>
+
+<span class="cmt"># Build & deploy Soroban factories (TokenFactory, EscrowFactory, ...)</span>
+<span class="op">cd</span> packages/contracts-stellar
+<span class="op">npm</span> run build
+<span class="op">./scripts/deploy-testnet.sh</span> <span class="str">deployer</span>`;
+    }
     return `<span class="cmt"># Install the SDK</span>
 <span class="op">npm</span> install <span class="str">@ankarachain/sdk</span>
 
@@ -2961,9 +3021,28 @@ document.querySelectorAll('.code-tab').forEach(tab => {
   }
 
   function renderDeploy(chainId) {
-    const factoryAddr = family(chainId) === 'stellar'
-      ? 'CYOURFACTORYCONTRACTID2Q3W4E5R6T7Y8U9I0OPASDFGH'
-      : '0xYourFactoryAddress';
+    if (family(chainId) === 'stellar') {
+      const factoryAddr = 'CBMBI63UU6KJIZ5KUVP6A3FGMBMS4R3OXSY27NQNK5PPLCWJW7DPSEEF';
+      return `<span class="kw">import</span> { <span class="cls">TokenFactory</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk'</span>;
+
+<span class="kw">const</span> <span class="var">factory</span> = <span class="kw">new</span> <span class="cls">TokenFactory</span>({
+  <span class="var">network</span>: <span class="str">'${chainId}'</span>,
+  <span class="var">stellarSecretKey</span>: <span class="var">process</span>.<span class="var">env</span>.<span class="var">STELLAR_SECRET_KEY</span><span class="op">!</span>,
+  <span class="var">factoryAddress</span>: <span class="str">'${factoryAddr}'</span>,
+});
+
+<span class="cmt">// Deploy a farmland token</span>
+<span class="kw">const</span> <span class="var">result</span> = <span class="kw">await</span> <span class="var">factory</span>.<span class="fn">deployFarmland</span>({
+  <span class="var">name</span>: <span class="str">'Kano Farmland Token'</span>,
+  <span class="var">symbol</span>: <span class="str">'KFT'</span>,
+  <span class="var">assetId</span>: <span class="str">'KANO-FARM-001'</span>,
+  <span class="var">countryCode</span>: <span class="str">'NG'</span>,
+  <span class="var">metadata</span>: { <span class="op">...</span> },
+});
+
+<span class="var">console</span>.<span class="fn">log</span>(<span class="str">\`Deployed: <span class="op">\${</span><span class="var">result</span>.<span class="var">tokenAddress</span><span class="op">}</span>\`</span>);`;
+    }
+    const factoryAddr = '0xYourFactoryAddress';
     return `<span class="kw">import</span> { <span class="cls">TokenFactory</span> } <span class="kw">from</span> <span class="str">'@ankarachain/sdk'</span>;
 
 <span class="kw">const</span> <span class="var">factory</span> = <span class="kw">new</span> <span class="cls">TokenFactory</span>({
@@ -3073,15 +3152,53 @@ function copyCode(tab) {
   });
 }
 
-// Terminal typing animation
-const lines = document.querySelectorAll('.t-success, .t-output');
-lines.forEach((line, i) => {
-  line.style.opacity = '0';
-  setTimeout(() => {
+function animateHeroTerminal() {
+  const terminal = document.querySelector('.hero-terminal');
+  if (!terminal) return;
+  const lines = terminal.querySelectorAll('.t-success, .t-output');
+  lines.forEach((line, i) => {
+    line.style.opacity = '0';
     line.style.transition = 'opacity 0.3s ease';
-    line.style.opacity = '1';
-  }, 800 + i * 350);
-});
+    setTimeout(() => {
+      line.style.opacity = '1';
+    }, 260 + i * 220);
+  });
+}
+
+(function() {
+  const buttons = document.querySelectorAll('.hero-chain-btn');
+  if (!buttons.length) return;
+
+  const network = document.getElementById('hero-network');
+  const deployNetwork = document.getElementById('hero-deploy-network');
+  const tokenAddress = document.getElementById('hero-token-address');
+  if (!network || !deployNetwork || !tokenAddress) return;
+
+  const presets = {
+    'polygon-amoy': { network: 'polygon-amoy', token: '0x4Ac9...dB2F' },
+    'stellar-testnet': { network: 'stellar-testnet', token: 'CDQJ...H3F2' },
+  };
+
+  function setChain(chainId) {
+    const preset = presets[chainId] || presets['polygon-amoy'];
+    network.textContent = preset.network;
+    deployNetwork.textContent = preset.network;
+    tokenAddress.textContent = preset.token;
+
+    buttons.forEach((b) => {
+      const active = b.dataset.chain === chainId;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+
+    animateHeroTerminal();
+  }
+
+  buttons.forEach((btn) => btn.addEventListener('click', () => setChain(btn.dataset.chain)));
+  setChain('polygon-amoy');
+})();
+
+animateHeroTerminal();
 </script>
 </body>
 </html>
