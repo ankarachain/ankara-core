@@ -7,7 +7,7 @@ description: RampSettlement and RampSettlementFactory — the optional on-chain 
 
 Ankara Chain's on-ramp/off-ramp support has two independent halves:
 
-1. **A pluggable provider abstraction in the SDK** (`RampProvider` interface + `RampManager` class) that orchestrates the off-chain side of a fiat<->token flow — quotes, KYC, and the actual payment/payout — against whichever provider you implement it for (Yellow Card, Flutterwave, Transak, etc.). The SDK ships only `ManualRampProvider`, a reference implementation for local development and testing.
+1. **A pluggable provider abstraction in the SDK** (`RampProvider` interface + `RampManager` class) that orchestrates the off-chain side of a fiat↔token flow — quotes, KYC, and the actual payment/payout — against whichever provider you implement it for (Yellow Card, Flutterwave, Transak, etc.). The SDK ships only `ManualRampProvider`, a reference implementation for local development and testing.
 2. **An optional on-chain settlement contract** (`RampSettlement`) that gives the crypto side of a settlement a verifiable, auditable record. It's entirely optional — `RampManager` works with just a provider if you don't need on-chain proof of settlement.
 
 This page covers both. See [`packages/sdk/src/core/RampManager.ts`](https://github.com/ankarachain/ankara-core) and [`packages/sdk/src/providers/ManualRampProvider.ts`](https://github.com/ankarachain/ankara-core) for the SDK source.

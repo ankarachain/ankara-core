@@ -75,7 +75,7 @@ The off-chain half of every ramp tool uses `ManualRampProvider` — a reference 
 
 | Tool | Description |
 |------|-------------|
-| `get_ramp_quote` | Get a fiat<->token quote. Provide either `fiatAmount` or `tokenAmount`. |
+| `get_ramp_quote` | Get a fiat↔token quote. Provide either `fiatAmount` or `tokenAmount`. |
 | `initiate_onramp` | Start an on-ramp session (fiat → tokens) with the ramp provider. Does not mint tokens — mint separately once the fiat payment is confirmed. |
 | `record_onramp_settlement` | Record an on-chain attestation that an on-ramp mint happened. Does not move funds. |
 | `initiate_offramp` | Start an off-ramp session (tokens → fiat): approves and deposits tokens into `RampSettlement` custody, then starts a provider payout session. |

@@ -442,7 +442,7 @@ Reports: payer, payee, arbiter, token, total amount, funded/cancelled flags, rem
 
 ## Ramp Commands (on-ramp / off-ramp)
 
-Commands for fiat<->token flows. The off-chain half always uses `ManualRampProvider` (a reference implementation for dev/testing) — swap in a real provider adapter (Yellow Card, Flutterwave, Transak, etc.) in your own integration. The on-chain half (`RampSettlement`) is optional; see [On-Ramp / Off-Ramp](/contracts/ramp-settlement) for the full design.
+Commands for fiat↔token flows. The off-chain half always uses `ManualRampProvider` (a reference implementation for dev/testing) — swap in a real provider adapter (Yellow Card, Flutterwave, Transak, etc.) in your own integration. The on-chain half (`RampSettlement`) is optional; see [On-Ramp / Off-Ramp](/contracts/ramp-settlement) for the full design.
 
 ## `ankara deploy-ramp-settlement`
 
@@ -464,7 +464,7 @@ The deployment result is saved to `ankara.config.json` under `deployments`.
 
 ## `ankara ramp-quote`
 
-Get a fiat<->token quote.
+Get a fiat↔token quote.
 
 ```bash
 ankara ramp-quote
