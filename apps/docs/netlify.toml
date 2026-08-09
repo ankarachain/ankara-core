@@ -1,0 +1,3 @@
+[build]
+  command = "npx mintlify export && rm -rf dist && unzip -o export.zip -d dist && rm -f export.zip"
+  publish = "dist"
