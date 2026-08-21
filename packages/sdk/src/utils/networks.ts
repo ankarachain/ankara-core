@@ -48,6 +48,14 @@ export const NETWORKS: Record<SupportedNetwork, NetworkConfig> = {
     explorerUrl: "https://celoscan.io",
     nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
   },
+  "celo-sepolia": {
+    chainFamily: "evm",
+    chainId: 11142220,
+    name: "Celo Sepolia Testnet",
+    rpcUrl: "https://forno.celo-sepolia.celo-testnet.org",
+    explorerUrl: "https://celo-sepolia.blockscout.com",
+    nativeCurrency: { name: "CELO", symbol: "CELO", decimals: 18 },
+  },
   localhost: {
     chainFamily: "evm",
     chainId: 31337,

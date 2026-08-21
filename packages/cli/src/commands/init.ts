@@ -53,6 +53,7 @@ export async function initCommand(projectName?: string) {
         { name: "Polygon Amoy (testnet) — recommended for development", value: "polygon-amoy" },
         { name: "Localhost (Hardhat node)",                              value: "localhost"    },
         { name: "Polygon Mainnet",                                       value: "polygon"      },
+        { name: "Celo Sepolia (testnet)",                                value: "celo-sepolia" },
         { name: "Celo Mainnet",                                          value: "celo"         },
         { name: "BNB Smart Chain",                                       value: "bnb"          },
         { name: "Ethereum Mainnet",                                      value: "ethereum"     },

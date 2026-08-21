@@ -9,6 +9,7 @@ export type EVMSupportedNetwork =
   | "ethereum"
   | "bnb"
   | "celo"
+  | "celo-sepolia"
   | "localhost";
 
 export type StellarSupportedNetwork = "stellar" | "stellar-testnet";

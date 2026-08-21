@@ -8,6 +8,8 @@
     "test": "hardhat test",
     "test:coverage": "hardhat coverage",
     "deploy:amoy": "hardhat run scripts/deploy.ts --network amoy",
+    "deploy:celo-sepolia": "hardhat run scripts/deploy.ts --network celoSepolia",
+    "deploy:celo": "hardhat run scripts/deploy.ts --network celo",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "node": "hardhat node",
     "clean": "hardhat clean"

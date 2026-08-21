@@ -8,6 +8,7 @@ const EVM_NETWORKS: EVMSupportedNetwork[] = [
   "ethereum",
   "bnb",
   "celo",
+  "celo-sepolia",
   "localhost",
 ];
 
@@ -16,8 +17,8 @@ const STELLAR_NETWORKS: SupportedNetwork[] = ["stellar", "stellar-testnet"];
 const ALL_NETWORKS: SupportedNetwork[] = [...EVM_NETWORKS, ...STELLAR_NETWORKS];
 
 describe("NETWORKS", () => {
-  it("contains exactly 8 supported networks", () => {
-    expect(Object.keys(NETWORKS)).toHaveLength(8);
+  it("contains exactly 9 supported networks", () => {
+    expect(Object.keys(NETWORKS)).toHaveLength(9);
   });
 
   it("contains all expected network keys", () => {
@@ -85,6 +86,12 @@ describe("NETWORKS", () => {
   it("celo is chainId 42220", () => {
     const cfg = NETWORKS["celo"];
     expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(42220);
+  });
+
+  // Celo Sepolia replaced Alfajores (44787) as Celo's developer testnet.
+  it("celo-sepolia is chainId 11142220", () => {
+    const cfg = NETWORKS["celo-sepolia"];
+    expect(cfg.chainFamily === "evm" && cfg.chainId).toBe(11142220);
   });
 
   it("localhost is chainId 31337", () => {

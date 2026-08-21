@@ -7,6 +7,7 @@ dotenv.config();
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0x" + "0".repeat(64);
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
+const CELOSCAN_API_KEY = process.env.CELOSCAN_API_KEY || "";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -31,17 +32,52 @@ const config: HardhatUserConfig = {
       accounts: [PRIVATE_KEY],
       chainId: 137,
     },
+    // Celo's public forno endpoints need no API key. Celo Sepolia replaced
+    // Alfajores (44787) as the developer testnet.
+    celoSepolia: {
+      url: "https://forno.celo-sepolia.celo-testnet.org",
+      accounts: [PRIVATE_KEY],
+      chainId: 11142220,
+    },
+    celo: {
+      url: "https://forno.celo.org",
+      accounts: [PRIVATE_KEY],
+      chainId: 42220,
+    },
   },
   etherscan: {
-    apiKey: { polygonAmoy: POLYGONSCAN_API_KEY, polygon: POLYGONSCAN_API_KEY },
-    customChains: [{
-      network: "polygonAmoy",
-      chainId: 80002,
-      urls: {
-        apiURL: "https://api-amoy.polygonscan.com/api",
-        browserURL: "https://amoy.polygonscan.com",
+    apiKey: {
+      polygonAmoy: POLYGONSCAN_API_KEY,
+      polygon: POLYGONSCAN_API_KEY,
+      celo: CELOSCAN_API_KEY,
+      celoSepolia: CELOSCAN_API_KEY,
+    },
+    customChains: [
+      {
+        network: "polygonAmoy",
+        chainId: 80002,
+        urls: {
+          apiURL: "https://api-amoy.polygonscan.com/api",
+          browserURL: "https://amoy.polygonscan.com",
+        },
       },
-    }],
+      {
+        network: "celo",
+        chainId: 42220,
+        urls: {
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io",
+        },
+      },
+      {
+        network: "celoSepolia",
+        chainId: 11142220,
+        urls: {
+          apiURL: "https://celo-sepolia.blockscout.com/api",
+          browserURL: "https://celo-sepolia.blockscout.com",
+        },
+      },
+    ],
   },
   paths: {
     sources: "./contracts",

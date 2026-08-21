@@ -142,7 +142,7 @@ describe("TokenFactory", () => {
   });
 
   it("accepts all supported networks without throwing", () => {
-    const networks = ["polygon-amoy", "polygon", "ethereum", "bnb", "celo", "localhost"] as const;
+    const networks = ["polygon-amoy", "polygon", "ethereum", "bnb", "celo", "celo-sepolia", "localhost"] as const;
     for (const n of networks) {
       expect(() => new TokenFactory({ network: n, factoryAddress: MOCK_ADDR })).not.toThrow();
     }
