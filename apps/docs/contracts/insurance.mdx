@@ -1,0 +1,78 @@
+---
+title: Parametric Insurance
+description: Automatic, threshold-based payouts for holders of farmland, commodity and carbon-credit tokens with the risk-pool contract on Stellar.
+---
+
+Real-world assets carry real-world risk: drought, heat, a harvest or delivery that never
+arrives. `risk-pool` lets holders pool that risk and get paid **automatically** when a
+verifiable threshold is crossed. There's no claims adjuster in the common case. It is
+Stellar-only.
+
+## How it works
+
+1. **Capital.** The insurer, reinsurers or a donor fund `fund` the pool. Every policy's
+   full coverage is **reserved** out of free capital when it's sold, so the pool can
+   always pay every policy of a product that fires.
+2. **Products** (Manager). A product has a trigger, a coverage window, a premium rate
+   (bps of coverage) and, optionally, a linked Ankara asset token.
+3. **Policies.** Holders `buy_policy(coverage)` and pay `coverage × premium_bps` in the
+   payout token. For **asset-linked** products, `buy_policy_for_holding` sizes coverage
+   from the holder's token balance (`units × coverage_per_unit ÷ unit_scale`), so a
+   farmland-token holder insures exactly their share.
+4. **Trigger** (anyone, e.g. a keeper). If the condition is met inside the window, the
+   product becomes `Triggered` and the observed reading is recorded.
+5. **Settle** (anyone). Each policy pays straight to its holder. Asset-linked payouts are
+   capped by the units the holder **still holds**. Any unpaid part of the reserve goes
+   back to free capital.
+6. **Expire** (anyone). After the window, an untriggered product releases its reserve.
+   Premiums stay in the pool, and the Manager can `withdraw_capital` whatever is
+   unreserved.
+
+## Triggers
+
+Triggers use the same pluggable oracle and attestation patterns as the rest of Ankara.
+There are no bespoke data feeds.
+
+| Trigger | Fires when | Reads |
+|---|---|---|
+| `OracleBelow(oracle, key, threshold)` | the oracle's **fresh** value for `key` < threshold | any `IAnkaraOracle`: `manual-oracle`, the SEP-40 adapter, a weather relayer |
+| `OracleAbove(oracle, key, threshold)` | value > threshold | same |
+| `ClaimMissing(registry, subject, claim_type, deadline)` | after `deadline`, there's no valid `claim_type` claim about `subject` | `attestation-registry` (`has_valid_claim`) |
+
+`key` is whatever address the oracle publishes the index under. For example, a weather
+relayer posts a region's cumulative rainfall with `set_price(<station address>, mm × 1e18)`.
+A stale reading can't fire a trigger.
+
+## Example: drought cover for farmland-token holders
+
+```ts
+import { RiskPool } from "@ankarachain/sdk";
+
+const pool = new RiskPool(insurerAdapter, POOL);
+await pool.fund(100_000_0000000n);
+
+const { productId } = await pool.createProduct({
+  trigger: { kind: "oracle-below", oracle: ORACLE, key: KADUNA_RAIN_STATION, threshold: 300n * 10n ** 18n },
+  coverageStart: seasonStart,
+  coverageEnd: seasonEnd,
+  premiumBps: 500,                                                            // 5%
+  asset: { token: FARMLAND_TOKEN, coveragePerUnit: 500_0000000n, unitScale: 10n ** 18n }, // $500 per token
+});
+
+// Each holder:
+await new RiskPool(holderAdapter, POOL).buyPolicyForHolding(productId);
+
+// A keeper, once rainfall data shows < 300mm:
+if (await pool.isTriggerable(productId)) {
+  await pool.trigger(productId);
+  await pool.settleMany(await pool.productPolicies(productId));
+}
+```
+
+Delivery cover works the same way with
+`{ kind: "claim-missing", registry: ATTESTATIONS, subject: { kind: "asset", assetId: "SHIPMENT-42" }, claimType: "DELIVERY", deadline }`.
+
+```bash
+POOL=$(stellar contract deploy --wasm target/wasm32v1-none/release/risk_pool.wasm --source deployer --network testnet)
+stellar contract invoke --id $POOL --source deployer --network testnet -- initialize --admin <ADMIN> --payout_token <USDC_SAC>
+```

@@ -1,0 +1,17 @@
+[package]
+name = "risk-pool"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+ankara-common = { path = "../../common" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+farmland-token = { path = "../../templates/farmland-token" }
+manual-oracle = { path = "../../oracle/manual-oracle" }

@@ -23,6 +23,13 @@ export { EVMAdapter }      from "./adapters/evm";
 export { StellarAdapter }  from "./adapters/stellar";
 export type { IAdapter }   from "./adapters/IAdapter";
 
+// Parametric insurance (Stellar-only)
+export { RiskPool } from "./core/RiskPool";
+export type {
+  InsuranceTrigger, InsuranceSubject, InsuranceProduct, InsurancePolicy, CreateProductInput,
+  ProductStatus as InsuranceProductStatus, PolicyStatus as InsurancePolicyStatus,
+} from "./types/insurance";
+
 // Types
 export type {
   AnkaraChainConfig,

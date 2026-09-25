@@ -17,6 +17,7 @@ members = [
     "contracts/oracle/manual-oracle",
     "contracts/collateral-vault",
     "contracts/factory/token-factory",
+    "contracts/insurance/risk-pool",
     "contracts/factory/nft-factory",
     "contracts/factory/multi-token-factory",
     "contracts/escrow/milestone-escrow",
