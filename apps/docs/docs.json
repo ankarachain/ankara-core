@@ -49,6 +49,7 @@
             "group": "Smart Contracts",
             "pages": [
               "contracts/overview",
+              "contracts/identity",
               "contracts/nft-layer",
               "contracts/multi-token-layer",
               "contracts/escrow",
