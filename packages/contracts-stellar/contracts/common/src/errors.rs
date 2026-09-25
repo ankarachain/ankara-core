@@ -22,8 +22,9 @@ pub enum CommonError {
     NotApprovedOrOwner = 10,
     ContractPaused = 11,
     AlreadyRegistered = 12,
+    /// `balance_of_at`/`total_supply_at` for a snapshot id that doesn't exist.
+    /// (Numbered 17 — 15/16 are reserved for the compliance-policy errors.)
+    SnapshotNotFound = 17,
     NotRegistered = 13,
     MaxSupplyExceeded = 14,
-    /// `balance_of_at`/`total_supply_at` for a snapshot id that doesn't exist.
-    SnapshotNotFound = 17,
 }

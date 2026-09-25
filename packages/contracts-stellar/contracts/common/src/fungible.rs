@@ -184,84 +184,6 @@ fn spend_allowance(env: &Env, from: &Address, spender: &Address, amount: i128) {
     }
 }
 
-// ─── SEP-41 (`soroban_sdk::token::TokenInterface`) bodies ──────────────────
-// Each template's `#[contractimpl] impl TokenInterface for X` delegates
-// straight into these functions.
-
-pub fn allowance(env: &Env, from: &Address, spender: &Address) -> i128 {
-    read_allowance(env, from, spender).amount
-}
-
-pub fn approve(env: &Env, from: &Address, spender: &Address, amount: i128, expiration_ledger: u32) {
-    from.require_auth();
-    write_allowance(env, from, spender, amount, expiration_ledger);
-    env.events().publish(
-        (Symbol::new(env, "approve"), from.clone(), spender.clone()),
-        (amount, expiration_ledger),
-    );
-}
-
-pub fn balance(env: &Env, id: &Address) -> i128 {
-    read_balance(env, id)
-}
-
-pub fn transfer(env: &Env, from: &Address, to: &Address, amount: i128) {
-    crate::pausable::check_not_paused(env);
-    from.require_auth();
-    spend_balance(env, from, amount);
-    receive_balance(env, to, amount);
-    env.events().publish(
-        (Symbol::new(env, "transfer"), from.clone(), to.clone()),
-        amount,
-    );
-}
-
-pub fn transfer_from(env: &Env, spender: &Address, from: &Address, to: &Address, amount: i128) {
-    crate::pausable::check_not_paused(env);
-    spender.require_auth();
-    spend_allowance(env, from, spender, amount);
-    spend_balance(env, from, amount);
-    receive_balance(env, to, amount);
-    env.events().publish(
-        (Symbol::new(env, "transfer"), from.clone(), to.clone()),
-        amount,
-    );
-}
-
-pub fn burn(env: &Env, from: &Address, amount: i128) {
-    crate::pausable::check_not_paused(env);
-    from.require_auth();
-    spend_balance(env, from, amount);
-    adjust_total_supply(env, -amount);
-    env.events()
-        .publish((Symbol::new(env, "burn"), from.clone()), amount);
-}
-
-pub fn burn_from(env: &Env, spender: &Address, from: &Address, amount: i128) {
-    crate::pausable::check_not_paused(env);
-    spender.require_auth();
-    spend_allowance(env, from, spender, amount);
-    spend_balance(env, from, amount);
-    adjust_total_supply(env, -amount);
-    env.events()
-        .publish((Symbol::new(env, "burn"), from.clone()), amount);
-}
-
-/// Custom mint — SEP-41 itself defines no minting operation (same
-/// reasoning as EVM: `mint()` is layered on top of the ERC-20 standard, not
-/// part of it). The caller (each template's `contract.rs`) is responsible
-/// for the `Role::Minter` check before calling this, same as every other
-/// gated entry point in this codebase — checking the role here too would
-/// call `require_auth()` on the same address twice in one invocation,
-/// which Soroban's auth framework rejects.
-pub fn mint(env: &Env, to: &Address, amount: i128) {
-    crate::pausable::check_not_paused(env);
-    receive_balance(env, to, amount);
-    adjust_total_supply(env, amount);
-    env.events()
-        .publish((Symbol::new(env, "mint"), to.clone()), amount);
-}
-
 // ─── Snapshots (ERC20Snapshot-style) ──────────────────────────────────────
 // SEP-41 has no historical balances, but pro-rata payouts (see
 // `revenue-distributor`) need "who held what at time T". `snapshot()`
@@ -365,4 +287,82 @@ pub fn total_supply_at(env: &Env, snapshot_id: u32) -> i128 {
     check_snapshot_id(env, snapshot_id);
     value_at(env, FungibleDataKey::SupplyCheckpoints, snapshot_id)
         .unwrap_or_else(|| total_supply(env))
+}
+
+// ─── SEP-41 (`soroban_sdk::token::TokenInterface`) bodies ──────────────────
+// Each template's `#[contractimpl] impl TokenInterface for X` delegates
+// straight into these functions.
+
+pub fn allowance(env: &Env, from: &Address, spender: &Address) -> i128 {
+    read_allowance(env, from, spender).amount
+}
+
+pub fn approve(env: &Env, from: &Address, spender: &Address, amount: i128, expiration_ledger: u32) {
+    from.require_auth();
+    write_allowance(env, from, spender, amount, expiration_ledger);
+    env.events().publish(
+        (Symbol::new(env, "approve"), from.clone(), spender.clone()),
+        (amount, expiration_ledger),
+    );
+}
+
+pub fn balance(env: &Env, id: &Address) -> i128 {
+    read_balance(env, id)
+}
+
+pub fn transfer(env: &Env, from: &Address, to: &Address, amount: i128) {
+    crate::pausable::check_not_paused(env);
+    from.require_auth();
+    spend_balance(env, from, amount);
+    receive_balance(env, to, amount);
+    env.events().publish(
+        (Symbol::new(env, "transfer"), from.clone(), to.clone()),
+        amount,
+    );
+}
+
+pub fn transfer_from(env: &Env, spender: &Address, from: &Address, to: &Address, amount: i128) {
+    crate::pausable::check_not_paused(env);
+    spender.require_auth();
+    spend_allowance(env, from, spender, amount);
+    spend_balance(env, from, amount);
+    receive_balance(env, to, amount);
+    env.events().publish(
+        (Symbol::new(env, "transfer"), from.clone(), to.clone()),
+        amount,
+    );
+}
+
+pub fn burn(env: &Env, from: &Address, amount: i128) {
+    crate::pausable::check_not_paused(env);
+    from.require_auth();
+    spend_balance(env, from, amount);
+    adjust_total_supply(env, -amount);
+    env.events()
+        .publish((Symbol::new(env, "burn"), from.clone()), amount);
+}
+
+pub fn burn_from(env: &Env, spender: &Address, from: &Address, amount: i128) {
+    crate::pausable::check_not_paused(env);
+    spender.require_auth();
+    spend_allowance(env, from, spender, amount);
+    spend_balance(env, from, amount);
+    adjust_total_supply(env, -amount);
+    env.events()
+        .publish((Symbol::new(env, "burn"), from.clone()), amount);
+}
+
+/// Custom mint — SEP-41 itself defines no minting operation (same
+/// reasoning as EVM: `mint()` is layered on top of the ERC-20 standard, not
+/// part of it). The caller (each template's `contract.rs`) is responsible
+/// for the `Role::Minter` check before calling this, same as every other
+/// gated entry point in this codebase — checking the role here too would
+/// call `require_auth()` on the same address twice in one invocation,
+/// which Soroban's auth framework rejects.
+pub fn mint(env: &Env, to: &Address, amount: i128) {
+    crate::pausable::check_not_paused(env);
+    receive_balance(env, to, amount);
+    adjust_total_supply(env, amount);
+    env.events()
+        .publish((Symbol::new(env, "mint"), to.clone()), amount);
 }
