@@ -5,14 +5,25 @@ description: Deploy and manage Ankara Chain assets from an AI assistant via the 
 
 ## Overview
 
-`@ankarachain/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that exposes Ankara Chain's deploy and management operations as tools an AI assistant can call directly — deploy a token, mint to an address, check status, or drive an escrow's milestone lifecycle, all from a natural-language conversation instead of the CLI's interactive prompts.
+`@ankarachain/mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server
+that exposes Ankara Chain's deploy and management operations as tools an AI assistant can
+call directly. From a conversation, an assistant can deploy a token, mint to an address,
+run template-specific lifecycle actions, drive an escrow, manage a pool or a
+collateralized loan, and check status, **on EVM networks or on Stellar**, without going
+through the CLI's interactive prompts.
 
-It wraps the same `@ankarachain/sdk` classes (`TokenFactory`, `EVMAdapter`, `EscrowManager`, `RampManager`) used by the CLI, so every tool call goes through the SDK rather than constructing raw contract calls.
+It wraps the same `@ankarachain/sdk` classes the CLI uses (`TokenFactory`,
+`AssetRegistry`, `EscrowManager`, `RampManager`, `CollateralVault`, `IndexerClient`,
+through `EVMAdapter` or `StellarAdapter`), so every tool call goes through the SDK
+instead of building raw contract calls.
 
 ```
 packages/mcp/
+├── COVERAGE.md          # SDK method ↔ MCP tool ↔ CLI command audit
 └── src/
-    └── index.ts   # tool definitions + handlers + stdio server
+    ├── index.ts         # tool definitions + handlers + stdio server
+    ├── connection.ts    # network → EVMAdapter / StellarAdapter / TokenFactory
+    └── templates.ts     # per-template metadata fields + builder for deploy_token
 ```
 
 ---
@@ -23,7 +34,8 @@ packages/mcp/
 npx -y @ankarachain/mcp
 ```
 
-Register it with an MCP-compatible client (Claude Desktop, Claude Code, etc.) by adding it to the client's MCP server config:
+Register it with an MCP-compatible client (Claude Desktop, Claude Code, etc.) in the
+client's MCP server config:
 
 ```json
 {
@@ -36,71 +48,104 @@ Register it with an MCP-compatible client (Claude Desktop, Claude Code, etc.) by
 }
 ```
 
-The server communicates over stdio — there's no separate network port to configure. Every tool call takes its own `rpcUrl` and, for write operations, `privateKey` as arguments, so a single server instance can operate against any network or wallet the caller specifies per-call.
+The server communicates over stdio, so there's no network port to configure. Each tool
+call carries its own connection arguments, so one server instance can work against any
+network or wallet:
+
+| Argument | EVM | Stellar |
+|---|---|---|
+| `network` | optional, defaults to `localhost` (or `polygon`, `polygon-amoy`, `ethereum`, `bnb`, `celo`) | `stellar` or `stellar-testnet` |
+| `rpcUrl` | JSON-RPC URL (required) | Soroban RPC URL (optional, defaults per network) |
+| `privateKey` | signer key, for write tools | — |
+| `stellarSecretKey` | — | signer seed (`S…`), for write tools |
+
+Read-only tools need no key.
 
 <Warning>
-Tool calls that require `privateKey` send it as a plain argument in the tool call. Only run this server in a trusted local environment, and prefer a dedicated deployer key with limited funds rather than a primary wallet key.
+Write tools receive the signing key as a plain argument. Only run this server in a trusted
+local environment, and use a dedicated key with limited funds, not a primary wallet.
 </Warning>
 
 ---
 
 ## Tools
 
-### Deploy
+42 tools. The full input schema of each is available through the standard MCP
+`tools/list` request.
+
+### Tokens
 
 | Tool | Description |
 |------|-------------|
-| `deploy_token` | Deploy an ERC-20 RWA token via `TokenFactory`. Currently supports the `farmland` template with placeholder metadata — use the CLI's `ankara deploy` for full metadata prompts across all 6 ERC-20 templates. |
-| `deploy_nft` | Deploy an ERC-721 NFT asset record (`farmland-nft`, `real-estate-nft`, `mining-rights-nft`, `commodity-vault-nft`) via `NFTFactory`. |
-| `deploy_batch_token` | Deploy a `CommodityBatchToken` (ERC-1155 warehouse receipt) via `MultiTokenFactory`. |
-| `deploy_pool_vault` | Deploy a `PoolVault` (multi-asset ERC-20 fund) via `MultiTokenFactory`. |
-| `deploy_escrow` | Deploy a `MilestoneEscrow` for tranche-based diaspora payments via `EscrowFactory`. Takes an ordered list of milestone amounts. |
-| `deploy_ramp_settlement` | Deploy a `RampSettlement` contract (optional on-chain half of a fiat on/off-ramp flow) via `RampSettlementFactory`. |
+| `get_template_fields` | The metadata fields, units, defaults and allowed values for each of the 6 fungible templates. No chain call. |
+| `deploy_token` | Deploy any of the 6 fungible templates (farmland, commodity, real-estate, invoice, carbon-credit, mining-rights) with real metadata. Omitted fields use the CLI's defaults. Unknown fields and invalid choices are rejected before anything is sent. |
+| `deploy_nft` | Deploy an NFT asset record (`farmland-nft`, `real-estate-nft`, `mining-rights-nft`, `commodity-vault-nft`). |
+| `mint_tokens` / `transfer_tokens` / `transfer_nft` | Mint to, or transfer from the signer. |
+| `get_token_balance` / `get_token_status` | Balance, and name/symbol/supply/status. |
+| `get_asset_details` | Full record: supply, status, country, verifier, metadata version and metadata, plus template state (invoice status/overdue, commodity expiry, carbon retirements, mining license expiry). |
+| `asset_action` | Lifecycle and template actions: `set_status`, `set_identity_verifier`, `pause`, `unpause`, `mint`, `update_valuation`, `update_occupancy_status`, `declare_rental_distribution`, `mark_expired`, `mark_funded`, `mark_repaid`, `mark_defaulted`, `retire`, `renew_license`, `mark_license_expired`, `declare_royalty`. |
+| `set_asset_status` | Set lifecycle status (`0`=DRAFT … `4`=EXPIRED). |
+| `list_deployments` | Tokens a deployer created via `TokenFactory`. |
 
-### Escrow lifecycle
+### Multi-token, pools and oracle
 
 | Tool | Description |
 |------|-------------|
-| `fund_escrow` | Approve and deposit the full agreed amount into a `MilestoneEscrow`. Payer only. |
-| `mark_milestone_delivered` | Mark a milestone as delivered. Payee only. |
-| `approve_milestone` | Approve a delivered milestone, releasing funds to the payee. Payer only. |
-| `raise_dispute` | Raise a dispute on a delivered milestone. Payer or payee. |
-| `resolve_dispute` | Resolve a disputed milestone — release to payee or refund to payer. Arbiter only. |
-| `claim_timelock_release` | Force-release a delivered, non-disputed milestone once the timelock has elapsed. Callable by anyone. |
-| `get_escrow_status` | Read-only: payer, payee, arbiter, token, total amount, funded/cancelled flags, remaining balance, and every milestone's status. No private key required. |
+| `deploy_batch_token` / `batch_register` / `batch_mint` | Commodity batch (warehouse receipt) contracts. |
+| `deploy_pool_vault` / `pool_deposit` / `pool_withdraw` / `get_pool_status` | Multi-asset fund lifecycle. |
+| `oracle_set_price` | Post a USD price on a `ManualOracle`. |
+
+### Collateral vault (Stellar)
+
+| Tool | Description |
+|------|-------------|
+| `vault_open_loan` / `vault_repay_loan` / `vault_liquidate` | Borrower and liquidator actions on a `CollateralVault`. |
+| `get_loan` | A loan with its live LTV and liquidation status, or the vault's config if `loanId` is omitted. |
+
+### Escrow
+
+| Tool | Description |
+|------|-------------|
+| `deploy_escrow` | Deploy a `MilestoneEscrow` from an ordered list of milestone amounts. |
+| `fund_escrow` | Fund one milestone, or every unfunded one. On EVM the token approval is done first. Payer only. |
+| `mark_milestone_delivered` / `approve_milestone` / `raise_dispute` / `resolve_dispute` / `claim_timelock_release` | Milestone lifecycle. |
+| `vote_cancel_escrow` | Mutual cancellation vote. |
+| `get_escrow_status` | Parties, token, amounts, flags and every milestone. |
 
 ### On-ramp / off-ramp
 
-The off-chain half of every ramp tool uses `ManualRampProvider` — a reference implementation for dev/testing. Swap in a real provider adapter (Yellow Card, Flutterwave, Transak, etc.) for production. See [On-Ramp / Off-Ramp](/contracts/ramp-settlement) for the full design.
+The off-chain half uses `ManualRampProvider`, a reference implementation. See
+[On-Ramp / Off-Ramp](/contracts/ramp-settlement).
 
 | Tool | Description |
 |------|-------------|
-| `get_ramp_quote` | Get a fiat↔token quote. Provide either `fiatAmount` or `tokenAmount`. |
-| `initiate_onramp` | Start an on-ramp session (fiat → tokens) with the ramp provider. Does not mint tokens — mint separately once the fiat payment is confirmed. |
-| `record_onramp_settlement` | Record an on-chain attestation that an on-ramp mint happened. Does not move funds. |
-| `initiate_offramp` | Start an off-ramp session (tokens → fiat): approves and deposits tokens into `RampSettlement` custody, then starts a provider payout session. |
-| `confirm_offramp_settlement` | Confirm an off-ramp fiat payout, releasing custodied tokens to the treasury. |
-| `refund_offramp` | Refund a custodied off-ramp deposit to the original depositor if the fiat payout failed. |
-| `get_ramp_status` | Read-only: the on-chain off-ramp deposit / on-ramp record for a reference. No private key required. |
+| `deploy_ramp_settlement` | Deploy a `RampSettlement` contract. |
+| `get_ramp_quote` / `initiate_onramp` | Quote and start an on-ramp session. |
+| `record_onramp_settlement` | On-chain attestation of an on-ramp mint. |
+| `initiate_offramp` / `confirm_offramp_settlement` / `refund_offramp` | Custodied off-ramp lifecycle. |
+| `get_ramp_status` | On-chain deposit / record for a reference. |
 
-### Token management
+### Indexer
 
 | Tool | Description |
 |------|-------------|
-| `mint_tokens` | Mint ERC-20 RWA tokens to a recipient address. |
-| `get_token_status` | Read name, symbol, total supply, and asset status of a token. No private key required. |
-| `list_deployments` | List all token contracts deployed by a given address via `TokenFactory`. No private key required. |
-| `set_asset_status` | Set the lifecycle status of a token (`0`=DRAFT, `1`=ACTIVE, `2`=SUSPENDED, `3`=REDEEMED, `4`=EXPIRED). |
+| `query_indexer_events` | Query events from a running `@ankarachain/indexer`. |
 
-Every tool's full input schema (required fields, types) is discoverable via the standard MCP `tools/list` request — an AI client introspects this automatically rather than needing hardcoded knowledge of the parameters.
+For which SDK methods are, and aren't yet, reachable from the MCP server and the CLI, see
+[`packages/mcp/COVERAGE.md`](https://github.com/ankarachain/ankara-core/blob/main/packages/mcp/COVERAGE.md).
 
 ---
 
 ## Design notes
 
-- All 24 tools dispatch through a single exported `callTool(name, args)` function, which wraps every handler in a try/catch and returns `{ content, isError: true }` on failure instead of throwing — so a bad tool call surfaces as a readable error to the AI client rather than crashing the server.
-- The stdio server only starts when the module is run directly (`node dist/index.js` / `npx @ankarachain/mcp`), not when imported — this lets the tool definitions and dispatch logic be unit tested without spinning up a real MCP transport.
-- Read-only tools (`get_escrow_status`, `get_token_status`, `list_deployments`, `get_ramp_status`) don't require a `privateKey`, only an `rpcUrl`, and construct a plain `ethers.JsonRpcProvider` rather than a signer. `get_ramp_quote` needs neither, since `ManualRampProvider` computes quotes locally.
+- Every tool dispatches through one exported `callTool(name, args)`, which catches handler
+  errors and returns `{ content, isError: true }`. A bad call shows up as a readable error
+  and never crashes the server. Results are JSON, with bigints rendered as strings.
+- The connection layer (`connection.ts`) turns `network` + keys into an `EVMAdapter` or a
+  `StellarAdapter`, so most handlers are chain-agnostic. Stellar-only tools fail with a
+  clear message on EVM networks.
+- The stdio server only starts when the module is run directly, so tool definitions and
+  dispatch can be unit tested without a real MCP transport.
 
 ---
 
