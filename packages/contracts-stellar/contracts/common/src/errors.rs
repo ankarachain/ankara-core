@@ -24,4 +24,8 @@ pub enum CommonError {
     AlreadyRegistered = 12,
     NotRegistered = 13,
     MaxSupplyExceeded = 14,
+    /// The token's compliance policy rejected a transfer/mint/burn.
+    TransferRejected = 15,
+    /// `clawback` was called on a token with no compliance policy attached.
+    NoCompliancePolicy = 16,
 }

@@ -51,6 +51,7 @@
               "contracts/overview",
               "contracts/identity",
               "contracts/nft-layer",
+              "contracts/compliance",
               "contracts/multi-token-layer",
               "contracts/escrow",
               "contracts/ramp-settlement"

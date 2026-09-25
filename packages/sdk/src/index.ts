@@ -11,6 +11,10 @@ export { WhitelistVerifier }   from "./core/WhitelistVerifier";
 export { AttestationRegistry } from "./core/AttestationRegistry";
 export type { VerificationRecord, Attestation, AttestationSubject, AttestInput } from "./types/identity";
 export { AssetRegistry }   from "./core/AssetRegistry";
+// Stablecoin / compliance (Stellar-only): proof of reserve + freeze/clawback policy
+export { ReserveAttestation } from "./core/ReserveAttestation";
+export { CompliancePolicy }   from "./core/CompliancePolicy";
+export type { ReserveReport, ReserveSubmission, PendingReserveRound, ReserveConfig, FreezeRecord } from "./types/compliance";
 export { EscrowManager }   from "./core/EscrowManager";
 export { RampManager }     from "./core/RampManager";
 export { CollateralVault } from "./core/CollateralVault";

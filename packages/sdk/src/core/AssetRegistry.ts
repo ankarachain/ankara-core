@@ -9,6 +9,12 @@ import { InvoiceStatus } from "../types";
 
 type AnyTemplate = AssetTemplate | NFTAssetTemplate;
 
+/** The generic-invocation surface of `StellarAdapter`, duck-typed so this file doesn't import the Stellar SDK. */
+interface StellarInvoker {
+  invokeContract<T = unknown>(contractId: string, method: string, args?: Record<string, unknown>): Promise<{ result: T; txHash: string }>;
+  readContract<T = unknown>(contractId: string, method: string, args?: Record<string, unknown>): Promise<T>;
+}
+
 const NFT_TEMPLATES: AnyTemplate[] = ["farmland-nft", "real-estate-nft", "mining-rights-nft", "commodity-vault-nft"];
 
 /**
@@ -106,6 +112,45 @@ export class AssetRegistry {
 
   async getValuationUSD(): Promise<bigint> {
     return this._adapter.assetGetValuationUSD(this._address, this._fungibleTemplate());
+  }
+
+  // ─── Compliance policy (Stellar only, all 6 fungible templates) ──────────
+
+  /**
+   * Attaches a `compliance-policy` contract (freeze / clawback / transfer
+   * rules) to this token, or detaches it with `null`. Opt-in: tokens without
+   * a policy behave as before. Requires the token's Manager role.
+   * Stellar only — manage the policy itself with the `CompliancePolicy` class.
+   */
+  async setCompliancePolicy(policyAddress: string | null): Promise<string> {
+    this._requireFungible("setCompliancePolicy");
+    const { txHash } = await this._stellarCompliance("setCompliancePolicy").invokeContract(
+      this._address, "set_compliance_policy", { new_policy: policyAddress ?? undefined }
+    );
+    return txHash;
+  }
+
+  /** The attached compliance policy's address, or `null` if none. Stellar only. */
+  async getCompliancePolicy(): Promise<string | null> {
+    this._requireFungible("getCompliancePolicy");
+    const raw = await this._stellarCompliance("getCompliancePolicy").readContract<string | null | undefined>(
+      this._address, "compliance_policy", {}
+    );
+    return raw ?? null;
+  }
+
+  private _requireFungible(method: string): void {
+    if (NFT_TEMPLATES.includes(this._template)) {
+      throw new Error(`${method}() is only available on fungible templates, not "${this._template}"`);
+    }
+  }
+
+  private _stellarCompliance(method: string): StellarInvoker {
+    const adapter = this._adapter as Partial<StellarInvoker>;
+    if (typeof adapter.invokeContract !== "function" || typeof adapter.readContract !== "function") {
+      throw new Error(`${method}() is only available on Stellar — compliance policies have no EVM implementation yet`);
+    }
+    return adapter as StellarInvoker;
   }
 
   // ─── Farmland + Real Estate: valuation ───────────────────────────────────

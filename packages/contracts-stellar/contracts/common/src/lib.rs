@@ -12,6 +12,7 @@
 //! base-contract pattern from the caller's point of view.
 
 pub mod asset;
+pub mod compliance;
 pub mod errors;
 pub mod fungible;
 pub mod multi_token;
@@ -22,6 +23,7 @@ pub mod roles;
 pub mod verifier;
 
 pub use asset::AssetStatus;
+pub use compliance::{CompliancePolicyClient, CompliancePolicyInterface};
 pub use errors::CommonError;
 pub use roles::Role;
 pub use verifier::{IdentityVerifierClient, IdentityVerifierInterface};
