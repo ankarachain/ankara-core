@@ -16,6 +16,9 @@ export { ReserveAttestation } from "./core/ReserveAttestation";
 export { CompliancePolicy }   from "./core/CompliancePolicy";
 export type { ReserveReport, ReserveSubmission, PendingReserveRound, ReserveConfig, FreezeRecord } from "./types/compliance";
 export { EscrowManager }   from "./core/EscrowManager";
+// Decentralized price feeds (Stellar-only): SEP-40 (e.g. Reflector) adapter with manual-oracle fallback
+export { Sep40OracleAdapter } from "./core/Sep40OracleAdapter";
+export type { Sep40Asset, OracleFeedConfig, OraclePrice } from "./types/oracle";
 export { RampManager }     from "./core/RampManager";
 export { CollateralVault } from "./core/CollateralVault";
 export { IndexerClient }   from "./core/IndexerClient";

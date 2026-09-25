@@ -1,0 +1,19 @@
+[package]
+name = "sep40-oracle-adapter"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+ankara-common = { path = "../../common" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+manual-oracle = { path = "../manual-oracle" }
+collateral-vault = { path = "../../collateral-vault" }
+pool-vault = { path = "../../templates/pool-vault" }
+farmland-token = { path = "../../templates/farmland-token" }

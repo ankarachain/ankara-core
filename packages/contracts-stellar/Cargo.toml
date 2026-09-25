@@ -20,6 +20,7 @@ members = [
     "contracts/identity/whitelist-verifier",
     "contracts/identity/attestation-registry",
     "contracts/collateral-vault",
+    "contracts/oracle/sep40-oracle-adapter",
     "contracts/factory/token-factory",
     "contracts/factory/nft-factory",
     "contracts/factory/multi-token-factory",
