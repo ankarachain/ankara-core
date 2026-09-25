@@ -14,6 +14,7 @@
 pub mod asset;
 pub mod errors;
 pub mod fungible;
+pub mod governance;
 pub mod multi_token;
 pub mod nft;
 pub mod oracle;

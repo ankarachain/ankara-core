@@ -286,6 +286,31 @@ export class StellarAdapter implements IAdapter {
     return tx.result as T;
   }
 
+  // ─── Generic contract invocation (public) ─────────────────────────────────
+  // Stellar-only SDK classes (e.g. `IdentityRegistry`, `ReserveAttestation`)
+  // drive their contracts through these two methods instead of adding a
+  // dedicated method per contract function to `IAdapter` — those contracts
+  // have no EVM counterpart, so there's nothing for `EVMAdapter` to
+  // implement. Same dynamic-client path as every named method above.
+
+  /** Invokes a state-changing contract method, signed by this adapter's configured signer. */
+  async invokeContract<T = unknown>(
+    contractId: string,
+    method: string,
+    args: Record<string, unknown> = {}
+  ): Promise<{ result: T; txHash: string }> {
+    return this.writeAndExtract<T>(contractId, method, args);
+  }
+
+  /** Simulates a read-only contract method and returns its decoded result. */
+  async readContract<T = unknown>(
+    contractId: string,
+    method: string,
+    args: Record<string, unknown> = {}
+  ): Promise<T> {
+    return this.read<T>(contractId, method, args);
+  }
+
   // ─── Fungible template deploys ────────────────────────────────────────────
 
   async deployFarmlandToken(opts: DeployFarmlandOptions): Promise<DeployResult> {
@@ -1012,22 +1037,31 @@ export class StellarAdapter implements IAdapter {
   async deployPoolVault(opts: DeployPoolVaultOptions): Promise<MultiTokenDeployResult> {
     const deployer = opts.admin ?? await this.getSignerAddress();
     const assetId = assetIdToBytes32(opts.assetId);
+    const args: Record<string, unknown> = {
+      deployer,
+      payment_token: await this.defaultPaymentToken(),
+      salt: this.randomSalt(),
+      name: opts.name,
+      symbol: opts.symbol,
+      asset_id: assetId,
+      country_code: opts.countryCode,
+      admin: deployer,
+      verifier: opts.identityVerifier,
+      oracle: opts.oracle,
+      management_fee_bps: opts.managementFeeBps ?? 0,
+    };
+    if (opts.governance) {
+      args.governance_config = {
+        voting_period: opts.governance.votingPeriod,
+        timelock: opts.governance.timelock,
+        quorum_bps: opts.governance.quorumBps,
+        proposal_threshold_bps: opts.governance.proposalThresholdBps,
+      };
+    }
     const { result: contractAddress, txHash } = await this.writeAndExtract<string>(
       this.multiTokenFactoryAddress,
-      "deploy_pool_vault",
-      {
-        deployer,
-        payment_token: await this.defaultPaymentToken(),
-        salt: this.randomSalt(),
-        name: opts.name,
-        symbol: opts.symbol,
-        asset_id: assetId,
-        country_code: opts.countryCode,
-        admin: deployer,
-        verifier: opts.identityVerifier,
-        oracle: opts.oracle,
-        management_fee_bps: opts.managementFeeBps ?? 0,
-      }
+      opts.governance ? "deploy_governed_pool_vault" : "deploy_pool_vault",
+      args
     );
     return {
       contractAddress, txHash, template: "pool-vault",

@@ -99,3 +99,36 @@ fn deploy_pool_vault() {
     assert_eq!(vault.symbol(), String::from_str(&env, "ACB"));
     assert_eq!(vault.management_fee_bps(), 50);
 }
+
+#[test]
+fn deploy_governed_pool_vault() {
+    use ankara_common::governance::GovernanceConfig;
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_, _, factory) = setup(&env);
+    factory.register_template(&Template::PoolVault, &Bytes::from_slice(&env, POOL_VAULT_WASM));
+    let cfg = GovernanceConfig {
+        voting_period: 3 * 86_400,
+        timelock: 86_400,
+        quorum_bps: 2_000,
+        proposal_threshold_bps: 100,
+    };
+    let address = factory.deploy_governed_pool_vault(
+        &Address::generate(&env),
+        &Address::generate(&env),
+        &BytesN::from_array(&env, &[41u8; 32]),
+        &String::from_str(&env, "Kaduna Farmers Coop Fund"),
+        &String::from_str(&env, "KFCF"),
+        &BytesN::from_array(&env, &[42u8; 32]),
+        &String::from_str(&env, "NG"),
+        &Address::generate(&env),
+        &None,
+        &None,
+        &0,
+        &cfg,
+    );
+    let vault = PoolVaultClient::new(&env, &address);
+    assert_eq!(vault.governance_config(), Some(cfg));
+    assert!(vault.try_set_management_fee_bps(&1).is_err());
+    assert_eq!(factory.total_deployed(), 1);
+}

@@ -818,6 +818,9 @@ export class EVMAdapter implements IAdapter {
   }
 
   async deployPoolVault(opts: DeployPoolVaultOptions): Promise<MultiTokenDeployResult> {
+    if (opts.governance) {
+      throw new Error("Pool-vault governance mode is Stellar-only — PoolVault.sol has no governance module");
+    }
     const factory    = this.multiTokenFactoryContract();
     const adminAddr  = opts.admin ?? await this.getSignerAddress();
     const verifier   = opts.identityVerifier ?? ethers.ZeroAddress;

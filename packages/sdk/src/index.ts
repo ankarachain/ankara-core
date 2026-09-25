@@ -104,6 +104,11 @@ export type {
 export { AssetStatus, InvoiceStatus, MilestoneStatus, RampSettlementStatus, RampSessionStatus, LoanStatus } from "./types";
 export type { RetirementRecord } from "./types";
 
+// Pool-vault governance (Stellar-only, opt-in)
+export { PoolGovernance } from "./core/PoolGovernance";
+export type { PoolAction, PoolProposal, ProposalState as PoolProposalState } from "./core/PoolGovernance";
+export type { PoolGovernanceConfig } from "./types";
+
 // Utilities
 export { getNetwork, NETWORKS } from "./utils/networks";
 export {

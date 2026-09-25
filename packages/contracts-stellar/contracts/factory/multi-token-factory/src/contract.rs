@@ -4,6 +4,7 @@ use soroban_sdk::{
 };
 
 use crate::metadata::WarehouseMetadata;
+use ankara_common::governance::GovernanceConfig;
 
 /// Mirrors `MultiTokenFactory.sol`'s `Template` enum.
 #[contracttype]
@@ -219,6 +220,57 @@ impl MultiTokenFactory {
             management_fee_bps.into_val(&env),
         ];
         env.invoke_contract::<()>(&deployed_address, &Symbol::new(&env, "initialize"), args);
+        Self::record_deployment(&env, &deployer, &deployed_address);
+        env.events().publish(
+            (symbol_short!("deployed"), Template::PoolVault),
+            (deployed_address.clone(), deployer, asset_id, country_code),
+        );
+        deployed_address
+    }
+
+    /// Same as `deploy_pool_vault`, but the vault is born in token-weighted
+    /// governance mode (`pool-vault::initialize_governed`): fee, oracle,
+    /// accepted-token, min-deposit and upgrade changes can only happen via
+    /// holder proposals. The deployment-time choice for cooperative- or
+    /// community-owned funds.
+    #[allow(clippy::too_many_arguments)]
+    pub fn deploy_governed_pool_vault(
+        env: Env,
+        deployer: Address,
+        payment_token: Address,
+        salt: BytesN<32>,
+        name: String,
+        symbol: String,
+        asset_id: BytesN<32>,
+        country_code: String,
+        admin: Address,
+        verifier: Option<Address>,
+        oracle: Option<Address>,
+        management_fee_bps: u32,
+        governance_config: GovernanceConfig,
+    ) -> Address {
+        deployer.require_auth();
+        Self::collect_fee(&env, &deployer, &payment_token);
+        let wasm_hash = Self::implementation(&env, Template::PoolVault);
+        let deployed_address = env
+            .deployer()
+            .with_current_contract(salt)
+            .deploy_v2(wasm_hash, ());
+        let fee_recipient = Self::fee_recipient(env.clone());
+        let args: Vec<Val> = soroban_sdk::vec![
+            &env,
+            name.into_val(&env),
+            symbol.into_val(&env),
+            asset_id.into_val(&env),
+            country_code.into_val(&env),
+            admin.into_val(&env),
+            verifier.into_val(&env),
+            Some(fee_recipient).into_val(&env),
+            oracle.into_val(&env),
+            management_fee_bps.into_val(&env),
+            governance_config.into_val(&env),
+        ];
+        env.invoke_contract::<()>(&deployed_address, &Symbol::new(&env, "initialize_governed"), args);
         Self::record_deployment(&env, &deployer, &deployed_address);
         env.events().publish(
             (symbol_short!("deployed"), Template::PoolVault),

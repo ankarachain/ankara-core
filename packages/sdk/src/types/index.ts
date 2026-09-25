@@ -395,6 +395,24 @@ export interface DeployPoolVaultOptions {
   identityVerifier?: string;
   oracle?: string;              // defaults to address(0) — no oracle
   managementFeeBps?: number;    // defaults to 0
+  /**
+   * Stellar only: deploy the vault in token-weighted governance mode —
+   * fee/oracle/accepted-token/min-deposit/upgrade changes then require a
+   * holder proposal. Omit for the default single-Manager vault.
+   */
+  governance?: PoolGovernanceConfig;
+}
+
+/** Token-weighted governance parameters for a pool vault (Stellar). */
+export interface PoolGovernanceConfig {
+  /** Voting window, seconds. */
+  votingPeriod: bigint;
+  /** Delay between passing and execution, seconds. */
+  timelock: bigint;
+  /** Minimum participation, bps of total supply. */
+  quorumBps: number;
+  /** Minimum share of supply needed to propose, bps. */
+  proposalThresholdBps: number;
 }
 
 export interface MultiTokenDeployResult {
