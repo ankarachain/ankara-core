@@ -1037,22 +1037,31 @@ export class StellarAdapter implements IAdapter {
   async deployPoolVault(opts: DeployPoolVaultOptions): Promise<MultiTokenDeployResult> {
     const deployer = opts.admin ?? await this.getSignerAddress();
     const assetId = assetIdToBytes32(opts.assetId);
+    const args: Record<string, unknown> = {
+      deployer,
+      payment_token: await this.defaultPaymentToken(),
+      salt: this.randomSalt(),
+      name: opts.name,
+      symbol: opts.symbol,
+      asset_id: assetId,
+      country_code: opts.countryCode,
+      admin: deployer,
+      verifier: opts.identityVerifier,
+      oracle: opts.oracle,
+      management_fee_bps: opts.managementFeeBps ?? 0,
+    };
+    if (opts.governance) {
+      args.governance_config = {
+        voting_period: opts.governance.votingPeriod,
+        timelock: opts.governance.timelock,
+        quorum_bps: opts.governance.quorumBps,
+        proposal_threshold_bps: opts.governance.proposalThresholdBps,
+      };
+    }
     const { result: contractAddress, txHash } = await this.writeAndExtract<string>(
       this.multiTokenFactoryAddress,
-      "deploy_pool_vault",
-      {
-        deployer,
-        payment_token: await this.defaultPaymentToken(),
-        salt: this.randomSalt(),
-        name: opts.name,
-        symbol: opts.symbol,
-        asset_id: assetId,
-        country_code: opts.countryCode,
-        admin: deployer,
-        verifier: opts.identityVerifier,
-        oracle: opts.oracle,
-        management_fee_bps: opts.managementFeeBps ?? 0,
-      }
+      opts.governance ? "deploy_governed_pool_vault" : "deploy_pool_vault",
+      args
     );
     return {
       contractAddress, txHash, template: "pool-vault",

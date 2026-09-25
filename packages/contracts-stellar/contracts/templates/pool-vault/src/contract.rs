@@ -9,7 +9,9 @@ use soroban_sdk::{
     token::TokenInterface, Address, BytesN, Env, String, Vec,
 };
 
+use crate::governance::{self, Action, Proposal, ProposalState};
 use crate::metadata::{self, MAX_TOKENS_PER_VAULT, PRICE_SCALE, YEAR_IN_SECONDS};
+use ankara_common::governance::GovernanceConfig;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -23,6 +25,20 @@ pub enum PoolVaultError {
     OraclePriceStale = 6,
     ZeroAmount = 7,
     InsufficientPoolTokens = 8,
+    /// A manager-only action was called directly on a governed vault, or
+    /// governance was enabled twice.
+    GovernanceEnabled = 9,
+    InvalidGovernanceConfig = 10,
+    ProposalNotFound = 11,
+    VotingClosed = 12,
+    AlreadyVoted = 13,
+    NoVotingPower = 14,
+    BelowProposalThreshold = 15,
+    NotExecutable = 16,
+    /// Transfer/withdraw would move shares locked by an open vote.
+    TokensLocked = 17,
+    NotProposer = 18,
+    GovernanceNotEnabled = 19,
 }
 
 /// Direct port of `PoolVault.sol` — the vault itself is a fungible token
@@ -54,44 +70,196 @@ impl PoolVault {
         metadata::init_vault(&env, oracle, management_fee_bps);
     }
 
+    /// `initialize` + `enable_governance` in one call — the deployment-time
+    /// choice of a community-governed vault (used by
+    /// `multi-token-factory::deploy_governed_pool_vault`).
+    #[allow(clippy::too_many_arguments)]
+    pub fn initialize_governed(
+        env: Env,
+        name: String,
+        symbol: String,
+        asset_id: BytesN<32>,
+        country_code: String,
+        admin: Address,
+        verifier: Option<Address>,
+        fee_recipient: Option<Address>,
+        oracle: Option<Address>,
+        management_fee_bps: u32,
+        governance_config: GovernanceConfig,
+    ) {
+        Self::initialize(
+            env.clone(),
+            name,
+            symbol,
+            asset_id,
+            country_code,
+            admin,
+            verifier,
+            fee_recipient,
+            oracle,
+            management_fee_bps,
+        );
+        governance::enable(&env, &governance_config);
+        env.events().publish((symbol_short!("gov_on"),), governance_config);
+    }
+
+    // ─── Governance mode (opt-in) ─────────────────────────────────────────
+    // Once enabled — irreversibly — fee, oracle, accepted-token, min-deposit
+    // and upgrade changes can only happen through a proposal that pool-share
+    // holders pass by share-weighted vote and that then waits out a
+    // timelock. Vaults that never enable it keep the single-Manager model.
+
+    /// Manager opts the vault into governance (one-way). Meant to be called
+    /// at deployment; see also `initialize_governed`.
+    pub fn enable_governance(env: Env, governance_config: GovernanceConfig) {
+        require_role(&env, Role::Manager);
+        governance::enable(&env, &governance_config);
+        env.events().publish((symbol_short!("gov_on"),), governance_config);
+    }
+
+    pub fn governance_config(env: Env) -> Option<GovernanceConfig> {
+        governance::config(&env)
+    }
+
+    /// Opens a proposal. The proposer must hold at least
+    /// `proposal_threshold_bps` of total supply.
+    pub fn propose(env: Env, proposer: Address, action: Action) -> u64 {
+        proposer.require_auth();
+        let cfg = governance::config(&env)
+            .unwrap_or_else(|| panic_with_error!(&env, PoolVaultError::GovernanceNotEnabled));
+        let supply = ankara_common::fungible::total_supply(&env);
+        let balance = ankara_common::fungible::balance(&env, &proposer);
+        if balance <= 0 || balance * 10_000 < supply * (cfg.proposal_threshold_bps as i128) {
+            panic_with_error!(&env, PoolVaultError::BelowProposalThreshold);
+        }
+        let now = env.ledger().timestamp();
+        let id = governance::next_id(&env);
+        let voting_ends = now + cfg.voting_period;
+        let proposal = Proposal {
+            id,
+            proposer: proposer.clone(),
+            action: action.clone(),
+            created_at: now,
+            voting_ends,
+            eta: voting_ends + cfg.timelock,
+            for_votes: 0,
+            against_votes: 0,
+            quorum_votes: supply * (cfg.quorum_bps as i128) / 10_000,
+            executed: false,
+            cancelled: false,
+        };
+        governance::set(&env, &proposal);
+        env.events()
+            .publish((symbol_short!("proposed"), id), (proposer, action, voting_ends));
+        id
+    }
+
+    /// Votes with the voter's full current share balance. Those shares are
+    /// locked (can't be transferred or withdrawn) until voting ends, so they
+    /// can't be moved to another address to vote again.
+    pub fn vote(env: Env, voter: Address, proposal_id: u64, support: bool) {
+        voter.require_auth();
+        let mut p = governance::get(&env, proposal_id);
+        if governance::state(&env, &p) != ProposalState::Active {
+            panic_with_error!(&env, PoolVaultError::VotingClosed);
+        }
+        if governance::has_voted(&env, proposal_id, &voter) {
+            panic_with_error!(&env, PoolVaultError::AlreadyVoted);
+        }
+        let weight = ankara_common::fungible::balance(&env, &voter);
+        if weight <= 0 {
+            panic_with_error!(&env, PoolVaultError::NoVotingPower);
+        }
+        if support {
+            p.for_votes += weight;
+        } else {
+            p.against_votes += weight;
+        }
+        governance::set(&env, &p);
+        governance::mark_voted(&env, proposal_id, &voter, support);
+        governance::extend_lock(&env, &voter, weight, p.voting_ends);
+        env.events()
+            .publish((symbol_short!("voted"), proposal_id, voter), (support, weight));
+    }
+
+    /// The proposer can withdraw a proposal while voting is still open.
+    pub fn cancel_proposal(env: Env, proposer: Address, proposal_id: u64) {
+        proposer.require_auth();
+        let mut p = governance::get(&env, proposal_id);
+        if p.proposer != proposer {
+            panic_with_error!(&env, PoolVaultError::NotProposer);
+        }
+        if governance::state(&env, &p) != ProposalState::Active {
+            panic_with_error!(&env, PoolVaultError::VotingClosed);
+        }
+        p.cancelled = true;
+        governance::set(&env, &p);
+        env.events().publish((symbol_short!("cancelled"), proposal_id), ());
+    }
+
+    /// Executes a passed proposal once its timelock has elapsed. Anyone
+    /// can call.
+    pub fn execute(env: Env, proposal_id: u64) {
+        let mut p = governance::get(&env, proposal_id);
+        if governance::state(&env, &p) != ProposalState::Executable {
+            panic_with_error!(&env, PoolVaultError::NotExecutable);
+        }
+        p.executed = true;
+        governance::set(&env, &p);
+        env.events()
+            .publish((symbol_short!("executed"), proposal_id), p.action.clone());
+        apply_action(&env, p.action);
+    }
+
+    pub fn get_proposal(env: Env, proposal_id: u64) -> Proposal {
+        governance::get(&env, proposal_id)
+    }
+
+    pub fn proposal_state(env: Env, proposal_id: u64) -> ProposalState {
+        governance::state(&env, &governance::get(&env, proposal_id))
+    }
+
+    pub fn proposal_count(env: Env) -> u64 {
+        governance::count(&env)
+    }
+
+    pub fn has_voted(env: Env, proposal_id: u64, voter: Address) -> bool {
+        governance::has_voted(&env, proposal_id, &voter)
+    }
+
+    /// Shares currently frozen by open votes.
+    pub fn locked_balance(env: Env, holder: Address) -> i128 {
+        governance::locked_amount(&env, &holder)
+    }
+
     // ─── Token registry (Role::Manager) ──────────────────────────────────
 
+    // In governance mode these five (and `upgrade`) are only reachable via
+    // `execute` on a passed proposal.
+
     pub fn add_accepted_token(env: Env, token: Address, weight_bps: u32) {
-        require_role(&env, Role::Manager);
-        if metadata::is_accepted(&env, &token) {
-            panic_with_error!(&env, PoolVaultError::TokenAlreadyAccepted);
-        }
-        if metadata::accepted_tokens(&env).len() >= MAX_TOKENS_PER_VAULT {
-            panic_with_error!(&env, PoolVaultError::TooManyTokens);
-        }
-        metadata::add_accepted_token(&env, token.clone(), weight_bps);
-        env.events()
-            .publish((symbol_short!("accepted"), token), weight_bps);
+        require_manager_mode(&env);
+        apply_action(&env, Action::AddAcceptedToken(token, weight_bps));
     }
 
     pub fn remove_accepted_token(env: Env, token: Address) {
-        require_role(&env, Role::Manager);
-        if !metadata::is_accepted(&env, &token) {
-            panic_with_error!(&env, PoolVaultError::TokenNotAccepted);
-        }
-        metadata::remove_accepted_token(&env, &token);
-        env.events().publish((symbol_short!("removed"),), token);
+        require_manager_mode(&env);
+        apply_action(&env, Action::RemoveAcceptedToken(token));
     }
 
     pub fn set_oracle(env: Env, oracle: Address) {
-        require_role(&env, Role::Manager);
-        metadata::set_oracle(&env, oracle.clone());
-        env.events().publish((symbol_short!("oracle"),), oracle);
+        require_manager_mode(&env);
+        apply_action(&env, Action::SetOracle(oracle));
     }
 
     pub fn set_management_fee_bps(env: Env, new_fee_bps: u32) {
-        require_role(&env, Role::Manager);
-        metadata::set_management_fee_bps(&env, new_fee_bps);
+        require_manager_mode(&env);
+        apply_action(&env, Action::SetManagementFeeBps(new_fee_bps));
     }
 
     pub fn set_min_deposit(env: Env, token: Address, min_amount: i128) {
-        require_role(&env, Role::Manager);
-        metadata::set_min_deposit(&env, token, min_amount);
+        require_manager_mode(&env);
+        apply_action(&env, Action::SetMinDeposit(token, min_amount));
     }
 
     // ─── Deposit / withdraw ───────────────────────────────────────────────
@@ -145,6 +313,7 @@ impl PoolVault {
         if ankara_common::fungible::balance(&env, &investor) < pool_token_amount {
             panic_with_error!(&env, PoolVaultError::InsufficientPoolTokens);
         }
+        governance::check_unlocked(&env, &investor, pool_token_amount);
 
         let supply_before = ankara_common::fungible::total_supply(&env);
         let tokens = metadata::accepted_tokens(&env);
@@ -313,7 +482,12 @@ impl PoolVault {
     // ─── Minting (Role::Minter) — direct pool-token issuance, distinct
     // from deposit-triggered minting ──────────────────────────────────────
 
+    /// Disabled in governance mode — directly minting shares would let one
+    /// key manufacture voting power.
     pub fn mint(env: Env, to: Address, amount: i128) {
+        if governance::is_enabled(&env) {
+            panic_with_error!(&env, PoolVaultError::GovernanceEnabled);
+        }
         require_role(&env, Role::Minter);
         verifier::check_verified(&env, &to);
         ankara_common::fungible::mint(&env, &to, amount);
@@ -336,8 +510,58 @@ impl PoolVault {
     // ─── Upgrade (Role::Upgrader) ────────────────────────────────────────
 
     pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) {
+        if governance::is_enabled(&env) {
+            panic_with_error!(&env, PoolVaultError::GovernanceEnabled);
+        }
         require_role(&env, Role::Upgrader);
         env.deployer().update_current_contract_wasm(new_wasm_hash);
+    }
+}
+
+/// Direct (non-governed) path: requires the Manager, and that governance
+/// mode is off.
+fn require_manager_mode(env: &Env) {
+    if governance::is_enabled(env) {
+        panic_with_error!(env, PoolVaultError::GovernanceEnabled);
+    }
+    require_role(env, Role::Manager);
+}
+
+/// The single implementation of every manager-gated change, shared by the
+/// Manager path and proposal execution. Callers do the authorization.
+fn apply_action(env: &Env, action: Action) {
+    match action {
+        Action::AddAcceptedToken(token, weight_bps) => {
+            if metadata::is_accepted(env, &token) {
+                panic_with_error!(env, PoolVaultError::TokenAlreadyAccepted);
+            }
+            if metadata::accepted_tokens(env).len() >= MAX_TOKENS_PER_VAULT {
+                panic_with_error!(env, PoolVaultError::TooManyTokens);
+            }
+            metadata::add_accepted_token(env, token.clone(), weight_bps);
+            env.events()
+                .publish((symbol_short!("accepted"), token), weight_bps);
+        }
+        Action::RemoveAcceptedToken(token) => {
+            if !metadata::is_accepted(env, &token) {
+                panic_with_error!(env, PoolVaultError::TokenNotAccepted);
+            }
+            metadata::remove_accepted_token(env, &token);
+            env.events().publish((symbol_short!("removed"),), token);
+        }
+        Action::SetOracle(oracle) => {
+            metadata::set_oracle(env, oracle.clone());
+            env.events().publish((symbol_short!("oracle"),), oracle);
+        }
+        Action::SetManagementFeeBps(bps) => {
+            metadata::set_management_fee_bps(env, bps);
+        }
+        Action::SetMinDeposit(token, min_amount) => {
+            metadata::set_min_deposit(env, token, min_amount);
+        }
+        Action::Upgrade(hash) => {
+            env.deployer().update_current_contract_wasm(hash);
+        }
     }
 }
 
@@ -356,6 +580,7 @@ impl TokenInterface for PoolVault {
     }
 
     fn transfer(env: Env, from: Address, to: soroban_sdk::MuxedAddress, amount: i128) {
+        governance::check_unlocked(&env, &from, amount);
         let to_address = to.address();
         verifier::check_verified(&env, &from);
         verifier::check_verified(&env, &to_address);
@@ -363,16 +588,19 @@ impl TokenInterface for PoolVault {
     }
 
     fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
+        governance::check_unlocked(&env, &from, amount);
         verifier::check_verified(&env, &from);
         verifier::check_verified(&env, &to);
         ankara_common::fungible::transfer_from(&env, &spender, &from, &to, amount);
     }
 
     fn burn(env: Env, from: Address, amount: i128) {
+        governance::check_unlocked(&env, &from, amount);
         ankara_common::fungible::burn(&env, &from, amount);
     }
 
     fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
+        governance::check_unlocked(&env, &from, amount);
         ankara_common::fungible::burn_from(&env, &spender, &from, amount);
     }
 

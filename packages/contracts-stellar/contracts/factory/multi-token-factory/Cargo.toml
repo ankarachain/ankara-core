@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
+ankara-common = { path = "../../common" }
 
 # See token-factory/Cargo.toml for why the template crates are dev-only.
 [dev-dependencies]

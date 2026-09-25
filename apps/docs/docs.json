@@ -47,6 +47,7 @@
               "templates/farmland",
               "templates/commodity",
               "templates/real-estate",
+              "contracts/pool-governance",
               "templates/invoice",
               "templates/carbon-credit",
               "templates/mining-rights"
