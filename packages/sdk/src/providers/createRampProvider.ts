@@ -1,10 +1,11 @@
 import type { RampProviderSelection, RampProvider, StellarExternalSigner } from "../types";
 import { ManualRampProvider } from "./ManualRampProvider";
 import { StellarAnchorProvider } from "./StellarAnchorProvider";
+import { StellarDirectPaymentProvider } from "./StellarDirectPaymentProvider";
 import { MoonPayProvider } from "./MoonPayProvider";
 
 export interface CreateRampProviderDeps {
-  /** Required if `selection.provider === "stellar-anchor"` — SEP-10 auth signs with the user's own wallet, there's no shared secret to configure. */
+  /** Required if `selection.provider` is `"stellar-anchor"` or `"stellar-sep31"` — SEP-10 auth signs with the user's own wallet, there's no shared secret to configure. */
   stellarSigner?: StellarExternalSigner;
 }
 
@@ -28,6 +29,18 @@ export function createRampProvider(selection: RampProviderSelection, deps: Creat
         throw new Error("createRampProvider: a stellar-anchor selection requires deps.stellarSigner (SEP-10 auth signs with the user's own wallet).");
       }
       return new StellarAnchorProvider({ homeDomain: selection.homeDomain, signer: deps.stellarSigner });
+
+    case "stellar-sep31":
+      if (!deps.stellarSigner) {
+        throw new Error("createRampProvider: a stellar-sep31 selection requires deps.stellarSigner (SEP-10 auth and the on-chain payment leg sign with the sending account).");
+      }
+      return new StellarDirectPaymentProvider({
+        homeDomain: selection.homeDomain,
+        signer: deps.stellarSigner,
+        senderId: selection.senderId,
+        autoPay: selection.autoPay,
+        horizonUrl: selection.horizonUrl,
+      });
 
     case "moonpay":
       return new MoonPayProvider({ apiKey: selection.apiKey, secretKey: selection.secretKey, sandbox: selection.sandbox });

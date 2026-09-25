@@ -1,0 +1,114 @@
+---
+title: Payments
+description: Direct anchor-to-anchor payments (SEP-31), payment streaming/vesting, and batch disbursement on Stellar.
+---
+
+Three payment primitives beyond the interactive SEP-24 ramp. All are Stellar-only.
+
+| Need | Use |
+|---|---|
+| Pay out fiat to someone through a **receiving anchor**, with no hosted page | `StellarDirectPaymentProvider` (SEP-31) through `RampManager` |
+| Release money **gradually**: salary, installments, vesting | `payment-stream` contract, `PaymentStream` SDK class |
+| Pay **many people at once**: payroll, cooperative distributions, relief | `batch-disburser` contract, `BatchDisburser` SDK class, `ankara batch-pay` CLI |
+
+---
+
+## Direct anchor-to-anchor payments (SEP-31)
+
+`StellarDirectPaymentProvider` implements the same `RampProvider` interface as
+`StellarAnchorProvider`, so it works through the existing `RampManager` API. The flow has
+no interactive step:
+
+1. **SEP-10**: authenticates the sending account, or uses a pre-obtained `authToken`.
+2. **SEP-12**: registers the receiver with the receiving anchor, using fields derived from
+   `payoutAccount` (bank or mobile money) plus any anchor-specific `receiverFields`.
+3. **SEP-31**: `POST /transactions` with your `senderId` and the new `receiver_id`.
+4. **On-chain leg**: with `autoPay` (the default), pays the anchor's `stellar_account_id`
+   with its memo via Horizon. With `autoPay: false`, it returns `paymentInstructions` so
+   you can pay from your own custody, or from a `ramp-settlement` deposit.
+5. `getStatus(id)` polls `GET /transactions/:id` and maps SEP-31 statuses to `RampSessionStatus`.
+
+SEP-31 is send-side only, so pair it with an interactive provider for deposits:
+
+```ts
+import { RampManager, StellarAnchorProvider, StellarDirectPaymentProvider } from "@ankarachain/sdk";
+
+const ramp = RampManager.withProviders({
+  onRamp:  new StellarAnchorProvider({ homeDomain: "anchor-a.example", signer }),
+  offRamp: new StellarDirectPaymentProvider({ homeDomain: "anchor-b.example", signer, senderId: "<your SEP-12 id>" }),
+});
+
+const quote = await ramp.getQuote({ direction: "off-ramp", tokenSymbol: "USDC", fiatCurrency: "KES", countryCode: "KE", tokenAmount: "250" });
+const session = await ramp.initiateOffRamp({
+  tokenAmount: "250", tokenSymbol: "USDC", fiatCurrency: "KES", countryCode: "KE",
+  payoutAccount: { type: "mobile-money", accountNumber: "+254700000000", provider: "M-PESA", accountName: "Wanjiru Kamau" },
+});
+console.log(session.paymentTxHash, await ramp.getStatus(session.sessionId));
+```
+
+Declarative selection works too: `createRampProvider({ provider: "stellar-sep31", homeDomain, senderId }, { stellarSigner })`.
+
+<Note>
+Receiving anchors differ in which SEP-12 fields they require. Check the anchor's
+`GET /info` and supply extras with `receiverFields`. Test against the anchor's testnet
+before going live.
+</Note>
+
+---
+
+## payment-stream: streaming and vesting
+
+One deployment serves any number of streams in any SEP-41 token. There's no admin. Each
+stream is controlled only by its sender and recipient.
+
+- **Linear**: per-second release from `start` to `end`, with an optional `cliff`. Nothing
+  can be claimed before the cliff. At the cliff, everything accrued since `start` unlocks.
+- **Tranches**: discrete installments (up to 48), each unlocking at its own time.
+- **Cancel** (only for streams created `cancelable`): the vested-but-unclaimed amount goes
+  to the recipient and the unvested remainder goes back to the sender.
+
+| Function | Access |
+|---|---|
+| `create_stream(sender, recipient, token, total, start, cliff, end, cancelable) -> id` | sender |
+| `create_schedule(sender, recipient, token, tranches, cancelable) -> id` | sender |
+| `withdraw(recipient, id, Option<amount>) -> paid` | recipient |
+| `cancel(sender, id) -> (paid, refunded)` | sender |
+| `claimable(id)`, `vested(id)`, `get_stream(id)`, `streams_by_sender/recipient` | anyone |
+
+```ts
+import { PaymentStream } from "@ankarachain/sdk";
+
+const streams = new PaymentStream(employerAdapter, STREAM);
+const now = BigInt(Math.floor(Date.now() / 1000));
+const { streamId } = await streams.createLinear({
+  recipient: "GWORKER...", token: USDC_SAC, totalAmount: 3_000_0000000n,
+  start: now, end: now + 30n * 86400n, cancelable: true,
+});
+
+// the worker, any time:
+await new PaymentStream(workerAdapter, STREAM).withdraw(streamId);
+```
+
+---
+
+## batch-disburser: payroll and distributions
+
+A stateless contract with no custody and no admin. `disburse(payer, token, payments, reference)`
+transfers straight from the payer to each recipient, up to 100 per transaction. Each batch
+is atomic, and the token's own identity-verifier and compliance checks still apply to every
+recipient. `disburse_equal` pays the same amount to a list of recipients.
+
+```ts
+import { BatchDisburser } from "@ankarachain/sdk";
+
+const disburser = new BatchDisburser(adapter, DISBURSER);
+const { txHashes, totalPaid } = await disburser.disburse(USDC_SAC, payroll, "payroll-2026-09"); // auto-chunks >100
+```
+
+From the CLI: `ankara batch-pay --contract <DISBURSER> --token <USDC_SAC> --file payouts.csv`.
+
+```bash
+STREAM=$(stellar contract deploy --wasm target/wasm32v1-none/release/payment_stream.wasm --source deployer --network testnet)
+DISBURSER=$(stellar contract deploy --wasm target/wasm32v1-none/release/batch_disburser.wasm --source deployer --network testnet)
+# neither contract needs initialize()
+```

@@ -9,6 +9,16 @@ export { TokenFactory }    from "./core/TokenFactory";
 export { AssetRegistry }   from "./core/AssetRegistry";
 export { EscrowManager }   from "./core/EscrowManager";
 export { RampManager }     from "./core/RampManager";
+// Payments (Stellar-only): streaming/vesting, batch disbursement, SEP-31 direct anchor payments
+export { PaymentStream }  from "./core/PaymentStream";
+export { BatchDisburser, chunkPayments, parseDisbursementCsv } from "./core/BatchDisburser";
+export { StellarDirectPaymentProvider } from "./providers/StellarDirectPaymentProvider";
+export type { StellarDirectPaymentProviderOptions } from "./providers/StellarDirectPaymentProvider";
+export type {
+  StreamTranche, StreamSchedule, PaymentStreamInfo, CreateLinearStreamInput, CreateScheduleInput,
+  Disbursement, DisburseResult,
+} from "./types/payments";
+export type { RampPaymentInstructions } from "./types";
 export { CollateralVault } from "./core/CollateralVault";
 export { IndexerClient }   from "./core/IndexerClient";
 

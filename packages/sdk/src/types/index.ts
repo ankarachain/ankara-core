@@ -594,7 +594,25 @@ export interface RampSession {
   status: RampSessionStatus;
   providerRef: string;
   paymentUrl?: string; // on-ramp only — where the payer completes the fiat payment
+  /**
+   * Non-interactive flows (SEP-31 direct payments) only: the on-chain
+   * payment the sender must make for the anchor to pay out. Present even
+   * when the provider already sent it (`paymentTxHash` set).
+   */
+  paymentInstructions?: RampPaymentInstructions;
+  /** Stellar tx hash of the payment to the anchor, when the provider submitted it itself. */
+  paymentTxHash?: string;
   createdAt: number;
+}
+
+/** Where and how to send the on-chain leg of a direct (SEP-31) payment. */
+export interface RampPaymentInstructions {
+  destination: string;
+  memo?: string;
+  memoType?: "text" | "id" | "hash";
+  amount: string;
+  assetCode: string;
+  assetIssuer?: string;
 }
 
 /**
@@ -621,6 +639,7 @@ export interface RampProvider {
 export type RampProviderSelection =
   | { provider: "manual"; exchangeRates?: Record<string, number>; feeBps?: number }
   | { provider: "stellar-anchor"; homeDomain: string }
+  | { provider: "stellar-sep31"; homeDomain: string; senderId: string; autoPay?: boolean; horizonUrl?: string }
   | { provider: "moonpay"; apiKey: string; secretKey: string; sandbox?: boolean };
 
 // ─── SDK config ──────────────────────────────────────────────────────────────

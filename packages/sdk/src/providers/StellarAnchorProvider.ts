@@ -1,4 +1,5 @@
-import { StellarToml, TransactionBuilder, Networks } from "@stellar/stellar-sdk";
+import { StellarToml, Networks } from "@stellar/stellar-sdk";
+import { authenticateSep10 } from "./sep10";
 import type {
   RampProvider,
   RampQuoteInput,
@@ -99,40 +100,13 @@ export class StellarAnchorProvider implements RampProvider {
       throw new Error(`Anchor ${this._homeDomain} does not advertise a WEB_AUTH_ENDPOINT (SEP-10) in its stellar.toml`);
     }
 
-    const challengeUrl = new URL(toml.WEB_AUTH_ENDPOINT);
-    challengeUrl.searchParams.set("account", this._signer.publicKey);
-    challengeUrl.searchParams.set("home_domain", this._homeDomain);
-    const challengeRes = await fetch(challengeUrl.toString());
-    if (!challengeRes.ok) {
-      throw new Error(`SEP-10 challenge request to ${this._homeDomain} failed: ${challengeRes.status} ${await challengeRes.text()}`);
-    }
-    const { transaction: challengeXdr, network_passphrase } = (await challengeRes.json()) as {
-      transaction: string;
-      network_passphrase?: string;
-    };
-    const passphrase = network_passphrase ?? this._networkPassphrase;
-
-    // Parse-then-reserialize round-trip validates the XDR is well-formed
-    // before handing it to the wallet to sign.
-    TransactionBuilder.fromXDR(challengeXdr, passphrase);
-    const { signedTxXdr, error } = await this._signer.signTransaction(challengeXdr, {
-      networkPassphrase: passphrase,
+    this._jwt = await authenticateSep10({
+      webAuthEndpoint: toml.WEB_AUTH_ENDPOINT,
+      homeDomain: this._homeDomain,
+      signer: this._signer,
+      networkPassphrase: this._networkPassphrase,
     });
-    if (error) {
-      throw new Error(`Wallet failed to sign the SEP-10 challenge for ${this._homeDomain}: ${JSON.stringify(error)}`);
-    }
-
-    const tokenRes = await fetch(toml.WEB_AUTH_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transaction: signedTxXdr }),
-    });
-    if (!tokenRes.ok) {
-      throw new Error(`SEP-10 token exchange with ${this._homeDomain} failed: ${tokenRes.status} ${await tokenRes.text()}`);
-    }
-    const { token } = (await tokenRes.json()) as { token: string };
-    this._jwt = { token, expiresAt: decodeJwtExpiry(token) ?? now + 300 };
-    return token;
+    return this._jwt.token;
   }
 
   // ─── SEP-38: quotes (optional — not every anchor implements this) ───────
@@ -286,17 +260,5 @@ function mapAnchorStatus(status: string): RampSessionStatus {
       return RampSessionStatus.FAILED;
     default:
       return RampSessionStatus.PROCESSING;
-  }
-}
-
-/** Decodes a JWT's `exp` claim without verifying the signature — this token was just issued by the anchor over TLS, not received from an untrusted source. Returns undefined if unparseable. */
-function decodeJwtExpiry(jwt: string): number | undefined {
-  try {
-    const payload = jwt.split(".")[1];
-    const json = Buffer.from(payload, "base64url").toString("utf8");
-    const { exp } = JSON.parse(json) as { exp?: number };
-    return exp;
-  } catch {
-    return undefined;
   }
 }
