@@ -166,6 +166,27 @@ impl FarmlandToken {
         ankara_common::pausable::is_paused(&env)
     }
 
+    // ─── Snapshots (Role::Manager) — pro-rata distributions ─────────────
+
+    /// Records a balance snapshot and returns its id. Used by
+    /// `revenue-distributor` to pay income out pro-rata to holders.
+    pub fn snapshot(env: Env) -> u32 {
+        require_role(&env, Role::Manager);
+        ankara_common::fungible::snapshot(&env)
+    }
+
+    pub fn current_snapshot_id(env: Env) -> u32 {
+        ankara_common::fungible::current_snapshot_id(&env)
+    }
+
+    pub fn balance_of_at(env: Env, id: Address, snapshot_id: u32) -> i128 {
+        ankara_common::fungible::balance_of_at(&env, &id, snapshot_id)
+    }
+
+    pub fn total_supply_at(env: Env, snapshot_id: u32) -> i128 {
+        ankara_common::fungible::total_supply_at(&env, snapshot_id)
+    }
+
     pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) {
         require_role(&env, Role::Upgrader);
         env.deployer().update_current_contract_wasm(new_wasm_hash);

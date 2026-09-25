@@ -1266,6 +1266,7 @@ export class StellarAdapter implements IAdapter {
       timestamp: bigint;
       beneficiary: string;
       retirement_note: string;
+      external_registry_id?: string | null;
     }>(tokenAddress, "get_retirement", { index });
     return {
       retiredBy: r.retired_by,
@@ -1273,6 +1274,7 @@ export class StellarAdapter implements IAdapter {
       timestamp: r.timestamp,
       beneficiary: r.beneficiary,
       retirementNote: r.retirement_note,
+      externalRegistryId: r.external_registry_id ?? undefined,
     };
   }
 

@@ -16,6 +16,8 @@ use crate::metadata::{self, CarbonCreditMetadata, RetirementRecord};
 pub enum CarbonCreditError {
     ZeroRetirementAmount = 1,
     InsufficientBalance = 2,
+    RegistryRefAlreadySet = 3,
+    RetirementNotFound = 4,
 }
 
 #[contract]
@@ -104,20 +106,34 @@ impl CarbonCreditToken {
     /// their own credits (no `MANAGER_ROLE`/`MINTER_ROLE` gate), same as
     /// Solidity's `retire()` being open to `msg.sender`.
     pub fn retire(env: Env, retired_by: Address, amount: i128, beneficiary: String, note: String) {
-        if amount == 0 {
-            panic_with_error!(&env, CarbonCreditError::ZeroRetirementAmount);
+        retire_inner(&env, retired_by, amount, beneficiary, note, None);
+    }
+
+    /// Same as `retire`, recording the independent verification body's
+    /// reference (e.g. a Verra retirement serial) in the retirement record.
+    pub fn retire_with_registry_ref(
+        env: Env,
+        retired_by: Address,
+        amount: i128,
+        beneficiary: String,
+        note: String,
+        external_registry_id: String,
+    ) {
+        retire_inner(&env, retired_by, amount, beneficiary, note, Some(external_registry_id));
+    }
+
+    /// Attaches the external registry ID to a past retirement (Manager,
+    /// write-once).
+    pub fn set_retirement_registry_ref(env: Env, index: u32, external_registry_id: String) {
+        require_role(&env, Role::Manager);
+        if index >= metadata::total_retirements(&env) {
+            panic_with_error!(&env, CarbonCreditError::RetirementNotFound);
         }
-        let balance = ankara_common::fungible::balance(&env, &retired_by);
-        if balance < amount {
-            panic_with_error!(&env, CarbonCreditError::InsufficientBalance);
+        if !metadata::set_external_registry_id(&env, index, external_registry_id.clone()) {
+            panic_with_error!(&env, CarbonCreditError::RegistryRefAlreadySet);
         }
-        ankara_common::fungible::burn(&env, &retired_by, amount);
-        let index =
-            metadata::record_retirement(&env, retired_by.clone(), amount, beneficiary.clone(), note);
-        env.events().publish(
-            (symbol_short!("retired"), retired_by),
-            (amount, beneficiary, index, env.ledger().timestamp()),
-        );
+        env.events()
+            .publish((symbol_short!("reg_ref"), index), external_registry_id);
     }
 
     // ─── Writes (Role::Manager) ─────────────────────────────────────────
@@ -180,6 +196,27 @@ impl CarbonCreditToken {
         ankara_common::pausable::is_paused(&env)
     }
 
+    // ─── Snapshots (Role::Manager) — pro-rata distributions ─────────────
+
+    /// Records a balance snapshot and returns its id. Used by
+    /// `revenue-distributor` to pay income out pro-rata to holders.
+    pub fn snapshot(env: Env) -> u32 {
+        require_role(&env, Role::Manager);
+        ankara_common::fungible::snapshot(&env)
+    }
+
+    pub fn current_snapshot_id(env: Env) -> u32 {
+        ankara_common::fungible::current_snapshot_id(&env)
+    }
+
+    pub fn balance_of_at(env: Env, id: Address, snapshot_id: u32) -> i128 {
+        ankara_common::fungible::balance_of_at(&env, &id, snapshot_id)
+    }
+
+    pub fn total_supply_at(env: Env, snapshot_id: u32) -> i128 {
+        ankara_common::fungible::total_supply_at(&env, snapshot_id)
+    }
+
     pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) {
         require_role(&env, Role::Upgrader);
         env.deployer().update_current_contract_wasm(new_wasm_hash);
@@ -232,4 +269,35 @@ impl TokenInterface for CarbonCreditToken {
     fn symbol(env: Env) -> String {
         ankara_common::fungible::symbol(&env)
     }
+}
+
+/// Shared body of `retire`/`retire_with_registry_ref`.
+fn retire_inner(
+    env: &Env,
+    retired_by: Address,
+    amount: i128,
+    beneficiary: String,
+    note: String,
+    external_registry_id: Option<String>,
+) {
+    if amount == 0 {
+        panic_with_error!(env, CarbonCreditError::ZeroRetirementAmount);
+    }
+    let balance = ankara_common::fungible::balance(env, &retired_by);
+    if balance < amount {
+        panic_with_error!(env, CarbonCreditError::InsufficientBalance);
+    }
+    ankara_common::fungible::burn(env, &retired_by, amount);
+    let index = metadata::record_retirement(
+        env,
+        retired_by.clone(),
+        amount,
+        beneficiary.clone(),
+        note,
+        external_registry_id,
+    );
+    env.events().publish(
+        (symbol_short!("retired"), retired_by),
+        (amount, beneficiary, index, env.ledger().timestamp()),
+    );
 }

@@ -5,6 +5,7 @@ import type {
   AssetStatus,
   RetirementRecord,
 } from "../types";
+import type { TitleFlags, CustodyEntry } from "../types/rwa";
 import { InvoiceStatus } from "../types";
 
 type AnyTemplate = AssetTemplate | NFTAssetTemplate;
@@ -237,6 +238,24 @@ export class AssetRegistry {
     return this._adapter.assetGetRetirement(this._address, index);
   }
 
+  /** Retire credits and record the independent registry's reference (e.g. a Verra serial). Stellar only. */
+  async retireWithRegistryRef(amount: bigint, beneficiary: string, note: string, externalRegistryId: string): Promise<string> {
+    this._requireTemplate("carbon-credit", "retireWithRegistryRef");
+    const stellar = this._stellarRwa("retireWithRegistryRef");
+    const retiredBy = await (this._adapter as { getSignerAddress(): Promise<string> }).getSignerAddress();
+    return (await stellar.invokeContract(this._address, "retire_with_registry_ref", {
+      retired_by: retiredBy, amount, beneficiary, note, external_registry_id: externalRegistryId,
+    })).txHash;
+  }
+
+  /** Attach a registry reference to a past retirement (Manager, write-once). Stellar only. */
+  async setRetirementRegistryRef(index: number, externalRegistryId: string): Promise<string> {
+    this._requireTemplate("carbon-credit", "setRetirementRegistryRef");
+    return (await this._stellarRwa("setRetirementRegistryRef").invokeContract(this._address, "set_retirement_registry_ref", {
+      index, external_registry_id: externalRegistryId,
+    })).txHash;
+  }
+
   // ─── Mining Rights ────────────────────────────────────────────────────────
 
   async isLicenseExpired(): Promise<boolean> {
@@ -279,6 +298,95 @@ export class AssetRegistry {
   async linkToERC20(erc20Address: string): Promise<string> {
     this._requireNFT("linkToERC20");
     return this._adapter.assetLinkToERC20(this._address, this._nftTemplate(), erc20Address);
+  }
+
+  // ─── Balance snapshots (Stellar, fungible templates) ─────────────────────
+
+  /** Takes a balance snapshot (Manager) and returns its id. `RevenueDistributor` does this for you. */
+  async snapshot(): Promise<{ snapshotId: number; txHash: string }> {
+    this._requireFungibleRwa("snapshot");
+    const { result, txHash } = await this._stellarRwa("snapshot").invokeContract<number>(this._address, "snapshot", {});
+    return { snapshotId: Number(result), txHash };
+  }
+
+  async getCurrentSnapshotId(): Promise<number> {
+    this._requireFungibleRwa("getCurrentSnapshotId");
+    return Number(await this._stellarRwa("getCurrentSnapshotId").readContract(this._address, "current_snapshot_id", {}));
+  }
+
+  async getBalanceOfAt(holder: string, snapshotId: number): Promise<bigint> {
+    this._requireFungibleRwa("getBalanceOfAt");
+    return BigInt(await this._stellarRwa("getBalanceOfAt").readContract<bigint>(this._address, "balance_of_at", { id: holder, snapshot_id: snapshotId }));
+  }
+
+  async getTotalSupplyAt(snapshotId: number): Promise<bigint> {
+    this._requireFungibleRwa("getTotalSupplyAt");
+    return BigInt(await this._stellarRwa("getTotalSupplyAt").readContract<bigint>(this._address, "total_supply_at", { snapshot_id: snapshotId }));
+  }
+
+  // ─── Title encumbrances & chain of custody (Stellar, farmland-nft / real-estate-nft)
+
+  /** Flag (`reference`) or clear (`null`) a dispute on a title NFT. Manager only. */
+  async setDispute(tokenId: number, reference: string | null): Promise<string> {
+    this._requireOneOf(["farmland-nft", "real-estate-nft"], "setDispute");
+    return (await this._stellarRwa("setDispute").invokeContract(this._address, "set_dispute", {
+      token_id: BigInt(tokenId), reference: reference ?? undefined,
+    })).txHash;
+  }
+
+  /** Flag (`reference`) or clear (`null`) a lien on a title NFT. Manager only. */
+  async setLien(tokenId: number, reference: string | null): Promise<string> {
+    this._requireOneOf(["farmland-nft", "real-estate-nft"], "setLien");
+    return (await this._stellarRwa("setLien").invokeContract(this._address, "set_lien", {
+      token_id: BigInt(tokenId), reference: reference ?? undefined,
+    })).txHash;
+  }
+
+  async getTitleFlags(tokenId: number): Promise<TitleFlags> {
+    this._requireOneOf(["farmland-nft", "real-estate-nft"], "getTitleFlags");
+    const r = await this._stellarRwa("getTitleFlags").readContract<{
+      disputed: boolean; dispute_ref: string; liened: boolean; lien_ref: string; updated_at: bigint;
+    }>(this._address, "title_flags", { token_id: BigInt(tokenId) });
+    return { disputed: r.disputed, disputeRef: r.dispute_ref, liened: r.liened, lienRef: r.lien_ref, updatedAt: BigInt(r.updated_at) };
+  }
+
+  /** Append a chain-of-custody entry (append-only). Manager only. Returns the entry index. */
+  async appendCustody(tokenId: number, owner: string, reference: string, effectiveAt: bigint): Promise<{ index: number; txHash: string }> {
+    this._requireOneOf(["farmland-nft", "real-estate-nft"], "appendCustody");
+    const { result, txHash } = await this._stellarRwa("appendCustody").invokeContract<number>(this._address, "append_custody", {
+      token_id: BigInt(tokenId), owner, reference, effective_at: effectiveAt,
+    });
+    return { index: Number(result), txHash };
+  }
+
+  async getCustodyCount(tokenId: number): Promise<number> {
+    this._requireOneOf(["farmland-nft", "real-estate-nft"], "getCustodyCount");
+    return Number(await this._stellarRwa("getCustodyCount").readContract(this._address, "custody_count", { token_id: BigInt(tokenId) }));
+  }
+
+  /** Oldest-first page of the custody log (max 50 per page). */
+  async getCustodyLog(tokenId: number, start = 0, limit = 50): Promise<CustodyEntry[]> {
+    this._requireOneOf(["farmland-nft", "real-estate-nft"], "getCustodyLog");
+    const rows = await this._stellarRwa("getCustodyLog").readContract<Array<{
+      owner: string; reference: string; effective_at: bigint; recorded_at: bigint; recorded_by: string;
+    }>>(this._address, "custody_log", { token_id: BigInt(tokenId), start, limit: Math.min(limit, 50) });
+    return rows.map((r) => ({
+      owner: r.owner, reference: r.reference, effectiveAt: BigInt(r.effective_at), recordedAt: BigInt(r.recorded_at), recordedBy: r.recorded_by,
+    }));
+  }
+
+  private _requireFungibleRwa(method: string): void {
+    if (NFT_TEMPLATES.includes(this._template)) {
+      throw new Error(`${method} is only available on fungible templates, not "${this._template}"`);
+    }
+  }
+
+  private _stellarRwa(method: string): StellarInvoker {
+    const adapter = this._adapter as Partial<StellarInvoker>;
+    if (typeof adapter.invokeContract !== "function" || typeof adapter.readContract !== "function") {
+      throw new Error(`${method}() is only available on Stellar — there is no EVM implementation yet`);
+    }
+    return adapter as StellarInvoker;
   }
 
   // ─── Internal ────────────────────────────────────────────────────────────

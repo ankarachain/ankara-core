@@ -144,6 +144,8 @@ export interface RetirementRecord {
   timestamp:      bigint;
   beneficiary:    string;   // entity the offset is on behalf of
   retirementNote: string;   // reason / project reference
+  /** Independent verification body's reference for this retirement (e.g. a Verra serial). Stellar only; `undefined` if none. */
+  externalRegistryId?: string;
 }
 
 export interface MiningRightsMetadata {

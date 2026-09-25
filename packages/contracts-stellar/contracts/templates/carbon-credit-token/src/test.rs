@@ -92,3 +92,66 @@ fn retire_reverts_on_zero_amount() {
         &String::from_str(&env, "2026 offset"),
     );
 }
+
+#[test]
+fn retire_with_registry_ref_records_it() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_, client) = setup(&env);
+    let holder = Address::generate(&env);
+    client.mint(&holder, &1_000);
+    client.retire_with_registry_ref(
+        &holder,
+        &100,
+        &String::from_str(&env, "Acme Corp"),
+        &String::from_str(&env, "Q3"),
+        &String::from_str(&env, "VCS-RET-2026-0042"),
+    );
+    let record = client.get_retirement(&0);
+    assert_eq!(
+        record.external_registry_id,
+        Some(String::from_str(&env, "VCS-RET-2026-0042"))
+    );
+    // Write-once.
+    assert!(client
+        .try_set_retirement_registry_ref(&0, &String::from_str(&env, "other"))
+        .is_err());
+}
+
+#[test]
+fn registry_ref_can_be_attached_later_once() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_, client) = setup(&env);
+    let holder = Address::generate(&env);
+    client.mint(&holder, &1_000);
+    client.retire(&holder, &100, &String::from_str(&env, "A"), &String::from_str(&env, "B"));
+    assert_eq!(client.get_retirement(&0).external_registry_id, None);
+
+    client.set_retirement_registry_ref(&0, &String::from_str(&env, "GS-123"));
+    assert_eq!(
+        client.get_retirement(&0).external_registry_id,
+        Some(String::from_str(&env, "GS-123"))
+    );
+    assert!(client
+        .try_set_retirement_registry_ref(&0, &String::from_str(&env, "GS-456"))
+        .is_err());
+    assert!(client
+        .try_set_retirement_registry_ref(&5, &String::from_str(&env, "x"))
+        .is_err());
+}
+
+#[test]
+#[should_panic]
+fn set_registry_ref_requires_manager() {
+    let env = Env::default();
+    let (_, client) = {
+        env.mock_all_auths();
+        setup(&env)
+    };
+    let holder = Address::generate(&env);
+    client.mint(&holder, &10);
+    client.retire(&holder, &1, &String::from_str(&env, "A"), &String::from_str(&env, "B"));
+    env.set_auths(&[]);
+    client.set_retirement_registry_ref(&0, &String::from_str(&env, "x"));
+}

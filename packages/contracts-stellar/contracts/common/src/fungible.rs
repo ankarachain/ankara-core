@@ -17,6 +17,20 @@ enum FungibleDataKey {
     Name,
     Symbol,
     TotalSupply,
+    /// Latest snapshot id (0 = no snapshot ever taken).
+    SnapshotId,
+    /// Per-account balance checkpoints, see `snapshot()`.
+    BalanceCheckpoints(Address),
+    SupplyCheckpoints,
+}
+
+/// `value` was the balance (or total supply) as of snapshot `id` — i.e. the
+/// value just before the first change made after snapshot `id` was taken.
+#[contracttype]
+#[derive(Clone)]
+pub struct Checkpoint {
+    pub id: u32,
+    pub value: i128,
 }
 
 #[contracttype]
@@ -69,6 +83,7 @@ pub fn total_supply(env: &Env) -> i128 {
 }
 
 fn adjust_total_supply(env: &Env, delta: i128) {
+    update_supply_checkpoint(env);
     let supply = total_supply(env) + delta;
     env.storage()
         .instance()
@@ -90,6 +105,7 @@ pub fn read_balance(env: &Env, addr: &Address) -> i128 {
 }
 
 fn write_balance(env: &Env, addr: &Address, amount: i128) {
+    update_balance_checkpoint(env, addr);
     let key = FungibleDataKey::Balance(addr.clone());
     env.storage().persistent().set(&key, &amount);
     env.storage()
@@ -166,6 +182,111 @@ fn spend_allowance(env: &Env, from: &Address, spender: &Address, amount: i128) {
             allowance.expiration_ledger,
         );
     }
+}
+
+// ─── Snapshots (ERC20Snapshot-style) ──────────────────────────────────────
+// SEP-41 has no historical balances, but pro-rata payouts (see
+// `revenue-distributor`) need "who held what at time T". `snapshot()`
+// bumps a counter; the first balance/supply change after a snapshot
+// records the pre-change value as a checkpoint for that snapshot id.
+// Tokens that never take a snapshot pay no extra storage cost: with
+// `SnapshotId == 0` nothing is checkpointed.
+
+const CHECKPOINT_BUMP_AMOUNT: u32 = 365 * DAY_IN_LEDGERS;
+const CHECKPOINT_LIFETIME_THRESHOLD: u32 = CHECKPOINT_BUMP_AMOUNT - 30 * DAY_IN_LEDGERS;
+
+pub fn current_snapshot_id(env: &Env) -> u32 {
+    env.storage()
+        .instance()
+        .get(&FungibleDataKey::SnapshotId)
+        .unwrap_or(0)
+}
+
+/// Takes a new snapshot and returns its id (1, 2, ...). The caller (each
+/// template's `snapshot` entry point) is responsible for the role check.
+pub fn snapshot(env: &Env) -> u32 {
+    let id = current_snapshot_id(env) + 1;
+    env.storage().instance().set(&FungibleDataKey::SnapshotId, &id);
+    env.events()
+        .publish((Symbol::new(env, "snapshot"),), (id, env.ledger().timestamp()));
+    id
+}
+
+fn push_checkpoint(env: &Env, key: FungibleDataKey, current: i128) {
+    let snap = current_snapshot_id(env);
+    if snap == 0 {
+        return;
+    }
+    let mut list: soroban_sdk::Vec<Checkpoint> = env
+        .storage()
+        .persistent()
+        .get(&key)
+        .unwrap_or_else(|| soroban_sdk::Vec::new(env));
+    let already = list.last().map(|c| c.id >= snap).unwrap_or(false);
+    if !already {
+        list.push_back(Checkpoint { id: snap, value: current });
+        env.storage().persistent().set(&key, &list);
+        env.storage().persistent().extend_ttl(
+            &key,
+            CHECKPOINT_LIFETIME_THRESHOLD,
+            CHECKPOINT_BUMP_AMOUNT,
+        );
+    }
+}
+
+fn update_balance_checkpoint(env: &Env, addr: &Address) {
+    if current_snapshot_id(env) == 0 {
+        return;
+    }
+    let current = read_balance(env, addr);
+    push_checkpoint(env, FungibleDataKey::BalanceCheckpoints(addr.clone()), current);
+}
+
+fn update_supply_checkpoint(env: &Env) {
+    if current_snapshot_id(env) == 0 {
+        return;
+    }
+    push_checkpoint(env, FungibleDataKey::SupplyCheckpoints, total_supply(env));
+}
+
+/// First checkpoint with `id >= snapshot_id`, if any (binary search — ids
+/// are strictly increasing).
+fn value_at(env: &Env, key: FungibleDataKey, snapshot_id: u32) -> Option<i128> {
+    let list: soroban_sdk::Vec<Checkpoint> = env.storage().persistent().get(&key)?;
+    let (mut lo, mut hi) = (0u32, list.len());
+    while lo < hi {
+        let mid = (lo + hi) / 2;
+        if list.get_unchecked(mid).id < snapshot_id {
+            lo = mid + 1;
+        } else {
+            hi = mid;
+        }
+    }
+    if lo < list.len() {
+        Some(list.get_unchecked(lo).value)
+    } else {
+        None
+    }
+}
+
+fn check_snapshot_id(env: &Env, snapshot_id: u32) {
+    if snapshot_id == 0 || snapshot_id > current_snapshot_id(env) {
+        panic_with_error!(env, CommonError::SnapshotNotFound);
+    }
+}
+
+/// Balance of `addr` at the moment snapshot `snapshot_id` was taken.
+pub fn balance_of_at(env: &Env, addr: &Address, snapshot_id: u32) -> i128 {
+    check_snapshot_id(env, snapshot_id);
+    value_at(env, FungibleDataKey::BalanceCheckpoints(addr.clone()), snapshot_id)
+        .unwrap_or_else(|| read_balance(env, addr))
+}
+
+/// Total supply at the moment snapshot `snapshot_id` was taken.
+pub fn total_supply_at(env: &Env, snapshot_id: u32) -> i128 {
+    check_snapshot_id(env, snapshot_id);
+    value_at(env, FungibleDataKey::SupplyCheckpoints, snapshot_id)
+        .unwrap_or_else(|| total_supply(env))
 }
 
 // ─── SEP-41 (`soroban_sdk::token::TokenInterface`) bodies ──────────────────

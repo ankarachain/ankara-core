@@ -32,6 +32,12 @@ export type {
 export type { RampPaymentInstructions } from "./types";
 export { CollateralVault } from "./core/CollateralVault";
 export { IndexerClient }   from "./core/IndexerClient";
+// RWA income + liquidity (Stellar-only): pro-rata revenue distribution, RFQ/OTC market
+export { RevenueDistributor } from "./core/RevenueDistributor";
+export { RfqMarket }          from "./core/RfqMarket";
+export type {
+  TitleFlags, CustodyEntry, RevenueDistribution, RfqIntent, RfqQuote, RfqIntentStatus, RfqQuoteStatus, PostIntentInput,
+} from "./types/rwa";
 
 // Providers (reference implementations — swap in a real provider adapter for production)
 export { ManualRampProvider } from "./providers/ManualRampProvider";

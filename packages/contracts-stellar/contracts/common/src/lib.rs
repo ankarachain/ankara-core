@@ -20,6 +20,7 @@ pub mod nft;
 pub mod oracle;
 pub mod pausable;
 pub mod roles;
+pub mod title;
 pub mod verifier;
 
 pub use asset::AssetStatus;
