@@ -1,0 +1,111 @@
+---
+title: Lending
+description: Collateralized, score-based (undercollateralized) and group savings/lending on Stellar.
+---
+
+Ankara has three ways to lend on Stellar. All are Stellar-only.
+
+| Model | Contract | For |
+|---|---|---|
+| **Collateralized** | `collateral-vault` → `open_loan` | Borrowers who pledge RWA tokens worth more than the loan |
+| **Score-based** | `collateral-vault` → `open_scored_loan` | Borrowers with a track record but little spare collateral: income history, cooperative membership, repayment record |
+| **Group** | `savings-circle` | Rotating savings (ajo, esusu, chama, tontine) and pooled savings-and-credit groups (VSLA) |
+
+---
+
+## Score-based loans
+
+`collateral-vault` can size a loan against a **credit score** from a pluggable source,
+not only against collateral:
+
+```
+limit = tier.credit_limit + collateral_value × ltv_bps / 10_000
+```
+
+- **Pluggable source**: any contract exposing
+  `credit_score(borrower) -> Option<CreditScore { score, updated_at }>`. Ankara ships
+  `manual-credit-scorer` (a trusted Manager posts scores, like `manual-oracle` does for
+  prices). You can swap in a scoring partner's contract, a cooperative's membership
+  record, or an adapter over `attestation-registry` `CREDIT` claims. The vault never
+  assumes a scoring model.
+- **Tiers** (`set_score_config`, Manager): strictly ascending `min_score`, each with
+  an unsecured `credit_limit`, a flat `fee_bps` charged on repayment, and a
+  `max_term_secs`. Scores older than `max_score_age` are rejected.
+- **Collateral is optional**: pass none for a fully unsecured loan, or add some to raise
+  the limit.
+- **Due date instead of price liquidation**: a scored loan must be repaid (principal
+  plus fee) within its term. After that, anyone can `mark_defaulted`: pledged collateral
+  goes to the Manager and a `defaulted` event is emitted for score sources to pick up.
+  Scored loans are never price-liquidated.
+- The ordinary `open_loan` / `liquidate` path is **unchanged**.
+
+```ts
+import { CollateralVault, ManualCreditScorer } from "@ankarachain/sdk";
+
+const vault = new CollateralVault(adminAdapter, VAULT);
+await vault.setScoreConfig({
+  source: SCORER,
+  tiers: [
+    { minScore: 500, creditLimit: 200_0000000n,   feeBps: 500, maxTermSecs: 30n * 86400n },
+    { minScore: 700, creditLimit: 1_000_0000000n, feeBps: 200, maxTermSecs: 90n * 86400n },
+  ],
+  maxScoreAge: 30n * 86400n,
+});
+await new ManualCreditScorer(riskTeamAdapter, SCORER).setScore("GFARMER...", 720);
+
+// the borrower:
+const farmerVault = new CollateralVault(farmerAdapter, VAULT);
+console.log(await farmerVault.scoredBorrowLimit("GFARMER..."));
+const { loanId } = await farmerVault.openScoredLoan({ borrowAmount: 800_0000000n, termSecs: 60n * 86400n });
+console.log(await farmerVault.amountDue(loanId)); // principal + 2%
+```
+
+---
+
+## Group savings & lending: `savings-circle`
+
+One deployment serves any number of circles in any SEP-41 token. There's no admin. The
+organizer fixes each circle's rules when creating it, and the circle starts
+automatically once it's full (or when the organizer calls `start_circle` with at least
+2 members).
+
+### Rotating
+
+Each round, every member `contribute`s the fixed amount, and the pot goes to one
+member, in join order. `disburse` (callable by anyone) pays out once everyone has
+contributed, or after the round's deadline with whatever was collected. Missed
+contributions are recorded on the member, so the group can see them.
+
+### Pooled
+
+- Members `contribute` once per period for `rounds` periods.
+- Any member can `borrow` up to `borrow_multiple_bps` of their own savings
+  (`20_000` = 2× savings), so the group backs part of the loan. They `repay` principal
+  plus a flat `loan_fee_bps`, and the fee goes into the pool.
+- After the last period, each member `withdraw`s their share of the pool, pro-rata to
+  savings, so fees are shared. A member still owing when the pool closes forfeits their
+  savings to the pool: the defaulter absorbs losses first, and only the remainder is
+  shared across the group.
+
+| Function | Mode |
+|---|---|
+| `create_circle`, `join`, `start_circle`, `contribute` | both |
+| `disburse`, `current_recipient` | rotating |
+| `borrow`, `repay`, `withdraw`, `borrow_limit`, `current_period` | pooled |
+| `get_circle`, `get_member` | both |
+
+```ts
+import { SavingsCircle } from "@ankarachain/sdk";
+
+const circles = new SavingsCircle(organizerAdapter, CIRCLES);
+const { circleId } = await circles.createCircle({
+  token: USDC_SAC, mode: "pooled", contribution: 20_0000000n, periodSecs: 7n * 86400n,
+  maxMembers: 15, rounds: 26, borrowMultipleBps: 30_000, loanFeeBps: 1_000,
+});
+```
+
+```bash
+SCORER=$(stellar contract deploy --wasm target/wasm32v1-none/release/manual_credit_scorer.wasm --source deployer --network testnet)
+stellar contract invoke --id $SCORER --source deployer --network testnet -- initialize --admin <ADMIN>
+CIRCLES=$(stellar contract deploy --wasm target/wasm32v1-none/release/savings_circle.wasm --source deployer --network testnet)
+```

@@ -11,6 +11,8 @@ pub enum LoanStatus {
     Open,
     Repaid,
     Liquidated,
+    /// A score-based loan not repaid by its due date (see `credit.rs`).
+    Defaulted,
 }
 
 #[contracttype]

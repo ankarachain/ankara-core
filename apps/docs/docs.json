@@ -28,6 +28,12 @@
             ]
           },
           {
+            "group": "Lending",
+            "pages": [
+              "contracts/lending"
+            ]
+          },
+          {
             "group": "CLI",
             "pages": [
               "cli/commands"

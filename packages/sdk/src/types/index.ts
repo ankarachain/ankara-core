@@ -487,6 +487,8 @@ export enum LoanStatus {
   OPEN       = 0,
   REPAID     = 1,
   LIQUIDATED = 2,
+  /** A score-based loan not repaid by its due date. */
+  DEFAULTED  = 3,
 }
 
 export interface Loan {

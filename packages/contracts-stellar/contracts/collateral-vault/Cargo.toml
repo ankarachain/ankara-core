@@ -15,3 +15,4 @@ ankara-common = { path = "../common" }
 soroban-sdk = { workspace = true, features = ["testutils"] }
 farmland-token = { path = "../templates/farmland-token" }
 manual-oracle = { path = "../oracle/manual-oracle" }
+manual-credit-scorer = { path = "../lending/manual-credit-scorer" }
