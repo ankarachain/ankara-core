@@ -1,0 +1,13 @@
+# Netlify config for the static landing page (apps/web).
+# Create a Netlify site with Base directory = apps/web — no build step;
+# the page is plain HTML. Deploy previews then build only when apps/web
+# changes (the docs site has its own config in apps/docs/netlify.toml).
+[build]
+  publish = "."
+  command = "echo 'static site — no build step'"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
