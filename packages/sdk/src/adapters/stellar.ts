@@ -286,6 +286,31 @@ export class StellarAdapter implements IAdapter {
     return tx.result as T;
   }
 
+  // ─── Generic contract invocation (public) ─────────────────────────────────
+  // Stellar-only SDK classes (e.g. `IdentityRegistry`, `ReserveAttestation`)
+  // drive their contracts through these two methods instead of adding a
+  // dedicated method per contract function to `IAdapter` — those contracts
+  // have no EVM counterpart, so there's nothing for `EVMAdapter` to
+  // implement. Same dynamic-client path as every named method above.
+
+  /** Invokes a state-changing contract method, signed by this adapter's configured signer. */
+  async invokeContract<T = unknown>(
+    contractId: string,
+    method: string,
+    args: Record<string, unknown> = {}
+  ): Promise<{ result: T; txHash: string }> {
+    return this.writeAndExtract<T>(contractId, method, args);
+  }
+
+  /** Simulates a read-only contract method and returns its decoded result. */
+  async readContract<T = unknown>(
+    contractId: string,
+    method: string,
+    args: Record<string, unknown> = {}
+  ): Promise<T> {
+    return this.read<T>(contractId, method, args);
+  }
+
   // ─── Fungible template deploys ────────────────────────────────────────────
 
   async deployFarmlandToken(opts: DeployFarmlandOptions): Promise<DeployResult> {

@@ -51,6 +51,7 @@
               "contracts/overview",
               "contracts/nft-layer",
               "contracts/multi-token-layer",
+              "contracts/oracles",
               "contracts/escrow",
               "contracts/ramp-settlement"
             ]
