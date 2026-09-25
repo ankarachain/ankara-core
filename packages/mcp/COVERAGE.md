@@ -128,7 +128,7 @@ template actions, pool deposit/withdraw, oracle prices, commodity batches, or
 
 ## Remaining gaps (follow-up)
 
-Tracked in the follow-up issue linked from the PR that added this file:
+Tracked in ankarachain/ankara-core#19:
 
 1. **Deployment listings**: `totalDeployed`, and the NFT / escrow / multi-token / ramp
    `getDeployed*` + `totalDeployed*` reads (MCP and CLI).
