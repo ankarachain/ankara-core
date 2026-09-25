@@ -192,6 +192,7 @@ pub fn balance(env: &Env, id: &Address) -> i128 {
 pub fn transfer(env: &Env, from: &Address, to: &Address, amount: i128) {
     crate::pausable::check_not_paused(env);
     from.require_auth();
+    crate::compliance::check_transfer(env, Some(from), Some(to), amount);
     spend_balance(env, from, amount);
     receive_balance(env, to, amount);
     env.events().publish(
@@ -203,6 +204,7 @@ pub fn transfer(env: &Env, from: &Address, to: &Address, amount: i128) {
 pub fn transfer_from(env: &Env, spender: &Address, from: &Address, to: &Address, amount: i128) {
     crate::pausable::check_not_paused(env);
     spender.require_auth();
+    crate::compliance::check_transfer(env, Some(from), Some(to), amount);
     spend_allowance(env, from, spender, amount);
     spend_balance(env, from, amount);
     receive_balance(env, to, amount);
@@ -215,6 +217,7 @@ pub fn transfer_from(env: &Env, spender: &Address, from: &Address, to: &Address,
 pub fn burn(env: &Env, from: &Address, amount: i128) {
     crate::pausable::check_not_paused(env);
     from.require_auth();
+    crate::compliance::check_transfer(env, Some(from), None, amount);
     spend_balance(env, from, amount);
     adjust_total_supply(env, -amount);
     env.events()
@@ -224,6 +227,7 @@ pub fn burn(env: &Env, from: &Address, amount: i128) {
 pub fn burn_from(env: &Env, spender: &Address, from: &Address, amount: i128) {
     crate::pausable::check_not_paused(env);
     spender.require_auth();
+    crate::compliance::check_transfer(env, Some(from), None, amount);
     spend_allowance(env, from, spender, amount);
     spend_balance(env, from, amount);
     adjust_total_supply(env, -amount);
@@ -240,8 +244,21 @@ pub fn burn_from(env: &Env, spender: &Address, from: &Address, amount: i128) {
 /// which Soroban's auth framework rejects.
 pub fn mint(env: &Env, to: &Address, amount: i128) {
     crate::pausable::check_not_paused(env);
+    crate::compliance::check_transfer(env, None, Some(to), amount);
     receive_balance(env, to, amount);
     adjust_total_supply(env, amount);
     env.events()
         .publish((Symbol::new(env, "mint"), to.clone()), amount);
+}
+
+/// Forced balance movement used only by `compliance::clawback` — bypasses
+/// the holder's auth, the pause flag and the compliance policy itself (a
+/// clawback must work precisely when the holder is frozen). `to = None`
+/// burns the amount instead of moving it.
+pub(crate) fn clawback_balance(env: &Env, from: &Address, amount: i128, to: Option<&Address>) {
+    spend_balance(env, from, amount);
+    match to {
+        Some(recipient) => receive_balance(env, recipient, amount),
+        None => adjust_total_supply(env, -amount),
+    }
 }

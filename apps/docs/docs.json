@@ -50,6 +50,7 @@
             "pages": [
               "contracts/overview",
               "contracts/nft-layer",
+              "contracts/compliance",
               "contracts/multi-token-layer",
               "contracts/escrow",
               "contracts/ramp-settlement"

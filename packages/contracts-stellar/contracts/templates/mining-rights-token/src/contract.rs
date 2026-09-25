@@ -154,6 +154,22 @@ impl MiningRightsToken {
         verifier::set_identity_verifier(&env, &new_verifier);
     }
 
+    // ─── Compliance policy (opt-in freeze / clawback / transfer rules) ──
+
+    pub fn set_compliance_policy(env: Env, new_policy: Option<Address>) {
+        ankara_common::compliance::set_compliance_policy(&env, &new_policy);
+    }
+
+    pub fn compliance_policy(env: Env) -> Option<Address> {
+        ankara_common::compliance::compliance_policy(&env)
+    }
+
+    /// Callable only by the attached compliance-policy contract. `to = None`
+    /// burns the clawed-back amount.
+    pub fn clawback(env: Env, from: Address, amount: i128, to: Option<Address>) {
+        ankara_common::compliance::clawback(&env, &from, amount, &to);
+    }
+
     pub fn link_to_nft(env: Env, nft_address: Address) {
         asset::link_nft(&env, &nft_address);
     }

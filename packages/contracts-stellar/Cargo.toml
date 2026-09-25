@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
     "contracts/common",
+    "contracts/compliance/compliance-policy",
+    "contracts/compliance/reserve-attestation",
     "contracts/templates/farmland-token",
     "contracts/templates/commodity-receipt-token",
     "contracts/templates/real-estate-token",

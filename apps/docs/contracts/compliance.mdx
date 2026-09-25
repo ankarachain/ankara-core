@@ -1,0 +1,108 @@
+---
+title: Reserve Attestation & Compliance
+description: Proof-of-reserve and issuer compliance controls (freeze, clawback, transfer caps) for Stellar-issued assets.
+---
+
+Two opt-in primitives for anyone issuing a reserve-backed asset (a stablecoin, or any
+token promising 1:1 backing) or operating under a compliance regime. Both are
+Stellar-only.
+
+---
+
+## reserve-attestation — proof of reserve
+
+Designated attestors (an auditor, a custodian bank, the issuer's treasury) post the
+current off-chain reserve balance. Anyone can check backing before transacting.
+
+- **Quorum** — with `quorum = n`, a report is finalized once `n` distinct attestors have
+  submitted for the current round. The **lowest** submitted amount is published, so one
+  attestor over-reporting can't inflate the reserve. `quorum = 1` is a single-poster setup
+  shaped like `manual-oracle`.
+- **Staleness** — `is_stale()` is true with no report, or once the latest report is older
+  than `staleness_threshold` seconds. A half-filled round older than the threshold is
+  discarded on the next submission.
+- **Units** — amounts are in the asset's smallest unit (same decimals as the token), so
+  they compare directly against its live `total_supply`.
+
+| Function | Access |
+|---|---|
+| `initialize(admin, asset, attestors, quorum, staleness_threshold)` | once |
+| `submit(attestor, amount, report_hash) -> bool` (true = finalized) | attestor |
+| `add_attestor` / `remove_attestor` / `set_quorum` / `set_staleness_threshold` | admin |
+| `latest_report()`, `get_report(round)`, `get_reserve() -> (amount, ts)`, `pending_round()` | anyone |
+| `is_stale()`, `outstanding_supply()`, `collateralization_bps()`, `is_fully_backed()` | anyone |
+
+`is_fully_backed()` = fresh report **and** reserve ≥ the asset's live `total_supply`.
+
+```ts
+import { ReserveAttestation } from "@ankarachain/sdk";
+
+// As an attestor
+const reserve = new ReserveAttestation(attestorAdapter, RESERVE);
+await reserve.submit(1_000_000n * 10n ** 18n, "0x" + sha256Hex(bankStatementPdf));
+
+// Anyone, before accepting the asset
+const reader = new ReserveAttestation(anyAdapter, RESERVE);
+if (!(await reader.isFullyBacked())) throw new Error("reserve stale or below supply");
+console.log(await reader.collateralizationBps()); // 10_000 = exactly 1:1
+```
+
+```bash
+RESERVE=$(stellar contract deploy --wasm target/wasm32v1-none/release/reserve_attestation.wasm --source deployer --network testnet)
+stellar contract invoke --id $RESERVE --source deployer --network testnet -- initialize \
+  --admin <ADMIN> --asset <TOKEN> --attestors '["<ATTESTOR_1>","<ATTESTOR_2>"]' --quorum 2 --staleness_threshold 86400
+```
+
+---
+
+## compliance-policy — freeze, clawback, transfer rules
+
+Beyond the yes/no identity gate, regulated issuance usually requires the issuer to be able
+to **freeze** or **reverse** a specific holder's balance (court order, fraud, sanctions).
+
+Every fungible template (farmland, commodity, real estate, invoice, carbon credit, mining
+rights) now has an optional `compliance_policy` slot. When a policy is attached, the token
+asks it `can_transfer(token, from, to, amount)` before every transfer, mint (`from = None`)
+and burn (`to = None`). **With no policy attached, tokens behave exactly as before.**
+
+The reference `compliance-policy` contract enforces:
+
+- **Freeze** — a frozen account can't send, receive or burn. The reason (e.g. a court-order
+  reference) is stored on-chain.
+- **Per-transfer cap** — optional maximum for holder-to-holder transfers (mints and burns
+  aren't capped).
+- **Clawback** — forced burn, or forced transfer to a recovery address. Works even while
+  the holder is frozen. Only the attached policy contract can trigger a token's
+  `clawback`, so a token without a policy can never be clawed back.
+
+| Token entry point | Access |
+|---|---|
+| `set_compliance_policy(Option<policy>)` | token Manager |
+| `compliance_policy()` | anyone |
+| `clawback(from, amount, to: Option<Address>)` | the attached policy contract only |
+
+| Policy function | Access |
+|---|---|
+| `freeze(account, reason)` / `unfreeze(account)` | policy admin |
+| `set_max_transfer_amount(amount)` (0 = none) | policy admin |
+| `clawback(token, from, amount, to)` | policy admin |
+| `is_frozen`, `freeze_record`, `max_transfer_amount`, `can_transfer` | anyone |
+
+One policy can serve every token an issuer runs; freezes apply to all tokens pointed at it.
+
+```ts
+import { AssetRegistry, CompliancePolicy } from "@ankarachain/sdk";
+
+const policy = new CompliancePolicy(adminAdapter, POLICY);
+await new AssetRegistry(adminAdapter, TOKEN, "invoice").setCompliancePolicy(POLICY);
+
+await policy.freeze("GSUSPECT...", "court-order-2026-117");
+await policy.clawback(TOKEN, "GSUSPECT...", 5_000n);                 // burn
+await policy.clawback(TOKEN, "GLOSTKEY...", 100n, "GRECOVERY...");   // move
+```
+
+```bash
+POLICY=$(stellar contract deploy --wasm target/wasm32v1-none/release/compliance_policy.wasm --source deployer --network testnet)
+stellar contract invoke --id $POLICY --source deployer --network testnet -- initialize --admin <ADMIN>
+stellar contract invoke --id <TOKEN> --source deployer --network testnet -- set_compliance_policy --new_policy "\"$POLICY\""
+```
