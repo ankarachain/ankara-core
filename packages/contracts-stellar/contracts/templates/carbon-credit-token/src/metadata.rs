@@ -27,6 +27,11 @@ pub struct RetirementRecord {
     pub timestamp: u64,
     pub beneficiary: String,
     pub retirement_note: String,
+    /// Optional cross-reference to an independent verification body's
+    /// record of this retirement (e.g. a Verra/Gold Standard serial or
+    /// retirement ID). Can be supplied at retirement time, or attached once
+    /// afterwards by the Manager — registries often issue the ID later.
+    pub external_registry_id: Option<String>,
 }
 
 #[contracttype]
@@ -94,6 +99,7 @@ pub fn record_retirement(
     amount: i128,
     beneficiary: String,
     retirement_note: String,
+    external_registry_id: Option<String>,
 ) -> u32 {
     let index = total_retirements(env);
     let key = MetaDataKey::Retirement(index);
@@ -105,6 +111,7 @@ pub fn record_retirement(
             timestamp: env.ledger().timestamp(),
             beneficiary,
             retirement_note,
+            external_registry_id,
         },
     );
     env.storage().persistent().extend_ttl(
@@ -118,4 +125,23 @@ pub fn record_retirement(
     let total = total_retired(env) + amount;
     env.storage().instance().set(&MetaDataKey::TotalRetired, &total);
     index
+}
+
+/// Attaches an external registry ID to an existing retirement. Returns
+/// `false` (and changes nothing) if one is already set — a retirement's
+/// registry cross-reference is write-once, like the retirement itself.
+pub fn set_external_registry_id(env: &Env, index: u32, registry_id: String) -> bool {
+    let key = MetaDataKey::Retirement(index);
+    let mut record: RetirementRecord = env.storage().persistent().get(&key).unwrap();
+    if record.external_registry_id.is_some() {
+        return false;
+    }
+    record.external_registry_id = Some(registry_id);
+    env.storage().persistent().set(&key, &record);
+    env.storage().persistent().extend_ttl(
+        &key,
+        METADATA_LIFETIME_THRESHOLD,
+        METADATA_BUMP_AMOUNT,
+    );
+    true
 }

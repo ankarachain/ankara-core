@@ -1,0 +1,16 @@
+[package]
+name = "revenue-distributor"
+version = "0.0.1"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+farmland-token = { path = "../../templates/farmland-token" }
+real-estate-token = { path = "../../templates/real-estate-token" }

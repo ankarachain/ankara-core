@@ -47,3 +47,24 @@ fn mint_and_update_valuation() {
     assert_eq!(client.get_metadata(&token_id).valuation_usd, 300_000_0000000_i128);
     assert_eq!(client.metadata_version(&token_id), 2);
 }
+
+#[test]
+fn title_flags_and_custody_log() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_, client) = setup(&env);
+    let holder = Address::generate(&env);
+    let developer = Address::generate(&env);
+    let id = client.mint(&holder, &sample_metadata(&env, &developer));
+    let s = |v: &str| String::from_str(&env, v);
+
+    client.set_lien(&id, &Some(s("Mortgage: FirstBank #2026-55")));
+    assert!(client.title_flags(&id).liened);
+    client.set_lien(&id, &None);
+    assert!(!client.title_flags(&id).liened);
+
+    client.append_custody(&id, &s("Lekki Dev Ltd"), &s("Governor's Consent LA-2019-1"), &1_560_000_000);
+    client.append_custody(&id, &s("Adaeze Okafor"), &s("Deed 2023/88"), &1_690_000_000);
+    assert_eq!(client.custody_count(&id), 2);
+    assert_eq!(client.custody_log(&id, &0, &50).get(1).unwrap().owner, s("Adaeze Okafor"));
+}

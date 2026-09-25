@@ -110,6 +110,49 @@ impl RealEstateNFT {
         asset::link_erc20(&env, &erc20_address);
     }
 
+    // ─── Title encumbrances & chain of custody (Role::Manager writes) ───
+
+    /// `Some(reference)` flags the title as disputed (e.g. a court case
+    /// number); `None` clears it.
+    pub fn set_dispute(env: Env, token_id: u64, reference: Option<String>) {
+        ankara_common::title::set_dispute(&env, token_id, reference);
+    }
+
+    /// `Some(reference)` flags a lien (e.g. lender + registration ID);
+    /// `None` clears it.
+    pub fn set_lien(env: Env, token_id: u64, reference: Option<String>) {
+        ankara_common::title::set_lien(&env, token_id, reference);
+    }
+
+    pub fn title_flags(env: Env, token_id: u64) -> ankara_common::title::TitleFlags {
+        ankara_common::title::title_flags(&env, token_id)
+    }
+
+    /// Append-only: records a prior/current owner and the deed or transfer
+    /// instrument. Returns the entry's index.
+    pub fn append_custody(
+        env: Env,
+        token_id: u64,
+        owner: String,
+        reference: String,
+        effective_at: u64,
+    ) -> u32 {
+        ankara_common::title::append_custody(&env, token_id, owner, reference, effective_at)
+    }
+
+    pub fn custody_count(env: Env, token_id: u64) -> u32 {
+        ankara_common::title::custody_count(&env, token_id)
+    }
+
+    pub fn custody_log(
+        env: Env,
+        token_id: u64,
+        start: u32,
+        limit: u32,
+    ) -> soroban_sdk::Vec<ankara_common::title::CustodyEntry> {
+        ankara_common::title::custody_log(&env, token_id, start, limit)
+    }
+
     pub fn transfer(env: Env, from: Address, to: Address, token_id: u64) {
         nft::transfer(&env, &from, &to, token_id);
     }

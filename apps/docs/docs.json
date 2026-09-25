@@ -37,6 +37,7 @@
             "group": "Asset Templates",
             "pages": [
               "templates/overview",
+              "templates/income-and-liquidity",
               "templates/farmland",
               "templates/commodity",
               "templates/real-estate",

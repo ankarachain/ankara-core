@@ -134,3 +134,68 @@ fn set_status_updates_lifecycle() {
     client.set_status(&AssetStatus::Active);
     assert_eq!(client.status(), AssetStatus::Active);
 }
+
+#[test]
+fn dispute_and_lien_flags() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_, client) = setup(&env);
+    let holder = Address::generate(&env);
+    let id = client.mint(&holder, &sample_metadata(&env));
+
+    let flags = client.title_flags(&id);
+    assert!(!flags.disputed && !flags.liened);
+
+    client.set_dispute(&id, &Some(String::from_str(&env, "FHC/KD/CS/2026/117")));
+    client.set_lien(&id, &Some(String::from_str(&env, "Bank of Agriculture lien #88")));
+    let flags = client.title_flags(&id);
+    assert!(flags.disputed);
+    assert!(flags.liened);
+    assert_eq!(flags.dispute_ref, String::from_str(&env, "FHC/KD/CS/2026/117"));
+
+    client.set_dispute(&id, &None);
+    let flags = client.title_flags(&id);
+    assert!(!flags.disputed);
+    assert!(flags.liened);
+    assert_eq!(flags.dispute_ref, String::from_str(&env, ""));
+
+    // Unknown token.
+    assert!(client.try_set_lien(&999, &None).is_err());
+}
+
+#[test]
+fn custody_log_is_append_only_and_paginated() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (admin, client) = setup(&env);
+    let holder = Address::generate(&env);
+    let id = client.mint(&holder, &sample_metadata(&env));
+
+    let s = |v: &str| String::from_str(&env, v);
+    assert_eq!(client.append_custody(&id, &s("Alhaji Musa"), &s("C of O KD-1998-0042"), &900_000_000), 0);
+    assert_eq!(client.append_custody(&id, &s("Musa Family Trust"), &s("Deed of Assignment 2011/33"), &1_300_000_000), 1);
+    assert_eq!(client.append_custody(&id, &s("Kaduna Agro Coop"), &s("Deed 2024/7"), &1_700_000_000), 2);
+    assert_eq!(client.custody_count(&id), 3);
+
+    let all = client.custody_log(&id, &0, &10);
+    assert_eq!(all.len(), 3);
+    assert_eq!(all.get(0).unwrap().owner, s("Alhaji Musa"));
+    assert_eq!(all.get(2).unwrap().recorded_by, admin);
+
+    let page = client.custody_log(&id, &1, &1);
+    assert_eq!(page.len(), 1);
+    assert_eq!(page.get(0).unwrap().reference, s("Deed of Assignment 2011/33"));
+}
+
+#[test]
+#[should_panic]
+fn title_writes_require_manager() {
+    let env = Env::default();
+    let (_, client) = {
+        env.mock_all_auths();
+        setup(&env)
+    };
+    let id = client.mint(&Address::generate(&env), &sample_metadata(&env));
+    env.set_auths(&[]);
+    client.set_dispute(&id, &Some(String::from_str(&env, "x")));
+}

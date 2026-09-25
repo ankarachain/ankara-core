@@ -167,3 +167,51 @@ fn mint_succeeds_when_no_verifier_configured() {
     client.mint(&holder, &500);
     assert_eq!(client.balance(&holder), 500);
 }
+
+#[test]
+fn snapshots_capture_historical_balances_and_supply() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (_, client, _) = setup(&env);
+    let a = Address::generate(&env);
+    let b = Address::generate(&env);
+
+    client.mint(&a, &100);
+    assert_eq!(client.current_snapshot_id(), 0);
+    assert!(client.try_balance_of_at(&a, &1).is_err());
+
+    let s1 = client.snapshot();
+    assert_eq!(s1, 1);
+    client.transfer(&a, &b, &40);
+    client.mint(&b, &10);
+
+    let s2 = client.snapshot();
+    client.transfer(&b, &a, &50);
+    client.burn(&a, &20);
+
+    // Snapshot 1: before any of the post-snapshot changes.
+    assert_eq!(client.balance_of_at(&a, &s1), 100);
+    assert_eq!(client.balance_of_at(&b, &s1), 0);
+    assert_eq!(client.total_supply_at(&s1), 100);
+    // Snapshot 2.
+    assert_eq!(client.balance_of_at(&a, &s2), 60);
+    assert_eq!(client.balance_of_at(&b, &s2), 50);
+    assert_eq!(client.total_supply_at(&s2), 110);
+    // Live.
+    assert_eq!(client.balance(&a), 90);
+    assert_eq!(client.balance(&b), 0);
+    assert_eq!(client.total_supply(), 90);
+
+    // An account untouched since snapshot 2 reads its live balance.
+    let s3 = client.snapshot();
+    assert_eq!(client.balance_of_at(&a, &s3), 90);
+    assert!(client.try_total_supply_at(&4).is_err());
+}
+
+#[test]
+#[should_panic]
+fn snapshot_requires_manager() {
+    let env = Env::default();
+    let (_, client, _) = setup(&env);
+    client.snapshot();
+}

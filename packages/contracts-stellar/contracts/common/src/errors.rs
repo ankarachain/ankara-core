@@ -24,4 +24,6 @@ pub enum CommonError {
     AlreadyRegistered = 12,
     NotRegistered = 13,
     MaxSupplyExceeded = 14,
+    /// `balance_of_at`/`total_supply_at` for a snapshot id that doesn't exist.
+    SnapshotNotFound = 17,
 }
