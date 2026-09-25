@@ -31,6 +31,13 @@ export type {
 } from "./types/payments";
 export type { RampPaymentInstructions } from "./types";
 export { CollateralVault } from "./core/CollateralVault";
+// Group + score-based lending (Stellar-only)
+export { SavingsCircle }      from "./core/SavingsCircle";
+export { ManualCreditScorer } from "./core/ManualCreditScorer";
+export type {
+  ScoreTier, ScoreConfig, ScoredTerms, CreditScore, CircleMode, CircleStatus, SavingsCircleInfo,
+  CircleMemberState, CreateCircleInput,
+} from "./types/lending";
 export { IndexerClient }   from "./core/IndexerClient";
 // RWA income + liquidity (Stellar-only): pro-rata revenue distribution, RFQ/OTC market
 export { RevenueDistributor } from "./core/RevenueDistributor";

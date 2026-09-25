@@ -31,6 +31,8 @@ members = [
     "contracts/payments/batch-disburser",
     "contracts/factory/escrow-factory",
     "contracts/ramp/ramp-settlement",
+    "contracts/lending/manual-credit-scorer",
+    "contracts/lending/savings-circle",
     "contracts/factory/ramp-settlement-factory",
     "contracts/factory/ankara-factory-registry",
 ]
