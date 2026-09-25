@@ -67,6 +67,12 @@
             ]
           },
           {
+            "group": "Insurance",
+            "pages": [
+              "contracts/insurance"
+            ]
+          },
+          {
             "group": "MCP Server",
             "pages": [
               "mcp/overview"

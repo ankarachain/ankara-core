@@ -24,6 +24,7 @@ members = [
     "contracts/collateral-vault",
     "contracts/oracle/sep40-oracle-adapter",
     "contracts/factory/token-factory",
+    "contracts/insurance/risk-pool",
     "contracts/factory/nft-factory",
     "contracts/factory/multi-token-factory",
     "contracts/escrow/milestone-escrow",
