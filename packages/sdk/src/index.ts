@@ -6,6 +6,10 @@
 
 // Core classes
 export { TokenFactory }    from "./core/TokenFactory";
+// Identity (Stellar-only): deployable verifier + generic attestation registry
+export { WhitelistVerifier }   from "./core/WhitelistVerifier";
+export { AttestationRegistry } from "./core/AttestationRegistry";
+export type { VerificationRecord, Attestation, AttestationSubject, AttestInput } from "./types/identity";
 export { AssetRegistry }   from "./core/AssetRegistry";
 export { EscrowManager }   from "./core/EscrowManager";
 export { RampManager }     from "./core/RampManager";
