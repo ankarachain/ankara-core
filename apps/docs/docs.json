@@ -55,6 +55,7 @@
               "contracts/multi-token-layer",
               "contracts/oracles",
               "contracts/escrow",
+              "contracts/payments",
               "contracts/ramp-settlement"
             ]
           },

@@ -25,6 +25,8 @@ members = [
     "contracts/factory/nft-factory",
     "contracts/factory/multi-token-factory",
     "contracts/escrow/milestone-escrow",
+    "contracts/payments/payment-stream",
+    "contracts/payments/batch-disburser",
     "contracts/factory/escrow-factory",
     "contracts/ramp/ramp-settlement",
     "contracts/factory/ramp-settlement-factory",

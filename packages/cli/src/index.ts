@@ -11,6 +11,7 @@ import { statusCommand }        from "./commands/status.js";
 import { mintCommand }          from "./commands/mint.js";
 import { registerBatchCommand } from "./commands/register-batch.js";
 import { batchMintCommand }     from "./commands/batch-mint.js";
+import { batchPayCommand }      from "./commands/batch-pay.js";
 import { depositCommand }       from "./commands/deposit.js";
 import { withdrawCommand }      from "./commands/withdraw.js";
 import { poolStatusCommand }    from "./commands/pool-status.js";
@@ -100,6 +101,17 @@ program
   .command("batch-mint")
   .description("Mint ERC-1155 commodity batch tokens to a recipient")
   .action(batchMintCommand);
+
+// ── batch-pay ─────────────────────────────────────────────────────────────────
+program
+  .command("batch-pay")
+  .description("Pay many recipients from a CSV (recipient,amount) via a Stellar batch-disburser contract")
+  .option("--contract <address>", "BatchDisburser contract address")
+  .option("--token <address>", "Token contract to pay in (e.g. USDC SAC)")
+  .option("--file <path>", "CSV file with recipient,amount rows")
+  .option("--reference <text>", "Reference string emitted on-chain")
+  .option("-y, --yes", "Skip the confirmation prompt")
+  .action(batchPayCommand);
 
 // ── deposit ───────────────────────────────────────────────────────────────────
 program
