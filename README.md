@@ -13,9 +13,10 @@ ankarachain/
 │   ├── cli/               # CLI tool (npx ankara)
 │   └── mcp/               # MCP server for AI-assisted deployment (@ankarachain/mcp)
 └── apps/
-    ├── web/               # Landing page
-    └── docs/              # Mintlify documentation site
+    └── web/               # Landing page
 ```
+
+Documentation: [docs.ankarachain.dev](https://docs.ankarachain.dev) (source: [ankarachain/docs](https://github.com/ankarachain/docs)).
 
 ## Quick Start
 ```bash

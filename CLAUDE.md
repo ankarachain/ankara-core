@@ -15,7 +15,6 @@ packages/
   cli/             # CLI tool (npx ankara) wrapping the SDK
 apps/
   web/             # Static landing page
-  docs/            # Mintlify documentation site
 ```
 
 ## Commands
@@ -54,11 +53,8 @@ npm run dev            # tsup --watch
 npm run start          # node dist/index.js
 ```
 
-### Docs (`apps/docs`)
-```bash
-npm run dev            # mintlify dev
-npm run build          # mintlify build
-```
+### Docs
+The Mintlify docs live in a separate repo, [ankarachain/docs](https://github.com/ankarachain/docs), published at https://docs.ankarachain.dev. When a change adds or alters public SDK API, CLI commands or contracts, update the matching page there.
 
 ## Architecture
 
