@@ -1,7 +1,7 @@
 # Ankara Chain SDK
 
 > The open-source RWA tokenization infrastructure for African markets.
-> Built by [PIE Drops Studio](https://piedrops.com) · MIT Licensed
+> Built by [PIE Drops Studio](https://piedrops.com) · MIT Licensed · [Documentation](https://docs.ankarachain.dev)
 
 ## Monorepo Structure
 ```
